@@ -10,9 +10,10 @@ Roughly half of this project's implementation and documentation was produced in 
 
 | Project | Role | License / Terms |
 |---------|------|-----------------|
-| [Elite Dangerous Market Connector (EDMC)](https://github.com/EDCD/EDMarketConnector) | Host application and plugin API | [GPL-2.0](https://github.com/EDCD/EDMarketConnector/blob/main/COPYING) |
+| [Elite Dangerous Market Connector (EDMC)](https://github.com/EDCD/EDMarketConnector) | Host application and plugin API, including the `myNotebook`, `theme`, and `config` modules imported at runtime (see `docs/tech-spec.md` §3.3) | [GPL-2.0](https://github.com/EDCD/EDMarketConnector/blob/main/COPYING) |
 | Python Standard Library | Plugin runtime (provided by EDMC) | PSF License |
 | Node.js | Build tooling only (`scripts/build.mjs`) | [MIT](https://github.com/nodejs/node/blob/main/LICENSE) |
+| Windows PowerShell `Compress-Archive` | Packaging tooling only (`scripts/package.mjs`, zips the build output) | Proprietary (Microsoft, bundled with Windows) |
 
 EDPPMT is an independent third-party plugin. It is not affiliated with, endorsed by, or maintained by the EDMC development team.
 
