@@ -46,7 +46,7 @@ Turn it off from the Settings tab if you'd rather update manually. If you're act
 
 ## What it shows
 
-- **Main EDMC panel** — pledged Power and rank (e.g. `Pledged to Yuri Grom (Rank 3)`), the current system and its PowerPlay state (e.g. `System: Nervi — Exploited (Zachary Hudson)`), live session merits, estimated CP, and merits/hr and credits/hr rates, updated as journal events arrive; a version link in the corner that doubles as the update-status indicator (see Updates above). If your commander isn't pledged, it says so directly: `CMDR <name>: not a PP Pledge`.
+- **Main EDMC panel** — pledged Power and rank (e.g. `Pledged to Yuri Grom (Rank 3)`), the current system and its PowerPlay state (e.g. `System: Nervi — Exploited (Zachary Hudson)`), live session merits, estimated CP for the current session, cumulative estimated CP across the current session plus all saved history, and merits/hr and credits/hr rates, updated as journal events arrive; a version link in the corner that doubles as the update-status indicator (see Updates above). If your commander isn't pledged, it says so directly: `CMDR <name>: not a PP Pledge`.
 - **Sessions window** (click "Sessions" in the panel):
   - **Current Session** tab — a per-activity breakdown (Acquisition / Reinforcement / Undermining / Delivery-Donation / Unattributed): merits, the ratio used, estimated CP, and CP/hr; the system name and raw `PowerplayState`/`Powers` last seen (for sanity-checking a row that looks wrong); and credits earned this session plus the rate.
   - **History** tab — every past session (bounded to the most recent 200), so you can compare sessions later, not just watch the live one.

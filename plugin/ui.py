@@ -96,6 +96,15 @@ def create_plugin_app(parent: tk.Frame, on_show_details: Callable[[], None]) -> 
     return _frame
 
 
+def _session_cp(session: dict) -> float:
+    """Est. CP for a single session, from its raw merit totals."""
+    return sum(
+        merits_to_cp(session.get("totals", {}).get(activity, 0), ratio_for(activity))
+        for activity in ACTIVITIES
+        if activity not in NO_CP_ACTIVITIES
+    )
+
+
 def refresh(sessions: SessionManager, pp: PowerplayTracker) -> None:
     """Update the main-window summary strip from the live session."""
     if _summary_label is None:
@@ -107,15 +116,12 @@ def refresh(sessions: SessionManager, pp: PowerplayTracker) -> None:
     session = sessions.current
     merits = total_merits(session)
     hours = duration_hours(session)
-    cp_total = sum(
-        merits_to_cp(session["totals"].get(activity, 0), ratio_for(activity))
-        for activity in ACTIVITIES
-        if activity not in NO_CP_ACTIVITIES
-    )
+    cp_total = _session_cp(session)
+    cumulative_cp = cp_total + sum(_session_cp(s) for s in sessions.history)
     earned = credits_earned(session)
     money_rate = per_hour(earned, hours) if earned is not None else None
 
-    parts = [f"Merits: {merits}", f"Est. CP: {cp_total:.0f}"]
+    parts = [f"Merits: {merits}", f"Est. CP: {cp_total:.0f}", f"Total CP: {cumulative_cp:.0f}"]
     if hours > 0:
         parts.append(f"{per_hour(merits, hours):.0f}/hr")
     if earned is not None:
