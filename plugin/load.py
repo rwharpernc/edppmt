@@ -1,0 +1,195 @@
+"""
+EDPPMT entry point for Elite Dangerous Market Connector.
+
+Tracks PowerPlay merits earned per session (auto-bounded by game login),
+estimates the Control Points those merits represent for Acquisition,
+Reinforcement, and Undermining activity based on the system a commander is in
+when they earn them, and tracks session credit income alongside it.
+"""
+
+from __future__ import annotations
+
+import logging
+import os
+from typing import Any, Dict, Optional
+
+import tkinter as tk
+
+from config import appname
+
+from . import __version__
+from .formulas import ACTIVITY_LABELS
+from .powerplay import PowerplayTracker
+from .session import SessionManager
+from .store import SessionStore
+from . import ui
+from . import window
+
+plugin_name = os.path.basename(os.path.dirname(__file__))
+logger = logging.getLogger(f"{appname}.{plugin_name}")
+
+if not logger.hasHandlers():
+    level = logging.INFO
+    logger.setLevel(level)
+    logger_channel = logging.StreamHandler()
+    logger_formatter = logging.Formatter(
+        "%(asctime)s - %(name)s - %(levelname)s - "
+        "%(module)s:%(lineno)d:%(funcName)s: %(message)s",
+    )
+    logger_formatter.default_time_format = "%Y-%m-%d %H:%M:%S"
+    logger_formatter.default_msec_format = "%s.%03d"
+    logger_channel.setFormatter(logger_formatter)
+    logger.addHandler(logger_channel)
+
+_pp = PowerplayTracker()
+_sessions: Optional[SessionManager] = None
+_ui_frame: Optional[tk.Frame] = None
+
+# Journal events that carry PowerplayState/Powers for the current system when
+# it's powerplay-relevant. "Location" is handled separately below (it also
+# doubles as the not-pledged checkpoint).
+_SYSTEM_CONTEXT_EVENTS = ("FSDJump", "Docked")
+
+
+def plugin_start3(plugin_dir: str) -> str:
+    """Load EDPPMT into EDMarketConnector."""
+    global _sessions
+    logger.info("EDPPMT v%s starting from %s", __version__, plugin_dir)
+    _sessions = SessionManager(SessionStore(plugin_dir))
+    return "EDPPMT"
+
+
+def plugin_stop() -> None:
+    """EDMarketConnector is closing."""
+    if _sessions is not None:
+        _sessions.flush()
+    window.close()
+    logger.info("EDPPMT shutting down")
+
+
+def plugin_app(parent: tk.Frame) -> tk.Frame:
+    """Create EDPPMT widgets on the EDMC main window."""
+    global _ui_frame
+    _ui_frame = ui.create_plugin_app(parent, _show_sessions)
+    return _ui_frame
+
+
+def _show_sessions() -> None:
+    if _ui_frame is not None and _sessions is not None:
+        window.show(_ui_frame, _sessions, _pp)
+
+
+def plugin_prefs(parent, cmdr: str, is_beta: bool):
+    """Create the EDPPMT settings tab."""
+    return ui.create_prefs(parent)
+
+
+def prefs_changed(cmdr: str, is_beta: bool) -> None:
+    """Settings were saved."""
+    ui.save_prefs()
+    if _sessions is not None:
+        _sessions.flush()
+
+
+def journal_entry(
+    cmdr: str,
+    is_beta: bool,
+    system: str,
+    station: str,
+    entry: Dict[str, Any],
+    state: Dict[str, Any],
+) -> Optional[str]:
+    """Handle journal events for PowerPlay merit/CP tracking."""
+    if _sessions is None:
+        return None
+
+    try:
+        credits_now = state.get("Credits") if isinstance(state, dict) else None
+        if isinstance(credits_now, (int, float)):
+            _sessions.record_credits(int(credits_now))
+
+        return _dispatch(cmdr, entry)
+    finally:
+        ui.refresh(_sessions)
+        window.refresh()
+
+
+def _dispatch(cmdr: str, entry: Dict[str, Any]) -> Optional[str]:
+    assert _sessions is not None
+    event = entry.get("event", "")
+
+    if event == "LoadGame":
+        _pp.apply_login_reset()
+        credits_start = entry.get("Credits")
+        _sessions.start_session(cmdr, None, credits_start if isinstance(credits_start, int) else None)
+        logger.info("New session started for %s", cmdr)
+        ui.set_status(f"{cmdr}: checking PowerPlay pledge…")
+        return None
+
+    if event == "Powerplay":
+        _pp.apply_login_snapshot(entry)
+        _sessions.record_power(_pp.my_power)
+        ui.set_status(f"Pledged to {_pp.my_power}" if _pp.my_power else f"CMDR {cmdr}: not a PP Pledge")
+        return None
+
+    if event == "PowerplayJoin":
+        _pp.apply_join(entry)
+        _sessions.record_power(_pp.my_power)
+        ui.set_status(f"Pledged to {_pp.my_power}")
+        return None
+
+    if event == "PowerplayLeave":
+        _pp.apply_leave(entry)
+        ui.set_status("Left PowerPlay")
+        return None
+
+    if event == "PowerplayDefect":
+        _pp.apply_defect(entry)
+        _sessions.record_power(_pp.my_power)
+        ui.set_status(f"Defected to {_pp.my_power}")
+        return None
+
+    if event == "PowerplayRank":
+        _pp.apply_rank(entry)
+        return None
+
+    if event == "Location":
+        # "Location" always fires once at startup, after "Powerplay" would
+        # have if the commander is pledged — so if pledge status is still
+        # unresolved by now, there was no "Powerplay" event, meaning not
+        # pledged. See PowerplayTracker.apply_login_reset for why there's no
+        # more direct signal for this.
+        if _pp.confirm_not_pledged_if_unresolved():
+            logger.info("CMDR %s is not pledged to a Power", cmdr)
+            ui.set_status(f"CMDR {cmdr}: not a PP Pledge")
+        _pp.apply_system_context(entry)
+        return None
+
+    if event in _SYSTEM_CONTEXT_EVENTS:
+        _pp.apply_system_context(entry)
+        return None
+
+    if event == "PowerplayMerits":
+        return _handle_merits(entry)
+
+    return None
+
+
+def _handle_merits(entry: Dict[str, Any]) -> Optional[str]:
+    assert _sessions is not None
+
+    gained = _pp.apply_merits(entry)
+    _sessions.record_power(_pp.my_power)
+    if gained is None:
+        return None
+
+    activity = _pp.classify_current_activity()
+    _sessions.record_merits(activity, gained)
+
+    ratio = ui.ratio_for(activity)
+    cp = 0.0 if not ratio else gained / ratio
+    label = ACTIVITY_LABELS.get(activity, "Unattributed")
+    message = f"+{gained} merits ({label}, ~{cp:.1f} CP)"
+    logger.info(message)
+    ui.set_last_event(message)
+    return message

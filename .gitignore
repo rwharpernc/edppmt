@@ -1,0 +1,38 @@
+# Build output — copy dist/EDPPMT to EDMC plugins folder
+dist/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyo
+.Python
+*.egg-info/
+.eggs/
+*.egg
+.venv/
+venv/
+env/
+
+# Node
+node_modules/
+
+# IDE / OS
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Logs and local session data (installed copies write sessions.json alongside load.py)
+*.log
+.env
+.env.*
+plugin/sessions.json
+
+# AI assistant local config/context (kept locally, not tracked)
+.claude/
+CLAUDE.md
