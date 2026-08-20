@@ -134,8 +134,11 @@ class _CurrentTab:
         self._heading = ttk.Label(self.frame, text="", anchor=tk.W, justify=tk.LEFT)
         self._heading.pack(fill=tk.X, padx=10, pady=(10, 8))
 
-        table = ttk.Frame(self.frame)
-        table.pack(fill=tk.X, padx=10)
+        table = ttk.Frame(self.frame, padding=8, relief=tk.GROOVE, borderwidth=1)
+        table.pack(fill=tk.X, padx=14, pady=(0, 14))
+
+        style = ttk.Style(table)
+        style.configure("EDPPMT.Treeview", rowheight=26)
 
         self._tree = ttk.Treeview(
             table,
@@ -143,17 +146,18 @@ class _CurrentTab:
             show="headings",
             selectmode="none",
             height=len(ACTIVITIES) + 1,
+            style="EDPPMT.Treeview",
         )
         for col, text, width, anchor in (
-            ("activity", "Activity", 140, tk.W),
-            ("merits", "Merits", 90, tk.E),
-            ("ratio", "Merits/CP", 90, tk.E),
-            ("cp", "Est. CP", 90, tk.E),
-            ("cp_hr", "CP/hr", 90, tk.E),
+            ("activity", "Activity", 150, tk.W),
+            ("merits", "Merits", 100, tk.E),
+            ("ratio", "Merits/CP", 100, tk.E),
+            ("cp", "Est. CP", 100, tk.E),
+            ("cp_hr", "CP/hr", 100, tk.E),
         ):
             self._tree.heading(col, text=text)
             self._tree.column(col, width=width, anchor=anchor, stretch=(col == "activity"))
-        self._tree.pack(fill=tk.X)
+        self._tree.pack(fill=tk.X, padx=4, pady=4)
 
         money = ttk.Frame(self.frame)
         money.pack(fill=tk.X, padx=10, pady=(14, 0))

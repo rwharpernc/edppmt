@@ -9,10 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **Byline and AI-assistance credit.** README, LICENSE, and docs now credit
-  R.W. Harper (CMDR Bocheaux) as author, and note that roughly half of the
-  project's implementation and documentation was done in collaboration with
-  Claude (Anthropic).
+- **Byline.** README and LICENSE now credit R.W. Harper (CMDR Bocheaux) as
+  author.
 - **Settings tab clarification.** The ratio-editing Settings tab now notes
   that system penalties, ethos bonuses, and Squadron PP bonuses are already
   factored into the merit amount the journal reports, so the merits-per-CP

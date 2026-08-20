@@ -8,8 +8,6 @@ A lightweight [Elite Dangerous Market Connector](https://github.com/EDCD/EDMarke
 **Version:** 1.1.0
 **License:** [MIT](LICENSE)
 
-*Built with AI assistance — roughly half of this project's development (implementation and docs) was done in collaboration with Claude (Anthropic).*
-
 ---
 
 ## Why
