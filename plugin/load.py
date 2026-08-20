@@ -23,7 +23,7 @@ from .formulas import ACTIVITY_LABELS
 from .powerplay import PowerplayTracker
 from .session import SessionManager
 from .store import SessionStore
-from .update import UpdateManager
+from .update import UpdateManager, check_applied_update
 from . import ui
 from . import window
 
@@ -62,16 +62,29 @@ def plugin_start3(plugin_dir: str) -> str:
     global _sessions, _updater
     logger.info("EDPPMT v%s starting from %s", __version__, plugin_dir)
     _sessions = SessionManager(SessionStore(plugin_dir))
-    _updater = UpdateManager(plugin_dir, on_ready=_on_update_ready)
+
+    applied_version = check_applied_update()
+    if applied_version is not None:
+        logger.info("EDPPMT updated to v%s", applied_version)
+        ui.set_update_applied(applied_version)
+
+    _updater = UpdateManager(plugin_dir, on_ready=_on_update_ready, on_downloading=_on_update_downloading)
     _updater.check_async()
     return "EDPPMT"
+
+
+def _on_update_downloading(version: str) -> None:
+    # Called from the update-check background thread — marshal onto the Tk
+    # main thread before touching any widgets.
+    if _ui_frame is not None:
+        _ui_frame.after(0, lambda: ui.set_update_downloading(version))
 
 
 def _on_update_ready(version: str) -> None:
     # Called from the update-check background thread — marshal onto the Tk
     # main thread before touching any widgets.
     if _ui_frame is not None:
-        _ui_frame.after(0, lambda: ui.set_update_status(f"EDPPMT v{version} downloaded — restart EDMC to apply"))
+        _ui_frame.after(0, lambda: ui.set_update_downloaded(version))
 
 
 def plugin_stop() -> None:

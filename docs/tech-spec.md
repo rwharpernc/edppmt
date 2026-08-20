@@ -1,6 +1,6 @@
 # EDPPMT Technical Specification
 
-**Version:** 1.3.1
+**Version:** 1.4.0
 **Author:** R.W. Harper (CMDR Bocheaux)
 **Last updated:** 2026-08-20
 
@@ -160,12 +160,29 @@ Stored as EDMC config string values, one per activity: `edppmt_ratio_acquisition
 Otherwise it spawns a daemon thread that:
 
 1. **GETs** `https://api.github.com/repos/rwharpernc/edppmt/releases/latest` (skips draft/prerelease responses) and compares its `tag_name` against `plugin.__version__`, both parsed as plain `(major, minor, patch)` integer tuples — no `semantic_version` dependency, since project versions never carry prerelease/build suffixes. A newer *or equal* remote version is a no-op.
-2. If newer, **downloads** the first `.zip` release asset to `plugin_dir/updates/`.
+2. If newer, calls `on_downloading(version)` (see below), then **downloads** the first `.zip` release asset to `plugin_dir/updates/`.
 3. **Backs up** the current plugin folder to a timestamped zip in `plugin_dir/backups/` (walking `plugin_dir`, excluding `updates/`, `backups/`, `__pycache__/`, and `sessions.json`), then trims backups down to the 3 most recent.
 4. **Extracts** the downloaded zip over `plugin_dir`, stripping the top-level `EDPPMT/` folder the release zip is packaged with (see `scripts/package.mjs`) — so files land directly in `plugin_dir`, and `sessions.json` is skipped by name even though it never appears in the zip anyway (it isn't part of the distributed source, same as the repo's own `.gitignore`).
-5. Calls `on_ready(version)` (the callback passed to `UpdateManager.__init__`) — `load.py` marshals this onto the Tk main thread via `frame.after(0, ...)` before touching any widget, since `update.py` itself has no Tkinter dependency and runs entirely off the main thread up to this point.
+5. Calls `on_ready(version)` (the callback passed to `UpdateManager.__init__`).
 
-Nothing here reloads running code — Python already has the old modules loaded in memory for this process. The staged files only take effect the *next* time EDMC starts, which is why step 5 surfaces a "restart to apply" notice (`ui.set_update_status`) in the main panel rather than claiming the update is live.
+Both `on_downloading` and `on_ready` are plain callbacks handed to `UpdateManager.__init__`; `load.py` marshals each onto the Tk main thread via `frame.after(0, ...)` before touching any widget, since `update.py` itself has no Tkinter dependency and runs entirely off the main thread up to this point.
+
+Nothing here reloads running code — Python already has the old modules loaded in memory for this process. The staged files only take effect the *next* time EDMC starts.
+
+### 10.1 Update status UI
+
+The main panel and Settings tab each show a `ttkHyperlinkLabel.HyperlinkLabel` (`ui._version_label` / `ui._prefs_version_label`) linking to `update.RELEASES_PAGE_URL` (`https://github.com/rwharpernc/edppmt/releases/latest`). Both labels are driven from one module-level `ui._version_state` tuple (`kind`, `version`), applied by `ui._apply_version_state()`, so the two stay in sync:
+
+| Kind | Text (main panel) | Color | Set by |
+|------|--------------------|-------|--------|
+| `normal` | `vX.Y.Z` | blue `#1e88c7` | default at widget creation |
+| `downloading` | `Downloading vX.Y.Z…` | orange `#c07000` | `ui.set_update_downloading`, from `UpdateManager`'s `on_downloading` |
+| `downloaded` | `vX.Y.Z downloaded — restart to apply` | red `#d9534f` | `ui.set_update_downloaded`, from `on_ready` |
+| `updated` | `Updated to vX.Y.Z` | green `#2e7d32` | `ui.set_update_applied`, from `plugin_start3` (see below) |
+
+The Settings-tab label prefixes its text with `EDPPMT ` since it has no adjacent title to give that context; the main-panel label doesn't.
+
+`update.check_applied_update()` detects the `updated` case: it reads the `edppmt_last_version` config value written on the *previous* run, compares it to `plugin.__version__`, and rewrites it to the current version every run. A mismatch (and a non-empty previous value, so this doesn't fire on a first-ever install) means a staged update just took effect on this restart, and `plugin_start3` calls `ui.set_update_applied(version)` immediately — before `plugin_app` has created any widget, since `_apply_version_state()` is a no-op until the label exists, and `create_plugin_app`/`create_prefs` each call it again at the end of widget construction to pick up whatever state is already current.
 
 ## 11. Known Limitations
 

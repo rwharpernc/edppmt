@@ -28,11 +28,13 @@ plugin_name = os.path.basename(os.path.dirname(__file__))
 logger = logging.getLogger(f"{appname}.{plugin_name}")
 
 RELEASES_API_URL = "https://api.github.com/repos/rwharpernc/edppmt/releases/latest"
+RELEASES_PAGE_URL = "https://github.com/rwharpernc/edppmt/releases/latest"
 REQUEST_TIMEOUT_S = 15
 DOWNLOAD_TIMEOUT_S = 60
 HEADERS = {"User-Agent": "EDPPMT-auto-update"}
 
 CONFIG_AUTO_UPDATE = "edppmt_auto_update"
+CONFIG_LAST_VERSION = "edppmt_last_version"
 
 UPDATES_DIRNAME = "updates"
 BACKUPS_DIRNAME = "backups"
@@ -60,14 +62,35 @@ def _pad(a: Tuple[int, ...], b: Tuple[int, ...]) -> Tuple[Tuple[int, ...], Tuple
     return a + (0,) * (length - len(a)), b + (0,) * (length - len(b))
 
 
+def check_applied_update() -> Optional[str]:
+    """Compares the running version against the version recorded on the
+    previous run and records the current one for next time.
+
+    Returns the current version string if it differs from what was
+    previously recorded (i.e. a staged update just took effect on this
+    restart), or None on the first-ever run or when nothing changed.
+    """
+    previous = config.get_str(CONFIG_LAST_VERSION)
+    config.set(CONFIG_LAST_VERSION, __version__)
+    if previous and previous != __version__:
+        return __version__
+    return None
+
+
 class UpdateManager:
     """Checks once, downloads/stages at most once, per EDMC run."""
 
-    def __init__(self, plugin_dir: str, on_ready: Callable[[str], None]) -> None:
+    def __init__(
+        self,
+        plugin_dir: str,
+        on_ready: Callable[[str], None],
+        on_downloading: Optional[Callable[[str], None]] = None,
+    ) -> None:
         self._plugin_dir = plugin_dir
         self._updates_dir = os.path.join(plugin_dir, UPDATES_DIRNAME)
         self._backups_dir = os.path.join(plugin_dir, BACKUPS_DIRNAME)
         self._on_ready = on_ready
+        self._on_downloading = on_downloading
 
     def check_async(self) -> None:
         if os.path.exists(os.path.join(self._plugin_dir, DISABLE_SENTINEL)):
@@ -121,6 +144,9 @@ class UpdateManager:
     def _download_and_stage(self, url: str, version: str) -> None:
         os.makedirs(self._updates_dir, exist_ok=True)
         zip_path = os.path.join(self._updates_dir, f"EDPPMT-v{version}.zip")
+
+        if self._on_downloading is not None:
+            self._on_downloading(version)
 
         try:
             resp = requests.get(url, headers=HEADERS, timeout=DOWNLOAD_TIMEOUT_S, stream=True)

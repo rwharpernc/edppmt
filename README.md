@@ -5,7 +5,7 @@
 A lightweight [Elite Dangerous Market Connector](https://github.com/EDCD/EDMarketConnector) (EDMC) plugin for *Elite Dangerous*. EDPPMT tracks how many PowerPlay merits you earn as you play, estimates how many Control Points (CP) that represents for Acquisition, Reinforcement, and Undermining activity, and tracks credit income alongside it — live, per session, with session history kept across game and EDMC restarts.
 
 **Author:** R.W. Harper (CMDR Bocheaux)
-**Version:** 1.3.1
+**Version:** 1.4.0
 **License:** [MIT](LICENSE)
 
 ---
@@ -38,7 +38,7 @@ After that first install, EDPPMT updates itself — see Updates below.
 
 ## Updates
 
-EDPPMT checks GitHub for a newer release once per EDMC launch and, if there is one, downloads and stages it automatically — it takes effect the next time you restart EDMC, and the main panel shows a notice ("EDPPMT vX.Y.Z downloaded — restart EDMC to apply") once it's ready. Your session history is never touched by this: it lives in `sessions.json` inside the plugin folder, which isn't part of the distributed release, so an update can't overwrite it (see Sessions below for what *does* remove it — deleting the whole plugin folder rather than updating it in place).
+EDPPMT checks GitHub for a newer release once per EDMC launch and, if there is one, downloads and stages it automatically — it takes effect the next time you restart EDMC. The version number shown in the main panel (and on the Settings tab) doubles as a status indicator, linking to the [latest release on GitHub](https://github.com/rwharpernc/edppmt/releases/latest): it reads `vX.Y.Z` normally, switches to "Downloading vX.Y.Z…" while a newer build is being fetched, "vX.Y.Z downloaded — restart to apply" once it's staged, and "Updated to vX.Y.Z" for one restart after a staged update takes effect. Your session history is never touched by any of this: it lives in `sessions.json` inside the plugin folder, which isn't part of the distributed release, so an update can't overwrite it (see Sessions below for what *does* remove it — deleting the whole plugin folder rather than updating it in place).
 
 A backup of your current install is kept (the 3 most recent, in `backups/` inside the plugin folder) before each update is applied, in case anything goes wrong.
 
@@ -46,11 +46,11 @@ Turn it off from the Settings tab if you'd rather update manually. If you're act
 
 ## What it shows
 
-- **Main EDMC panel** — pledged Power and rank (e.g. `Pledged to Yuri Grom (Rank 3)`), the current system and its PowerPlay state (e.g. `System: Nervi — Exploited (Zachary Hudson)`), live session merits, estimated CP, and merits/hr and credits/hr rates, updated as journal events arrive; an update-ready notice when one's been staged (see Updates above). If your commander isn't pledged, it says so directly: `CMDR <name>: not a PP Pledge`.
+- **Main EDMC panel** — pledged Power and rank (e.g. `Pledged to Yuri Grom (Rank 3)`), the current system and its PowerPlay state (e.g. `System: Nervi — Exploited (Zachary Hudson)`), live session merits, estimated CP, and merits/hr and credits/hr rates, updated as journal events arrive; a version link in the corner that doubles as the update-status indicator (see Updates above). If your commander isn't pledged, it says so directly: `CMDR <name>: not a PP Pledge`.
 - **Sessions window** (click "Sessions" in the panel):
   - **Current Session** tab — a per-activity breakdown (Acquisition / Reinforcement / Undermining / Delivery-Donation / Unattributed): merits, the ratio used, estimated CP, and CP/hr; the system name and raw `PowerplayState`/`Powers` last seen (for sanity-checking a row that looks wrong); and credits earned this session plus the rate.
   - **History** tab — every past session (bounded to the most recent 200), so you can compare sessions later, not just watch the live one.
-- **Settings tab** — the merits-per-CP ratio for each activity, editable in case Frontier tunes Powerplay balance or a default turns out to be off; a checkbox to turn auto-update on/off.
+- **Settings tab** — the same version/update-status link as the main panel; the merits-per-CP ratio for each activity, editable in case Frontier tunes Powerplay balance or a default turns out to be off; a checkbox to turn auto-update on/off.
 
 ## How activity is classified
 
