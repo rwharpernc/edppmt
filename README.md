@@ -36,9 +36,9 @@ Alternatively, `npm run package` builds and also zips the result to `dist/EDPPMT
 
 ## What it shows
 
-- **Main EDMC panel** — pledged Power and rank (e.g. `Pledged to Yuri Grom (Rank 3)`), live session merits, estimated CP, and merits/hr and credits/hr rates, updated as journal events arrive. If your commander isn't pledged, it says so directly: `CMDR <name>: not a PP Pledge`.
+- **Main EDMC panel** — pledged Power and rank (e.g. `Pledged to Yuri Grom (Rank 3)`), the current system and its PowerPlay state (e.g. `System: Nervi — Exploited (Zachary Hudson)`), live session merits, estimated CP, and merits/hr and credits/hr rates, updated as journal events arrive. If your commander isn't pledged, it says so directly: `CMDR <name>: not a PP Pledge`.
 - **Sessions window** (click "Sessions" in the panel):
-  - **Current Session** tab — a per-activity breakdown (Acquisition / Reinforcement / Undermining / Unattributed): merits, the ratio used, estimated CP, and CP/hr; the raw `PowerplayState`/`Powers` last seen (for sanity-checking a row that looks wrong); and credits earned this session plus the rate.
+  - **Current Session** tab — a per-activity breakdown (Acquisition / Reinforcement / Undermining / Unattributed): merits, the ratio used, estimated CP, and CP/hr; the system name and raw `PowerplayState`/`Powers` last seen (for sanity-checking a row that looks wrong); and credits earned this session plus the rate.
   - **History** tab — every past session (bounded to the most recent 200), so you can compare sessions later, not just watch the live one.
 - **Settings tab** — the merits-per-CP ratio for each activity, editable in case Frontier tunes Powerplay balance or a default turns out to be off.
 
@@ -51,7 +51,9 @@ There's no journal field that says "these merits were Acquisition." EDPPMT infer
 - A rival holds it → **Undermining**
 - Can't tell (not currently pledged, or no system context seen yet this session) → **Unattributed**
 
-This is a best-effort heuristic, not something the game states directly. If a row in the Current Session tab looks wrong, that's useful signal — the raw `PowerplayState` your commander last saw is shown right there so you can compare it against what you'd expect.
+EDPPMT also cross-checks this against EDMC's own live-tracked system name at the moment merits actually land. If you've moved on to a different system since the last `PowerplayState`/`Powers` context was captured — say, a `Docked` event that doesn't repeat those fields — that context is stale, and the merits are marked **Unattributed** instead of being misattributed to the wrong system.
+
+This is a best-effort heuristic, not something the game states directly. If a row in the Current Session tab looks wrong, that's useful signal — the system name and raw `PowerplayState` your commander last saw are shown right there so you can compare them against what you'd expect.
 
 ## Ratios
 
@@ -69,7 +71,7 @@ Pledge status is normally resolved right at login: the `Powerplay` event only fi
 
 ## Sessions
 
-A new session starts each time EDMC sees a `LoadGame` event (game launch/reload) and is saved to `plugin/sessions.json` (next to the installed plugin), so history survives EDMC and game restarts. Sessions are per commander login, not per PowerPlay activity — defecting or leaving PowerPlay mid-session doesn't start a new one.
+A session spans one continuous game client launch, saved to `plugin/sessions.json` (next to the installed plugin). Logging out to the main menu and back in, or closing and reopening EDMC while the game keeps running, both continue the same session instead of starting a new one — EDPPMT recognizes them by the journal file they share. A new session only starts when the game itself is (re)launched, producing a new journal file; if the game isn't running, there's no active journal to continue, and your last session just sits there as-is until you launch it again. Sessions are per commander login, not per PowerPlay activity — defecting or leaving PowerPlay mid-session doesn't start a new one.
 
 ## Money
 

@@ -63,9 +63,10 @@ from config import appname          # Logger naming
 from config import config           # Settings + window geometry persistence
 from theme import theme             # UI theming (ui.py, window.py)
 import myNotebook as nb             # Settings tab widgets (ui.py)
+from monitor import monitor         # monitor.logfile — journal file identity (load.py)
 ```
 
-No other core EDMC modules are imported. `state['Credits']` (EDMC's own running balance, built from dozens of journal event types — see `monitor.py` in EDMC core) is read from the `state` dict passed into `journal_entry()`; PowerPlay pledge/merit/system state is tracked independently by `powerplay.py` directly from journal entries, not from `state['Powerplay']`, so that mid-session defection (`PowerplayDefect`) is handled correctly even though EDMC's own `state['Powerplay']` doesn't track that event.
+`state['Credits']` (EDMC's own running balance, built from dozens of journal event types — see `monitor.py` in EDMC core) is read from the `state` dict passed into `journal_entry()`; PowerPlay pledge/merit/system state is tracked independently by `powerplay.py` directly from journal entries, not from `state['Powerplay']`, so that mid-session defection (`PowerplayDefect`) is handled correctly even though EDMC's own `state['Powerplay']` doesn't track that event. `monitor.logfile` (the path of the journal file EDMC is currently tailing) is read directly to detect whether a login is a continuation of the same journal file — see §4 and §7.
 
 ## 4. Journal Event Handling
 
@@ -73,13 +74,16 @@ Dispatched in `load._dispatch`, delegating to `PowerplayTracker` (`powerplay.py`
 
 | Event | Handling |
 |---|---|
-| `LoadGame` | Starts a new session (`SessionManager.start_session`); resets pledge tracking (`PowerplayTracker.apply_login_reset`). |
+| `LoadGame` | Reconciles the session against the journal EDMC is now tailing (`SessionManager.sync_session`, keyed on `monitor.logfile` — see §7); resets pledge tracking (`PowerplayTracker.apply_login_reset`). |
+| `StartUp` | Synthesized by EDMC when it (re)starts with the game already running (no journal replay in this case — see §5). Reconciles the session the same way `LoadGame` does. |
 | `Powerplay` | Written at startup only if pledged. Sets pledged Power/Rank/merit baseline; resolves pledge status to `pledged`. |
 | `PowerplayJoin` / `PowerplayDefect` / `PowerplayLeave` | Keep pledged Power current mid-session (EDMC's own `state['Powerplay']` does not track these). |
 | `PowerplayRank` | Updates tracked rank. |
 | `Location` | Always fires once at startup. Used as the checkpoint to resolve pledge status to `not_pledged` if no `Powerplay` event arrived first (see §5). Also a system-context event (see below). |
-| `FSDJump`, `Docked` | Refresh the current system's `PowerplayState` / `Powers` fields, when present. |
+| `FSDJump`, `Docked` | Refresh the current system's name/`PowerplayState`/`Powers` fields, when present (`PowerplayTracker.apply_system_context`). |
 | `PowerplayMerits` | The core event. See §6. |
+
+Every dispatch also forwards the `system` argument `journal_entry` receives — EDMC's own live-tracked current system name, not parsed from the entry — so `PowerplayTracker` always knows both which system its stored context describes and which system the commander is actually in right now (see §6).
 
 Every call to `journal_entry` also updates `SessionManager`'s live credit tracking from `state['Credits']`, regardless of event type, so the credits/hr rate stays current between merit-earning events.
 
@@ -87,38 +91,53 @@ Every call to `journal_entry` also updates `SessionManager`'s live credit tracki
 
 There is no journal event for "you are NOT pledged" — only `Powerplay`, which fires at startup *if* pledged. EDPPMT resolves the negative case by using `Location` (documented as always written at startup, after `Powerplay` would have been) as a checkpoint: if pledge status is still unresolved when `Location` arrives, it's set to `not_pledged`.
 
-If EDMC attaches to an already-running game, this startup sequence may already be behind the "replay window" EDMC exposes to plugins (EDMC does not replay backlog journal events to plugins on its own startup — only genuinely new events are passed to `journal_entry`). To cover this, `PowerplayTracker.apply_merits` also opportunistically resolves pledge status (and Power) from the first `PowerplayMerits` event seen, since earning PowerPlay merits is only possible while pledged.
+If EDMC attaches to an already-running game, this startup sequence may already be behind the "replay window" EDMC exposes to plugins: EDMC does not replay backlog journal events to plugins on its own startup — only genuinely new events are passed to `journal_entry`, plus one synthesized `StartUp` event (with `cmdr`/`state` already reconstructed from the full file) if the game is running, or nothing at all if it isn't. To cover this, `PowerplayTracker.apply_merits` also opportunistically resolves pledge status (and Power) from the first `PowerplayMerits` event seen, since earning PowerPlay merits is only possible while pledged.
 
 ## 6. Merit → Activity → CP Pipeline
 
 1. **`PowerplayTracker.apply_merits(entry)`** — reads `MeritsGained` if present; otherwise diffs the event's `TotalMerits` against the last known total (matching how EDMC's own `monitor.py` maintains `state['Powerplay']['Merits']`). Also updates the running `total_merits` baseline.
-2. **`PowerplayTracker.classify_current_activity()`** — compares the last-seen system `PowerplayState`/`Powers` against the pledged Power (see README's "How activity is classified" for the exact rule) and returns one of `acquisition` / `reinforcement` / `undermining` / `unknown`.
+2. **`PowerplayTracker.classify_current_activity(current_system)`** — compares the last-seen system `PowerplayState`/`Powers` against the pledged Power (see README's "How activity is classified" for the exact rule) and returns one of `acquisition` / `reinforcement` / `undermining` / `unknown`. `current_system` is EDMC's own live-tracked system name (the `system` argument `journal_entry` receives — see §3.3), captured at the moment the merits landed; if it doesn't match `system_name` (the system the stored `PowerplayState`/`Powers` context was captured in), that context is stale and classification falls through to `unknown` rather than misattributing to the wrong system.
 3. **`SessionManager.record_merits(activity, merits)`** — adds the raw merit count to the current session's per-activity totals. **Raw merits only — no CP is stored.**
 4. **Display time** — `formulas.merits_to_cp(merits, ratio)` converts merits to an estimated CP figure using the *current* ratio from Settings (`ui.ratio_for(activity)`), for both the live panel and the Sessions window, including history entries. Changing a ratio in Settings therefore retroactively changes CP estimates for every stored session, not just new merit gains.
 
 ## 7. Session Data Format (`sessions.json`)
 
-A JSON array of session objects (most recent last), persisted next to the installed plugin by `store.SessionStore`, capped at the 200 most recent (`store.MAX_HISTORY`):
+Persisted next to the installed plugin by `store.SessionStore`, capped at the 200 most recent history entries (`store.MAX_HISTORY`):
 
 ```json
 {
-  "id": "32-char hex uuid",
-  "cmdr": "CommanderName",
-  "power": "Zachary Hudson",
-  "started_at": "2026-08-20T18:44:33Z",
-  "updated_at": "2026-08-20T19:12:01Z",
-  "credits_start": 1000000,
-  "credits_now": 1010000,
-  "totals": { "acquisition": 80, "reinforcement": 40, "undermining": 80, "unknown": 0 },
-  "events": { "acquisition": 1, "reinforcement": 1, "undermining": 2, "unknown": 0 }
+  "history": [ /* past session objects, oldest first */ ],
+  "current": {
+    "id": "32-char hex uuid",
+    "cmdr": "CommanderName",
+    "power": "Zachary Hudson",
+    "started_at": "2026-08-20T18:44:33Z",
+    "updated_at": "2026-08-20T19:12:01Z",
+    "credits_start": 1000000,
+    "credits_now": 1010000,
+    "totals": { "acquisition": 80, "reinforcement": 40, "undermining": 80, "unknown": 0 },
+    "events": { "acquisition": 1, "reinforcement": 1, "undermining": 2, "unknown": 0 },
+    "journal_file": "C:\\...\\Journal.2026-08-20T184433.01.log"
+  }
 }
 ```
 
-`SessionManager` keeps the in-progress session as `current` and appends it to `history` only when a new `LoadGame` starts a fresh one (or on the very first `LoadGame` seen after a prior session had data). `SessionStore.save()` always writes `history + [current]` as a single array, so the file on disk always reflects the live session too — a plugin/EDMC crash loses at most whatever wasn't yet flushed (see §8).
+`SessionStore.load()` accepts the legacy pre-1.2.0 flat-array format too (the whole array is treated as `history`, with no `current` to resume — there's no way to tell in hindsight which entry was still live at last save).
+
+### Session continuity (`SessionManager.sync_session`)
+
+A session is tied to the journal file it started on (`journal_file`, from `monitor.logfile`). `sync_session` (called on `LoadGame` and the synthesized `StartUp` — see §4) compares the journal file EDMC is now tailing against `current["journal_file"]`:
+
+- **Same file** → the same continuous session: a commander logout to the main menu and back in, or an EDMC restart while the game keeps running, both reuse the same journal file. `current` is kept as-is (no data lost, no history entry created).
+- **Different (or no) file** → the previous session has ended: `current` (if it had any data) is appended to `history`, and a fresh session starts for the new journal file. "The game isn't running" is treated as "no active journal file" — `load.py` passes `monitor.logfile` (not `None`) only when `monitor.game_running()` is also true.
+
+Because EDMC does not replay old journal lines to plugins (§5), resuming an existing `current` across an EDMC restart is possible precisely *because* `SessionStore` now persists `current` and `history` as separate fields — the totals already on disk are the totals, not something to be rebuilt from a replay.
+
+`SessionStore.save()` always writes `history` and `current` together, so the file on disk reflects the live session too — a plugin/EDMC crash loses at most whatever wasn't yet flushed (see §8).
 
 ## 8. Persistence Timing
 
-`SessionManager._persist()` (a full JSON rewrite) is called on: `start_session`, `record_merits`, and `flush()` (called from `plugin_stop` and `prefs_changed`). It is deliberately **not** called from `record_credits`, since that runs on every single journal event — persisting there would mean a disk write per event during normal play. This means a mid-session credit change can be lost if EDMC/the game crashes before the next merit gain or a clean shutdown; merit totals are never at risk this way, since `record_merits` always persists immediately.
+`SessionManager._persist()` (a full JSON rewrite) is called on: `sync_session`/`start_session`, `record_merits`, and `flush()` (called from `plugin_stop` and `prefs_changed`). It is deliberately **not** called from `record_credits`, since that runs on every single journal event — persisting there would mean a disk write per event during normal play. This means a mid-session credit change can be lost if EDMC/the game crashes before the next merit gain or a clean shutdown; merit totals are never at risk this way, since `record_merits` always persists immediately.
 
 ## 9. Ratio Settings Storage
 

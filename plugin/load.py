@@ -16,6 +16,7 @@ from typing import Any, Dict, Optional
 import tkinter as tk
 
 from config import appname
+from monitor import monitor
 
 from . import __version__
 from .formulas import ACTIVITY_LABELS
@@ -108,22 +109,37 @@ def journal_entry(
         if isinstance(credits_now, (int, float)):
             _sessions.record_credits(int(credits_now))
 
-        return _dispatch(cmdr, entry)
+        return _dispatch(cmdr, system, entry)
     finally:
-        ui.refresh(_sessions)
+        ui.refresh(_sessions, _pp)
         window.refresh()
 
 
-def _dispatch(cmdr: str, entry: Dict[str, Any]) -> Optional[str]:
+def _dispatch(cmdr: str, system: str, entry: Dict[str, Any]) -> Optional[str]:
     assert _sessions is not None
     event = entry.get("event", "")
 
     if event == "LoadGame":
         _pp.apply_login_reset()
         credits_start = entry.get("Credits")
-        _sessions.start_session(cmdr, None, credits_start if isinstance(credits_start, int) else None)
-        logger.info("New session started for %s", cmdr)
+        _sessions.sync_session(
+            cmdr,
+            None,
+            credits_start if isinstance(credits_start, int) else None,
+            monitor.logfile,
+        )
+        logger.info("LoadGame for %s", cmdr)
         ui.set_status(f"{cmdr}: checking PowerPlay pledge…")
+        return None
+
+    if event == "StartUp":
+        # EDMC (re)started with the game already running. EDMC doesn't
+        # replay the journal to plugins in this case (see docs/tech-spec.md
+        # §4) — it synthesizes this single event with cmdr/state already
+        # reconstructed. Pick the session back up if it's the same journal
+        # file we were already tracking.
+        _sessions.sync_session(cmdr, None, None, monitor.logfile)
+        logger.info("StartUp (EDMC attached to a running game) for %s", cmdr)
         return None
 
     if event == "Powerplay":
@@ -164,20 +180,20 @@ def _dispatch(cmdr: str, entry: Dict[str, Any]) -> Optional[str]:
         if _pp.confirm_not_pledged_if_unresolved():
             logger.info("CMDR %s is not pledged to a Power", cmdr)
             ui.set_status(f"CMDR {cmdr}: not a PP Pledge")
-        _pp.apply_system_context(entry)
+        _pp.apply_system_context(system, entry)
         return None
 
     if event in _SYSTEM_CONTEXT_EVENTS:
-        _pp.apply_system_context(entry)
+        _pp.apply_system_context(system, entry)
         return None
 
     if event == "PowerplayMerits":
-        return _handle_merits(entry)
+        return _handle_merits(system, entry)
 
     return None
 
 
-def _handle_merits(entry: Dict[str, Any]) -> Optional[str]:
+def _handle_merits(system: str, entry: Dict[str, Any]) -> Optional[str]:
     assert _sessions is not None
 
     gained = _pp.apply_merits(entry)
@@ -185,7 +201,7 @@ def _handle_merits(entry: Dict[str, Any]) -> Optional[str]:
     if gained is None:
         return None
 
-    activity = _pp.classify_current_activity()
+    activity = _pp.classify_current_activity(system)
     _sessions.record_merits(activity, gained)
 
     ratio = ui.ratio_for(activity)

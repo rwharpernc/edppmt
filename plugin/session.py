@@ -28,7 +28,12 @@ def _parse_iso(value: Optional[str]) -> Optional[float]:
         return None
 
 
-def new_session(cmdr: str, power: Optional[str], credits_start: Optional[int]) -> Dict[str, Any]:
+def new_session(
+    cmdr: str,
+    power: Optional[str],
+    credits_start: Optional[int],
+    journal_file: Optional[str] = None,
+) -> Dict[str, Any]:
     now = _now_iso()
     return {
         "id": uuid.uuid4().hex,
@@ -40,6 +45,11 @@ def new_session(cmdr: str, power: Optional[str], credits_start: Optional[int]) -
         "credits_now": credits_start,
         "totals": {activity: 0 for activity in ACTIVITIES},
         "events": {activity: 0 for activity in ACTIVITIES},
+        # The journal file this session is tied to — lets us recognise a
+        # logout to the main menu and back (same file, new "LoadGame") or an
+        # EDMC restart mid-game (same file, no replay) as a continuation of
+        # this session rather than a new one. See SessionManager.sync_session.
+        "journal_file": journal_file,
     }
 
 
@@ -94,18 +104,55 @@ class SessionManager:
 
     def __init__(self, store: SessionStore) -> None:
         self._store = store
-        self._history: List[Dict[str, Any]] = store.load()
-        self.current: Dict[str, Any] = new_session(cmdr="", power=None, credits_start=None)
+        history, current = store.load()
+        self._history = history
+        self.current: Dict[str, Any] = (
+            current if current is not None else new_session(cmdr="", power=None, credits_start=None)
+        )
 
     @property
     def history(self) -> List[Dict[str, Any]]:
         return self._history
 
-    def start_session(self, cmdr: str, power: Optional[str], credits_start: Optional[int]) -> None:
+    def start_session(
+        self,
+        cmdr: str,
+        power: Optional[str],
+        credits_start: Optional[int],
+        journal_file: Optional[str] = None,
+    ) -> None:
         if self.current.get("cmdr") or total_merits(self.current) > 0:
             self._history.append(self.current)
-        self.current = new_session(cmdr, power, credits_start)
+        self.current = new_session(cmdr, power, credits_start, journal_file)
         self._persist()
+
+    def sync_session(
+        self,
+        cmdr: str,
+        power: Optional[str],
+        credits_start: Optional[int],
+        journal_file: Optional[str],
+    ) -> None:
+        """Reconcile the live session against the journal file EDMC is
+        currently tracking (or None if the game isn't running).
+
+        Called from both "LoadGame" (a genuinely new login — a fresh game
+        launch, or a logout to the main menu and back within the same
+        client) and the synthesized "StartUp" EDMC sends when it (re)starts
+        with the game already running (no journal replay happens in that
+        case, so the persisted session just needs to be picked back up).
+        Either way, a journal file matching the one already being tracked
+        means it's the same continuous session — keep it instead of
+        starting a new one. A different (or missing) journal file means the
+        previous session is over.
+        """
+        if journal_file and self.current.get("journal_file") == journal_file:
+            if cmdr:
+                self.current["cmdr"] = cmdr
+            self.current["updated_at"] = _now_iso()
+            self._persist()
+            return
+        self.start_session(cmdr, power, credits_start, journal_file)
 
     def record_merits(self, activity: str, merits: int) -> None:
         add_merits(self.current, activity, merits)

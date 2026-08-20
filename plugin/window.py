@@ -190,9 +190,12 @@ class _CurrentTab:
             f"Started: {started}      Duration: {hours:.2f}h"
         )
 
+        name = pp.system_name or "(none seen yet)"
         state = pp.system_state or "(none seen yet)"
         powers = ", ".join(pp.system_powers) if pp.system_powers else "(none)"
-        self._raw_state_label["text"] = f"Last seen system PowerplayState: {state}      Powers: {powers}"
+        self._raw_state_label["text"] = (
+            f"Last seen system: {name}      PowerplayState: {state}      Powers: {powers}"
+        )
 
         self._tree.delete(*self._tree.get_children())
         totals = session.get("totals", {})

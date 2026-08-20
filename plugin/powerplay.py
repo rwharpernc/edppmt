@@ -55,6 +55,7 @@ class PowerplayTracker:
         self.my_power: Optional[str] = None
         self.rank: Optional[int] = None
         self.total_merits: Optional[int] = None
+        self.system_name: Optional[str] = None
         self.system_state: Optional[str] = None
         self.system_powers: List[str] = []
         self.pledge_status: str = PLEDGE_UNKNOWN
@@ -137,14 +138,24 @@ class PowerplayTracker:
             return f"{self.my_power} (Rank {self.rank})"
         return self.my_power
 
-    def apply_system_context(self, entry: Mapping[str, Any]) -> None:
-        """FSDJump / Location / Docked: refresh PowerplayState + Powers for 'here'."""
+    def apply_system_context(self, system: Optional[str], entry: Mapping[str, Any]) -> None:
+        """FSDJump / Location / Docked: refresh PowerplayState + Powers for 'here'.
+
+        `system` is EDMC's own live-tracked current system name (the `system`
+        argument `journal_entry` receives, sourced from monitor.state), not
+        parsed from the entry itself — it's the authoritative answer to
+        "where are we right now" regardless of which fields this particular
+        event happens to carry, and lets classify_current_activity() notice
+        when the commander has moved on from the system this context
+        describes (see there).
+        """
         if "PowerplayState" not in entry and "Powers" not in entry:
             # Not a powerplay-relevant system right now. Deliberately don't
             # clear the previous context here — a Docked event, for instance,
             # doesn't repeat the fields of the FSDJump that got us here, and
             # that shouldn't erase a still-valid system context.
             return
+        self.system_name = system
         self.system_state = entry.get("PowerplayState")
         powers = entry.get("Powers")
         self.system_powers = [str(p) for p in powers] if isinstance(powers, list) else []
@@ -184,9 +195,21 @@ class PowerplayTracker:
 
         return gained if isinstance(gained, int) and gained > 0 else None
 
-    def classify_current_activity(self) -> str:
-        """Best-guess activity classification for merits earned right now."""
+    def classify_current_activity(self, current_system: Optional[str] = None) -> str:
+        """Best-guess activity classification for merits earned right now.
+
+        `current_system` is EDMC's live-tracked system name as of the merit
+        gain (see apply_system_context). If it doesn't match the system our
+        stored PowerplayState/Powers context was captured in, that context is
+        stale — the commander has moved on since the last powerplay-relevant
+        event — so it's better to admit we don't know than to misattribute
+        using a different system's data. Omit it (or pass None) to skip this
+        check and classify from the stored context regardless, as before.
+        """
         if not self.my_power:
+            return UNKNOWN
+
+        if current_system and self.system_name and current_system != self.system_name:
             return UNKNOWN
 
         state = (self.system_state or "").lower()

@@ -13,6 +13,7 @@ from config import appname, config
 from theme import theme
 
 from .formulas import ACTIVITIES, ACTIVITY_LABELS, DEFAULT_RATIOS, UNKNOWN, merits_to_cp
+from .powerplay import PowerplayTracker
 from .session import SessionManager, credits_earned, duration_hours, per_hour, total_merits
 
 plugin_name = os.path.basename(os.path.dirname(__file__))
@@ -22,6 +23,7 @@ CONFIG_RATIO_PREFIX = "edppmt_ratio_"
 
 _frame: Optional[tk.Frame] = None
 _status_label: Optional[tk.Label] = None
+_system_label: Optional[tk.Label] = None
 _summary_label: Optional[tk.Label] = None
 _last_event_label: Optional[tk.Label] = None
 _ratio_vars: Dict[str, tk.StringVar] = {}
@@ -44,7 +46,7 @@ def ratio_for(activity: str) -> float:
 
 def create_plugin_app(parent: tk.Frame, on_show_details: Callable[[], None]) -> tk.Frame:
     """Create the main-window frame for EDMC."""
-    global _frame, _status_label, _summary_label, _last_event_label
+    global _frame, _status_label, _system_label, _summary_label, _last_event_label
 
     _frame = tk.Frame(parent)
     _frame.columnconfigure(1, weight=1)
@@ -58,20 +60,26 @@ def create_plugin_app(parent: tk.Frame, on_show_details: Callable[[], None]) -> 
     details_button = tk.Button(_frame, text="Sessions", command=on_show_details)
     details_button.grid(row=0, column=2, sticky=tk.E, padx=(4, 0))
 
+    _system_label = tk.Label(_frame, text="", justify=tk.LEFT)
+    _system_label.grid(row=1, column=0, columnspan=3, sticky=tk.W, pady=(2, 0))
+
     _summary_label = tk.Label(_frame, text="", justify=tk.LEFT)
-    _summary_label.grid(row=1, column=0, columnspan=3, sticky=tk.W, pady=(2, 0))
+    _summary_label.grid(row=2, column=0, columnspan=3, sticky=tk.W, pady=(2, 0))
 
     _last_event_label = tk.Label(_frame, text="", wraplength=420, justify=tk.LEFT)
-    _last_event_label.grid(row=2, column=0, columnspan=3, sticky=tk.W, pady=(2, 0))
+    _last_event_label.grid(row=3, column=0, columnspan=3, sticky=tk.W, pady=(2, 0))
 
     theme.update(_frame)
     return _frame
 
 
-def refresh(sessions: SessionManager) -> None:
+def refresh(sessions: SessionManager, pp: PowerplayTracker) -> None:
     """Update the main-window summary strip from the live session."""
     if _summary_label is None:
         return
+
+    if _system_label is not None:
+        _system_label["text"] = _system_summary(pp)
 
     session = sessions.current
     merits = total_merits(session)
@@ -93,6 +101,15 @@ def refresh(sessions: SessionManager) -> None:
             parts.append(f"{money_rate:+,.0f} cr/hr")
 
     _summary_label["text"] = "   ".join(parts)
+
+
+def _system_summary(pp: PowerplayTracker) -> str:
+    """'System: Nervi — Exploited (Zachary Hudson)', for the main panel."""
+    if not pp.system_name:
+        return ""
+    state = pp.system_state or "no PP data"
+    powers = ", ".join(pp.system_powers) if pp.system_powers else "uncontested"
+    return f"System: {pp.system_name} — {state} ({powers})"
 
 
 def create_prefs(parent: nb.Notebook) -> nb.Frame:
