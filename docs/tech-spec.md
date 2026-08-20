@@ -1,6 +1,6 @@
 # EDPPMT Technical Specification
 
-**Version:** 1.0.0
+**Version:** 1.1.0
 **Author:** R.W. Harper (CMDR Bocheaux)
 **Last updated:** 2026-08-20
 
