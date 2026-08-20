@@ -178,7 +178,7 @@ class _CurrentTab:
 
     def update(self, session: Dict[str, Any], pp: PowerplayTracker) -> None:
         cmdr = session.get("cmdr") or "(unknown)"
-        power = session.get("power") or "(not pledged)"
+        power = pp.pledge_summary() or session.get("power") or "(not pledged)"
         started = session.get("started_at") or "?"
         hours = duration_hours(session)
         self._heading["text"] = (

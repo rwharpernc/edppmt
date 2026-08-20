@@ -5,6 +5,16 @@ All notable changes to EDPPMT are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- **Power rank in the panel and Sessions window.** The main panel status line
+  and the Sessions window's Current Session tab now show the commander's
+  PowerPlay rank alongside their pledged Power (e.g. `Pledged to Yuri Grom
+  (Rank 3)`), sourced from the `Powerplay`/`PowerplayJoin`/`PowerplayDefect`/
+  `PowerplayRank` journal events.
+
 ## [1.0.0] - 2026-08-20
 
 Initial release.

@@ -129,13 +129,13 @@ def _dispatch(cmdr: str, entry: Dict[str, Any]) -> Optional[str]:
     if event == "Powerplay":
         _pp.apply_login_snapshot(entry)
         _sessions.record_power(_pp.my_power)
-        ui.set_status(f"Pledged to {_pp.my_power}" if _pp.my_power else f"CMDR {cmdr}: not a PP Pledge")
+        ui.set_status(f"Pledged to {_pp.pledge_summary()}" if _pp.my_power else f"CMDR {cmdr}: not a PP Pledge")
         return None
 
     if event == "PowerplayJoin":
         _pp.apply_join(entry)
         _sessions.record_power(_pp.my_power)
-        ui.set_status(f"Pledged to {_pp.my_power}")
+        ui.set_status(f"Pledged to {_pp.pledge_summary()}")
         return None
 
     if event == "PowerplayLeave":
@@ -146,11 +146,13 @@ def _dispatch(cmdr: str, entry: Dict[str, Any]) -> Optional[str]:
     if event == "PowerplayDefect":
         _pp.apply_defect(entry)
         _sessions.record_power(_pp.my_power)
-        ui.set_status(f"Defected to {_pp.my_power}")
+        ui.set_status(f"Defected to {_pp.pledge_summary()}")
         return None
 
     if event == "PowerplayRank":
         _pp.apply_rank(entry)
+        if _pp.my_power:
+            ui.set_status(f"Pledged to {_pp.pledge_summary()}")
         return None
 
     if event == "Location":

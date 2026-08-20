@@ -36,7 +36,7 @@ Alternatively, `npm run package` builds and also zips the result to `dist/EDPPMT
 
 ## What it shows
 
-- **Main EDMC panel** — pledged Power, live session merits, estimated CP, and merits/hr and credits/hr rates, updated as journal events arrive. If your commander isn't pledged, it says so directly: `CMDR <name>: not a PP Pledge`.
+- **Main EDMC panel** — pledged Power and rank (e.g. `Pledged to Yuri Grom (Rank 3)`), live session merits, estimated CP, and merits/hr and credits/hr rates, updated as journal events arrive. If your commander isn't pledged, it says so directly: `CMDR <name>: not a PP Pledge`.
 - **Sessions window** (click "Sessions" in the panel):
   - **Current Session** tab — a per-activity breakdown (Acquisition / Reinforcement / Undermining / Unattributed): merits, the ratio used, estimated CP, and CP/hr; the raw `PowerplayState`/`Powers` last seen (for sanity-checking a row that looks wrong); and credits earned this session plus the rate.
   - **History** tab — every past session (bounded to the most recent 200), so you can compare sessions later, not just watch the live one.

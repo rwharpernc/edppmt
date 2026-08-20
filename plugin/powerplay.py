@@ -102,6 +102,9 @@ class PowerplayTracker:
         power = entry.get("Power")
         self.my_power = str(power) if power else self.my_power
         self.pledge_status = PLEDGED if self.my_power else self.pledge_status
+        # A fresh pledge starts at Rank 0; only trust an explicit field though.
+        rank = entry.get("Rank")
+        self.rank = rank if isinstance(rank, int) else 0
 
     def apply_leave(self, entry: Mapping[str, Any]) -> None:
         self.my_power = None
@@ -113,14 +116,26 @@ class PowerplayTracker:
         to_power = entry.get("ToPower")
         self.my_power = str(to_power) if to_power else None
         self.pledge_status = PLEDGED if self.my_power else self.pledge_status
-        # Merits don't carry over to the new power; start fresh so the next
-        # PowerplayMerits event's TotalMerits diff isn't a huge, wrong number.
+        # Merits and rank don't carry over to the new power; start fresh so
+        # the next PowerplayMerits event's TotalMerits diff isn't a huge,
+        # wrong number, and so the old power's rank isn't shown against the
+        # new one until "PowerplayRank" corrects it.
         self.total_merits = None
+        rank = entry.get("Rank")
+        self.rank = rank if isinstance(rank, int) else 0
 
     def apply_rank(self, entry: Mapping[str, Any]) -> None:
         rank = entry.get("Rank")
         if isinstance(rank, int):
             self.rank = rank
+
+    def pledge_summary(self) -> Optional[str]:
+        """Human-readable "Power (Rank N)" string, or None if not pledged."""
+        if not self.my_power:
+            return None
+        if self.rank is not None:
+            return f"{self.my_power} (Rank {self.rank})"
+        return self.my_power
 
     def apply_system_context(self, entry: Mapping[str, Any]) -> None:
         """FSDJump / Location / Docked: refresh PowerplayState + Powers for 'here'."""
