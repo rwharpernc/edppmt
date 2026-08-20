@@ -12,7 +12,7 @@ import myNotebook as nb
 from config import appname, config
 from theme import theme
 
-from .formulas import ACTIVITIES, ACTIVITY_LABELS, DEFAULT_RATIOS, UNKNOWN, merits_to_cp
+from .formulas import ACTIVITIES, ACTIVITY_LABELS, DEFAULT_RATIOS, NO_CP_ACTIVITIES, merits_to_cp
 from .powerplay import PowerplayTracker
 from .session import SessionManager, credits_earned, duration_hours, per_hour, total_merits
 
@@ -87,7 +87,7 @@ def refresh(sessions: SessionManager, pp: PowerplayTracker) -> None:
     cp_total = sum(
         merits_to_cp(session["totals"].get(activity, 0), ratio_for(activity))
         for activity in ACTIVITIES
-        if activity != UNKNOWN
+        if activity not in NO_CP_ACTIVITIES
     )
     earned = credits_earned(session)
     money_rate = per_hour(earned, hours) if earned is not None else None

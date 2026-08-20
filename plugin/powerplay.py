@@ -26,7 +26,7 @@ from typing import Any, List, Mapping, Optional
 
 from config import appname
 
-from .formulas import ACQUISITION, REINFORCEMENT, UNDERMINING, UNKNOWN
+from .formulas import ACQUISITION, DELIVERY, REINFORCEMENT, UNDERMINING, UNKNOWN
 
 plugin_name = os.path.basename(os.path.dirname(__file__))
 logger = logging.getLogger(f"{appname}.{plugin_name}")
@@ -40,6 +40,13 @@ logger = logging.getLogger(f"{appname}.{plugin_name}")
 # current names seen in the wild and is deliberately conservative — an
 # unrecognised state falls through to Acquisition rather than guessing wrong.
 _CONTROLLED_STATES = {"exploited", "fortified", "stronghold", "controlled", "homesystem"}
+
+# "SearchAndRescue" is shared by several mechanics (Thargoid War salvage,
+# regular mission hand-ins, PowerPlay commodity delivery) — Frontier's
+# PowerPlay commodity item names ("PowerAgriculture", "PowerComputer", etc.)
+# all share this prefix, which is how a PowerPlay hand-in is told apart from
+# the others.
+_POWER_COMMODITY_PREFIX = "power"
 
 # Pledge status, resolved once per game session (see apply_login_reset /
 # confirm_not_pledged_if_unresolved).
@@ -59,6 +66,7 @@ class PowerplayTracker:
         self.system_state: Optional[str] = None
         self.system_powers: List[str] = []
         self.pledge_status: str = PLEDGE_UNKNOWN
+        self._delivery_pending: bool = False
 
     def apply_login_reset(self) -> None:
         """
@@ -75,6 +83,26 @@ class PowerplayTracker:
         self.rank = None
         self.total_merits = None
         self.pledge_status = PLEDGE_UNKNOWN
+        self._delivery_pending = False
+
+    def apply_delivery_signal(self, event: str, entry: Mapping[str, Any]) -> None:
+        """
+        "SearchAndRescue" (PowerPlay commodities only) or
+        "DeliverPowerMicroResources" (on-foot PowerPlay data): a hand-in at a
+        power contact. Frontier's journal doesn't link this to the
+        "PowerplayMerits" event it triggers, so mark the *next* merit gain as
+        a delivery rather than guessing an activity from system state — a
+        hand-in's target (Acquisition/Reinforcement/Undermining) is chosen
+        in-game and isn't reported either, so DELIVERY is tracked by merit
+        count only, same as UNKNOWN (see formulas.NO_CP_ACTIVITIES).
+        """
+        if event == "DeliverPowerMicroResources":
+            self._delivery_pending = True
+            return
+        if event == "SearchAndRescue":
+            name = str(entry.get("Name", "")).lower()
+            if name.startswith(_POWER_COMMODITY_PREFIX):
+                self._delivery_pending = True
 
     def apply_login_snapshot(self, entry: Mapping[str, Any]) -> None:
         """"Powerplay" event: written at startup if the commander is pledged."""
@@ -205,7 +233,18 @@ class PowerplayTracker:
         event — so it's better to admit we don't know than to misattribute
         using a different system's data. Omit it (or pass None) to skip this
         check and classify from the stored context regardless, as before.
+
+        A pending delivery signal (see apply_delivery_signal) takes priority
+        over all of that — a commodity/data hand-in's merits aren't a guess
+        from system state at all, they're a direct signal of their own, and
+        can be turned in at a different system than where the goods were
+        collected. This also consumes the pending flag, so it only ever
+        applies to the merit gain it actually triggered.
         """
+        if self._delivery_pending:
+            self._delivery_pending = False
+            return DELIVERY
+
         if not self.my_power:
             return UNKNOWN
 

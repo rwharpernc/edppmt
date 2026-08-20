@@ -53,6 +53,8 @@ There's no journal field that says "these merits were Acquisition." EDPPMT infer
 
 EDPPMT also cross-checks this against EDMC's own live-tracked system name at the moment merits actually land. If you've moved on to a different system since the last `PowerplayState`/`Powers` context was captured — say, a `Docked` event that doesn't repeat those fields — that context is stale, and the merits are marked **Unattributed** instead of being misattributed to the wrong system.
 
+**Delivery/Donation** is the one exception to all of the above: handing in PowerPlay commodities (`SearchAndRescue`, for the `Power*`-named commodities — agricultural samples, computer parts, and the rest) or PowerPlay data on foot (`DeliverPowerMicroResources`) at a power contact earns merits too, and EDPPMT catches the `PowerplayMerits` event that immediately follows one of those and tags it **Delivery/Donation** directly, skipping the system-state guess entirely. Since the journal doesn't say which of Acquisition/Reinforcement/Undermining a given hand-in was aimed at (that's chosen in-game), Delivery/Donation is tracked by merit count only, the same as Unattributed — see Ratios below.
+
 This is a best-effort heuristic, not something the game states directly. If a row in the Current Session tab looks wrong, that's useful signal — the system name and raw `PowerplayState` your commander last saw are shown right there so you can compare them against what you'd expect.
 
 ## Ratios
@@ -62,6 +64,7 @@ This is a best-effort heuristic, not something the game states directly. If a ro
 | Acquisition | 4.0 |
 | Reinforcement | 2.5 |
 | Undermining | 4.2 |
+| Delivery/Donation | *(none — merits only, see above)* |
 
 These are community-sourced for Powerplay 2.0 (Undermining is the least certain of the three). Per-Power ethos bonuses are **not** a separate factor here — they affect merit *generation*, which is already reflected in `MeritsGained` by the time the journal reports it, the same as the Squadron PP bonus. CP is never baked into stored session data; it's recalculated from the current ratio settings whenever you view a session, so correcting a ratio in Settings retroactively fixes CP estimates for history too.
 

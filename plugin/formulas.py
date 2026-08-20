@@ -20,26 +20,39 @@ from typing import Dict, Optional
 ACQUISITION = "acquisition"
 REINFORCEMENT = "reinforcement"
 UNDERMINING = "undermining"
+DELIVERY = "delivery"
 UNKNOWN = "unknown"
 
 # Order matters for UI display.
-ACTIVITIES = (ACQUISITION, REINFORCEMENT, UNDERMINING, UNKNOWN)
+ACTIVITIES = (ACQUISITION, REINFORCEMENT, UNDERMINING, DELIVERY, UNKNOWN)
 
 ACTIVITY_LABELS: Dict[str, str] = {
     ACQUISITION: "Acquisition",
     REINFORCEMENT: "Reinforcement",
     UNDERMINING: "Undermining",
+    DELIVERY: "Delivery/Donation",
     UNKNOWN: "Unattributed",
 }
 
 # Merits required for 1 Control Point, by activity. Undermining is the least
 # certain of the three community-sourced figures — correct it in Settings if
 # you find your in-game CP totals don't line up.
+#
+# DELIVERY (commodity/data hand-ins at a power contact — see
+# powerplay.apply_delivery_signal) deliberately has no ratio here: a hand-in's
+# merits can count toward Acquisition, Reinforcement, *or* Undermining
+# depending on what the commander chose in-game, and the journal doesn't say
+# which — so, like UNKNOWN, it's tracked (merits, not CP) rather than guessed.
 DEFAULT_RATIOS: Dict[str, float] = {
     ACQUISITION: 4.0,
     REINFORCEMENT: 2.5,
     UNDERMINING: 4.2,
 }
+
+# Activities with no merits-per-CP ratio — tracked by raw merit count only,
+# since converting to CP would mean guessing at a conversion (or a target
+# effect) the journal doesn't report.
+NO_CP_ACTIVITIES = frozenset({DELIVERY, UNKNOWN})
 
 
 def merits_to_cp(merits: float, ratio: Optional[float]) -> float:

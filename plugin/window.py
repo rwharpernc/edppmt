@@ -11,7 +11,7 @@ from typing import Any, Dict, List, Optional
 from config import appname, config
 from theme import theme
 
-from .formulas import ACTIVITIES, ACTIVITY_LABELS, UNKNOWN, merits_to_cp
+from .formulas import ACTIVITIES, ACTIVITY_LABELS, NO_CP_ACTIVITIES, merits_to_cp
 from .powerplay import PowerplayTracker
 from .session import SessionManager, credits_earned, duration_hours, per_hour, total_merits
 from .ui import ratio_for
@@ -21,9 +21,9 @@ logger = logging.getLogger(f"{appname}.{plugin_name}")
 
 CONFIG_GEOMETRY = "edppmt_window_geometry"
 
-MIN_WIDTH = 640
-MIN_HEIGHT = 420
-DEFAULT_GEOMETRY = "760x520"
+MIN_WIDTH = 760
+MIN_HEIGHT = 480
+DEFAULT_GEOMETRY = "980x620"
 
 _window: Optional["SessionWindow"] = None
 
@@ -82,7 +82,7 @@ class SessionWindow:
         container.pack(fill=tk.BOTH, expand=True)
 
         notebook = ttk.Notebook(container)
-        notebook.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+        notebook.pack(fill=tk.BOTH, expand=True, padx=14, pady=14)
 
         self._current_tab = _CurrentTab(notebook)
         notebook.add(self._current_tab.frame, text="  CURRENT SESSION  ")
@@ -91,7 +91,7 @@ class SessionWindow:
         notebook.add(self._history_tab.frame, text="  HISTORY  ")
 
         buttons = ttk.Frame(container)
-        buttons.pack(fill=tk.X, padx=10, pady=(0, 10))
+        buttons.pack(fill=tk.X, padx=14, pady=(0, 14))
         ttk.Button(buttons, text="Refresh", command=self.refresh).pack(side=tk.LEFT)
         ttk.Button(buttons, text="Close", command=self.close).pack(side=tk.RIGHT)
 
@@ -132,13 +132,13 @@ class _CurrentTab:
         self.frame = ttk.Frame(parent)
 
         self._heading = ttk.Label(self.frame, text="", anchor=tk.W, justify=tk.LEFT)
-        self._heading.pack(fill=tk.X, padx=10, pady=(10, 8))
+        self._heading.pack(fill=tk.X, padx=16, pady=(16, 10))
 
-        table = ttk.Frame(self.frame, padding=8, relief=tk.GROOVE, borderwidth=1)
-        table.pack(fill=tk.X, padx=14, pady=(0, 14))
+        table = ttk.Frame(self.frame, padding=12, relief=tk.GROOVE, borderwidth=1)
+        table.pack(fill=tk.X, padx=16, pady=(0, 16))
 
         style = ttk.Style(table)
-        style.configure("EDPPMT.Treeview", rowheight=26)
+        style.configure("EDPPMT.Treeview", rowheight=28)
 
         self._tree = ttk.Treeview(
             table,
@@ -149,23 +149,23 @@ class _CurrentTab:
             style="EDPPMT.Treeview",
         )
         for col, text, width, anchor in (
-            ("activity", "Activity", 150, tk.W),
-            ("merits", "Merits", 100, tk.E),
-            ("ratio", "Merits/CP", 100, tk.E),
-            ("cp", "Est. CP", 100, tk.E),
-            ("cp_hr", "CP/hr", 100, tk.E),
+            ("activity", "Activity", 180, tk.W),
+            ("merits", "Merits", 110, tk.E),
+            ("ratio", "Merits/CP", 110, tk.E),
+            ("cp", "Est. CP", 110, tk.E),
+            ("cp_hr", "CP/hr", 110, tk.E),
         ):
             self._tree.heading(col, text=text)
             self._tree.column(col, width=width, anchor=anchor, stretch=(col == "activity"))
-        self._tree.pack(fill=tk.X, padx=4, pady=4)
+        self._tree.pack(fill=tk.X, padx=6, pady=6)
 
         money = ttk.Frame(self.frame)
-        money.pack(fill=tk.X, padx=10, pady=(14, 0))
+        money.pack(fill=tk.X, padx=16, pady=(0, 12))
         self._money_label = ttk.Label(money, text="", justify=tk.LEFT)
         self._money_label.pack(anchor=tk.W)
 
-        self._raw_state_label = ttk.Label(self.frame, text="", anchor=tk.W)
-        self._raw_state_label.pack(fill=tk.X, padx=10, pady=(10, 0))
+        self._raw_state_label = ttk.Label(self.frame, text="", anchor=tk.W, wraplength=900, justify=tk.LEFT)
+        self._raw_state_label.pack(fill=tk.X, padx=16, pady=(0, 8))
 
         note = ttk.Label(
             self.frame,
@@ -174,11 +174,11 @@ class _CurrentTab:
                 "in when merits land — check the raw state above if a row looks "
                 "wrong."
             ),
-            wraplength=560,
+            wraplength=900,
             justify=tk.LEFT,
             foreground="#c07000",
         )
-        note.pack(fill=tk.X, padx=10, pady=(4, 0))
+        note.pack(fill=tk.X, padx=16, pady=(0, 12))
 
     def update(self, session: Dict[str, Any], pp: PowerplayTracker) -> None:
         cmdr = session.get("cmdr") or "(unknown)"
@@ -205,8 +205,9 @@ class _CurrentTab:
         for activity in ACTIVITIES:
             merits = totals.get(activity, 0)
             merits_sum += merits
-            ratio = ratio_for(activity) if activity != UNKNOWN else 0.0
-            cp = merits_to_cp(merits, ratio) if activity != UNKNOWN else 0.0
+            has_cp = activity not in NO_CP_ACTIVITIES
+            ratio = ratio_for(activity) if has_cp else 0.0
+            cp = merits_to_cp(merits, ratio) if has_cp else 0.0
             cp_sum += cp
             cp_hr = per_hour(cp, hours)
             self._tree.insert(
@@ -216,8 +217,8 @@ class _CurrentTab:
                     ACTIVITY_LABELS[activity],
                     f"{merits:,}",
                     f"{ratio:g}" if ratio else "—",
-                    f"{cp:,.1f}" if activity != UNKNOWN else "—",
-                    f"{cp_hr:,.1f}" if activity != UNKNOWN and hours > 0 else "—",
+                    f"{cp:,.1f}" if has_cp else "—",
+                    f"{cp_hr:,.1f}" if has_cp and hours > 0 else "—",
                 ),
             )
 
@@ -245,30 +246,34 @@ class _HistoryTab:
     """Past sessions, most recent first."""
 
     def __init__(self, parent: ttk.Notebook) -> None:
-        self.frame = ttk.Frame(parent)
+        self.frame = ttk.Frame(parent, padding=(16, 16, 6, 16))
+
+        style = ttk.Style(self.frame)
+        style.configure("EDPPMT.History.Treeview", rowheight=26)
 
         self._tree = ttk.Treeview(
             self.frame,
             columns=("started", "cmdr", "power", "duration", "merits", "cp", "credits"),
             show="headings",
             selectmode="none",
+            style="EDPPMT.History.Treeview",
         )
         for col, text, width, anchor in (
-            ("started", "Started", 150, tk.W),
-            ("cmdr", "Commander", 110, tk.W),
-            ("power", "Power", 130, tk.W),
-            ("duration", "Duration", 70, tk.E),
-            ("merits", "Merits", 80, tk.E),
-            ("cp", "Est. CP", 80, tk.E),
-            ("credits", "Credits", 110, tk.E),
+            ("started", "Started", 190, tk.W),
+            ("cmdr", "Commander", 130, tk.W),
+            ("power", "Power", 170, tk.W),
+            ("duration", "Duration", 90, tk.E),
+            ("merits", "Merits", 100, tk.E),
+            ("cp", "Est. CP", 100, tk.E),
+            ("credits", "Credits", 130, tk.E),
         ):
             self._tree.heading(col, text=text)
             self._tree.column(col, width=width, anchor=anchor, stretch=(col == "power"))
 
         scrollbar = ttk.Scrollbar(self.frame, orient=tk.VERTICAL, command=self._tree.yview)
         self._tree.configure(yscrollcommand=scrollbar.set)
-        self._tree.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=(10, 0), pady=10)
-        scrollbar.pack(side=tk.RIGHT, fill=tk.Y, pady=10, padx=(0, 10))
+        self._tree.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=(0, 8))
+        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
 
     def update(self, history: List[Dict[str, Any]], current: Dict[str, Any]) -> None:
         self._tree.delete(*self._tree.get_children())
@@ -279,7 +284,7 @@ class _HistoryTab:
             cp_sum = sum(
                 merits_to_cp(session.get("totals", {}).get(activity, 0), ratio_for(activity))
                 for activity in ACTIVITIES
-                if activity != UNKNOWN
+                if activity not in NO_CP_ACTIVITIES
             )
             earned = credits_earned(session)
             is_current = session is current

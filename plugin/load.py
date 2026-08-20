@@ -51,6 +51,9 @@ _ui_frame: Optional[tk.Frame] = None
 # doubles as the not-pledged checkpoint).
 _SYSTEM_CONTEXT_EVENTS = ("FSDJump", "Docked")
 
+# Commodity/data hand-ins at a power contact — see PowerplayTracker.apply_delivery_signal.
+_DELIVERY_EVENTS = ("SearchAndRescue", "DeliverPowerMicroResources")
+
 
 def plugin_start3(plugin_dir: str) -> str:
     """Load EDPPMT into EDMarketConnector."""
@@ -185,6 +188,10 @@ def _dispatch(cmdr: str, system: str, entry: Dict[str, Any]) -> Optional[str]:
 
     if event in _SYSTEM_CONTEXT_EVENTS:
         _pp.apply_system_context(system, entry)
+        return None
+
+    if event in _DELIVERY_EVENTS:
+        _pp.apply_delivery_signal(event, entry)
         return None
 
     if event == "PowerplayMerits":

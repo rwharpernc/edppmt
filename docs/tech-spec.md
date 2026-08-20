@@ -81,6 +81,7 @@ Dispatched in `load._dispatch`, delegating to `PowerplayTracker` (`powerplay.py`
 | `PowerplayRank` | Updates tracked rank. |
 | `Location` | Always fires once at startup. Used as the checkpoint to resolve pledge status to `not_pledged` if no `Powerplay` event arrived first (see §5). Also a system-context event (see below). |
 | `FSDJump`, `Docked` | Refresh the current system's name/`PowerplayState`/`Powers` fields, when present (`PowerplayTracker.apply_system_context`). |
+| `SearchAndRescue`, `DeliverPowerMicroResources` | PowerPlay commodity/data hand-ins (`PowerplayTracker.apply_delivery_signal`) — see §6. |
 | `PowerplayMerits` | The core event. See §6. |
 
 Every dispatch also forwards the `system` argument `journal_entry` receives — EDMC's own live-tracked current system name, not parsed from the entry — so `PowerplayTracker` always knows both which system its stored context describes and which system the commander is actually in right now (see §6).
@@ -96,9 +97,14 @@ If EDMC attaches to an already-running game, this startup sequence may already b
 ## 6. Merit → Activity → CP Pipeline
 
 1. **`PowerplayTracker.apply_merits(entry)`** — reads `MeritsGained` if present; otherwise diffs the event's `TotalMerits` against the last known total (matching how EDMC's own `monitor.py` maintains `state['Powerplay']['Merits']`). Also updates the running `total_merits` baseline.
-2. **`PowerplayTracker.classify_current_activity(current_system)`** — compares the last-seen system `PowerplayState`/`Powers` against the pledged Power (see README's "How activity is classified" for the exact rule) and returns one of `acquisition` / `reinforcement` / `undermining` / `unknown`. `current_system` is EDMC's own live-tracked system name (the `system` argument `journal_entry` receives — see §3.3), captured at the moment the merits landed; if it doesn't match `system_name` (the system the stored `PowerplayState`/`Powers` context was captured in), that context is stale and classification falls through to `unknown` rather than misattributing to the wrong system.
-3. **`SessionManager.record_merits(activity, merits)`** — adds the raw merit count to the current session's per-activity totals. **Raw merits only — no CP is stored.**
-4. **Display time** — `formulas.merits_to_cp(merits, ratio)` converts merits to an estimated CP figure using the *current* ratio from Settings (`ui.ratio_for(activity)`), for both the live panel and the Sessions window, including history entries. Changing a ratio in Settings therefore retroactively changes CP estimates for every stored session, not just new merit gains.
+2. **`PowerplayTracker.apply_delivery_signal(event, entry)`** — called on `SearchAndRescue` (filtered to `Power*`-named commodities only, since the event is shared with Thargoid War/mission salvage hand-ins) and `DeliverPowerMicroResources` (on-foot PowerPlay data, unambiguous by event name alone). Sets a one-shot `_delivery_pending` flag: the journal doesn't link a hand-in to the `PowerplayMerits` event it triggers, so this is a same-tick correlation, not a field on the merits event itself.
+3. **`PowerplayTracker.classify_current_activity(current_system)`** — if `_delivery_pending` is set, consumes it and returns `delivery` immediately, bypassing every check below (a hand-in can be turned in at a different system than where the goods were collected, and doesn't require a resolved pledge to have been the source). Otherwise, compares the last-seen system `PowerplayState`/`Powers` against the pledged Power (see README's "How activity is classified" for the exact rule) and returns one of `acquisition` / `reinforcement` / `undermining` / `unknown`. `current_system` is EDMC's own live-tracked system name (the `system` argument `journal_entry` receives — see §3.3), captured at the moment the merits landed; if it doesn't match `system_name` (the system the stored `PowerplayState`/`Powers` context was captured in), that context is stale and classification falls through to `unknown` rather than misattributing to the wrong system.
+4. **`SessionManager.record_merits(activity, merits)`** — adds the raw merit count to the current session's per-activity totals. **Raw merits only — no CP is stored.**
+5. **Display time** — `formulas.merits_to_cp(merits, ratio)` converts merits to an estimated CP figure using the *current* ratio from Settings (`ui.ratio_for(activity)`), for both the live panel and the Sessions window, including history entries. Changing a ratio in Settings therefore retroactively changes CP estimates for every stored session, not just new merit gains. `delivery` and `unknown` (`formulas.NO_CP_ACTIVITIES`) are excluded from this — see §6.1.
+
+### 6.1 Why `delivery` has no CP ratio
+
+A hand-in's target effect (Acquisition/Reinforcement/Undermining) is chosen in-game and isn't reported in the journal, so there's no correct single ratio to convert it with — same reasoning as `unknown`. `delivery` is tracked by raw merit count for visibility (so it isn't silently folded into `unknown`), not converted to CP.
 
 ## 7. Session Data Format (`sessions.json`)
 
