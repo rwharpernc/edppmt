@@ -2,7 +2,9 @@
 
 ## Author
 
-**R.W. Harper** — creator and maintainer of EDPPMT.
+**R.W. Harper (CMDR Bocheaux)** — creator and maintainer of EDPPMT.
+
+Roughly half of this project's implementation and documentation was produced in collaboration with [Claude](https://www.anthropic.com/claude) (Anthropic), used as an AI coding assistant throughout development.
 
 ## Software & Libraries
 

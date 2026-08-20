@@ -118,8 +118,21 @@ def create_prefs(parent: nb.Notebook) -> nb.Frame:
         justify=tk.LEFT,
     ).grid(row=1, column=0, columnspan=2, sticky=tk.W, padx=10, pady=(0, 8))
 
+    nb.Label(
+        frame,
+        text=(
+            "Note: system strength/frontline penalties, ethos bonuses, and your "
+            "Squadron's PP bonus are already baked into the merit amount the "
+            "journal reports — these ratios only convert that final merit total "
+            "into CP, so there's no separate bonus to account for here."
+        ),
+        wraplength=440,
+        justify=tk.LEFT,
+        foreground="#c07000",
+    ).grid(row=2, column=0, columnspan=2, sticky=tk.W, padx=10, pady=(0, 10))
+
     _ratio_vars = {}
-    row = 2
+    row = 3
     for activity in ACTIVITIES:
         default = DEFAULT_RATIOS.get(activity)
         if default is None:
