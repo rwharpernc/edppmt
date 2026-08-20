@@ -1,7 +1,7 @@
 {
   "name": "edppmt",
   "private": true,
-  "version": "1.2.0",
+  "version": "1.3.0",
   "description": "Elite Dangerous PowerPlay Merit Tracker — EDMC plugin",
   "scripts": {
     "build": "node scripts/build.mjs",

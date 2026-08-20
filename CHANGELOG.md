@@ -5,6 +5,33 @@ All notable changes to EDPPMT are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.0] - 2026-08-20
+
+### Added
+
+- **Auto-update.** EDPPMT now checks GitHub for a newer release once per
+  EDMC launch and, if there is one, downloads and stages it automatically
+  — applied on the next EDMC restart, with a main-panel notice once it's
+  ready. A backup of the current install (3 most recent kept) is made
+  before every update, and `sessions.json` is never touched, since it
+  isn't part of the distributed release. Toggle it from the Settings tab,
+  or drop a `disable-auto-update.txt` file in the plugin folder to disable
+  it outright regardless of that setting (for a folder being actively
+  hand-edited).
+
+### Fixed
+
+- **Pledge status stuck on "not pledged" after a menu relog.** Frontier
+  only sends the `Powerplay` event on the *first* login of a game client
+  launch, not on a logout-to-menu-and-back-in — but EDPPMT was resetting
+  its pledge tracking on every `LoadGame`, including relogs, with nothing
+  left to reconfirm it. It now only resets on a genuinely new session, not
+  a same-journal continuation, so a relog keeps the pledge state it
+  already had.
+- **Settings tab crash.** Opening Settings threw `AttributeError: module
+  'myNotebook' has no attribute 'Entry'` on current EDMC versions, which
+  only expose `EntryMenu`. Switched to that.
+
 ## [1.2.0] - 2026-08-20
 
 ### Added
