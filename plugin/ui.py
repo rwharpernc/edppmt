@@ -15,6 +15,7 @@ from theme import theme
 from .formulas import ACTIVITIES, ACTIVITY_LABELS, DEFAULT_RATIOS, NO_CP_ACTIVITIES, merits_to_cp
 from .powerplay import PowerplayTracker
 from .session import SessionManager, credits_earned, duration_hours, per_hour, total_merits
+from .update import CONFIG_AUTO_UPDATE
 
 plugin_name = os.path.basename(os.path.dirname(__file__))
 logger = logging.getLogger(f"{appname}.{plugin_name}")
@@ -26,7 +27,9 @@ _status_label: Optional[tk.Label] = None
 _system_label: Optional[tk.Label] = None
 _summary_label: Optional[tk.Label] = None
 _last_event_label: Optional[tk.Label] = None
+_update_label: Optional[tk.Label] = None
 _ratio_vars: Dict[str, tk.StringVar] = {}
+_auto_update_var: Optional[tk.BooleanVar] = None
 
 
 def ratio_for(activity: str) -> float:
@@ -46,7 +49,7 @@ def ratio_for(activity: str) -> float:
 
 def create_plugin_app(parent: tk.Frame, on_show_details: Callable[[], None]) -> tk.Frame:
     """Create the main-window frame for EDMC."""
-    global _frame, _status_label, _system_label, _summary_label, _last_event_label
+    global _frame, _status_label, _system_label, _summary_label, _last_event_label, _update_label
 
     _frame = tk.Frame(parent)
     _frame.columnconfigure(1, weight=1)
@@ -68,6 +71,10 @@ def create_plugin_app(parent: tk.Frame, on_show_details: Callable[[], None]) -> 
 
     _last_event_label = tk.Label(_frame, text="", wraplength=420, justify=tk.LEFT)
     _last_event_label.grid(row=3, column=0, columnspan=3, sticky=tk.W, pady=(2, 0))
+
+    _update_label = tk.Label(_frame, text="", justify=tk.LEFT, foreground="#1e88c7")
+    _update_label.grid(row=4, column=0, columnspan=3, sticky=tk.W, pady=(2, 0))
+    _update_label.grid_remove()
 
     theme.update(_frame)
     return _frame
@@ -114,7 +121,7 @@ def _system_summary(pp: PowerplayTracker) -> str:
 
 def create_prefs(parent: nb.Notebook) -> nb.Frame:
     """Create the EDPPMT tab in EDMC's settings window."""
-    global _ratio_vars
+    global _ratio_vars, _auto_update_var
 
     frame = nb.Frame(parent)
     frame.columnconfigure(0, weight=1)
@@ -160,16 +167,30 @@ def create_prefs(parent: nb.Notebook) -> nb.Frame:
         )
         var = tk.StringVar(value=_format_ratio(ratio_for(activity)))
         _ratio_vars[activity] = var
-        nb.Entry(frame, textvariable=var, width=8).grid(
+        nb.EntryMenu(frame, textvariable=var, width=8).grid(
             row=row, column=1, sticky=tk.W, padx=(0, 10), pady=2,
         )
         row += 1
+
+    nb.Label(
+        frame,
+        text="Updates",
+    ).grid(row=row, column=0, columnspan=2, sticky=tk.W, padx=10, pady=(16, 2))
+    row += 1
+
+    _auto_update_var = tk.BooleanVar(value=config.get_bool(CONFIG_AUTO_UPDATE, default=True))
+    nb.Checkbutton(
+        frame,
+        text="Automatically download updates (applied on EDMC's next restart)",
+        variable=_auto_update_var,
+    ).grid(row=row, column=0, columnspan=2, sticky=tk.W, padx=10, pady=2)
+    row += 1
 
     return frame
 
 
 def save_prefs() -> None:
-    """Persist ratio settings from the prefs tab."""
+    """Persist ratio and update-preference settings from the prefs tab."""
     for activity, var in _ratio_vars.items():
         text = var.get().strip()
         try:
@@ -179,6 +200,9 @@ def save_prefs() -> None:
         if value <= 0:
             continue
         config.set(f"{CONFIG_RATIO_PREFIX}{activity}", str(value))
+
+    if _auto_update_var is not None:
+        config.set(CONFIG_AUTO_UPDATE, _auto_update_var.get())
 
 
 def _format_ratio(value: float) -> str:
@@ -194,3 +218,14 @@ def set_last_event(message: str) -> None:
     if _last_event_label is not None:
         _last_event_label["text"] = message
         _last_event_label["foreground"] = "green"
+
+
+def set_update_status(message: str) -> None:
+    """Shows (or hides, if message is empty) the update-ready notice."""
+    if _update_label is None:
+        return
+    _update_label["text"] = message
+    if message:
+        _update_label.grid()
+    else:
+        _update_label.grid_remove()

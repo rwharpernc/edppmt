@@ -27,6 +27,7 @@ edppmt/
 │   ├── powerplay.py        # PowerplayTracker: pledge state, system context, classification
 │   ├── session.py          # Session dict helpers + SessionManager (live + history)
 │   ├── store.py            # sessions.json persistence
+│   ├── update.py           # UpdateManager: background self-update from GitHub Releases
 │   ├── ui.py                # Tkinter panel + settings tab (also owns ratio config access)
 │   └── window.py           # Sessions Toplevel (Current Session / History tabs)
 ├── scripts/build.mjs       # Copies plugin/ → dist/EDPPMT/
@@ -43,11 +44,11 @@ edppmt/
 
 | Function | Module | Description |
 |----------|--------|--------------|
-| `plugin_start3(plugin_dir: str) -> str` | `load.py` | Initialisation; creates the `SessionManager`, returns `"EDPPMT"`. |
+| `plugin_start3(plugin_dir: str) -> str` | `load.py` | Initialisation; creates the `SessionManager`, starts the background update check (`UpdateManager.check_async`, see §11), returns `"EDPPMT"`. |
 | `plugin_stop() -> None` | `load.py` | Shutdown hook; flushes session state to disk, closes the Sessions window. |
 | `plugin_app(parent: tk.Frame) -> tk.Frame` | `load.py` | Creates the main-window summary strip. |
-| `plugin_prefs(parent, cmdr, is_beta) -> nb.Frame` | `load.py` | Creates the Settings tab (ratio table). |
-| `prefs_changed(cmdr, is_beta) -> None` | `load.py` | Persists ratio settings; flushes session state. |
+| `plugin_prefs(parent, cmdr, is_beta) -> nb.Frame` | `load.py` | Creates the Settings tab (ratio table + auto-update checkbox). |
+| `prefs_changed(cmdr, is_beta) -> None` | `load.py` | Persists ratio and auto-update settings; flushes session state. |
 | `journal_entry(...) -> Optional[str]` | `load.py` | Processes journal events (see §4). |
 
 ### 3.2 Not implemented
@@ -64,6 +65,7 @@ from config import config           # Settings + window geometry persistence
 from theme import theme             # UI theming (ui.py, window.py)
 import myNotebook as nb             # Settings tab widgets (ui.py)
 from monitor import monitor         # monitor.logfile — journal file identity (load.py)
+import requests                     # GitHub Releases API + download (update.py) — bundled by EDMC itself
 ```
 
 `state['Credits']` (EDMC's own running balance, built from dozens of journal event types — see `monitor.py` in EDMC core) is read from the `state` dict passed into `journal_entry()`; PowerPlay pledge/merit/system state is tracked independently by `powerplay.py` directly from journal entries, not from `state['Powerplay']`, so that mid-session defection (`PowerplayDefect`) is handled correctly even though EDMC's own `state['Powerplay']` doesn't track that event. `monitor.logfile` (the path of the journal file EDMC is currently tailing) is read directly to detect whether a login is a continuation of the same journal file — see §4 and §7.
@@ -74,7 +76,7 @@ Dispatched in `load._dispatch`, delegating to `PowerplayTracker` (`powerplay.py`
 
 | Event | Handling |
 |---|---|
-| `LoadGame` | Reconciles the session against the journal EDMC is now tailing (`SessionManager.sync_session`, keyed on `monitor.logfile` — see §7); resets pledge tracking (`PowerplayTracker.apply_login_reset`). |
+| `LoadGame` | Reconciles the session against the journal EDMC is now tailing (`SessionManager.sync_session`, keyed on `monitor.logfile` — see §7). Resets pledge tracking (`PowerplayTracker.apply_login_reset`) *only* if `sync_session` reports a new session, not a same-journal continuation — see §5. |
 | `StartUp` | Synthesized by EDMC when it (re)starts with the game already running (no journal replay in this case — see §5). Reconciles the session the same way `LoadGame` does. |
 | `Powerplay` | Written at startup only if pledged. Sets pledged Power/Rank/merit baseline; resolves pledge status to `pledged`. |
 | `PowerplayJoin` / `PowerplayDefect` / `PowerplayLeave` | Keep pledged Power current mid-session (EDMC's own `state['Powerplay']` does not track these). |
@@ -90,7 +92,9 @@ Every call to `journal_entry` also updates `SessionManager`'s live credit tracki
 
 ## 5. Pledge Detection
 
-There is no journal event for "you are NOT pledged" — only `Powerplay`, which fires at startup *if* pledged. EDPPMT resolves the negative case by using `Location` (documented as always written at startup, after `Powerplay` would have been) as a checkpoint: if pledge status is still unresolved when `Location` arrives, it's set to `not_pledged`.
+There is no journal event for "you are NOT pledged" — only `Powerplay`, which fires at startup *if* pledged. EDPPMT resolves the negative case by using `Location` (always written at startup) as a checkpoint: if pledge status is still unresolved when `Location` arrives, it's set to `not_pledged`. In practice `Location` and `Powerplay` can arrive in either order — both have been observed with the same timestamp, `Location` first — so this is a same-batch race, not a strict ordering guarantee: if `Location` is processed first, pledge status is transiently (and incorrectly) resolved to `not_pledged`, then immediately corrected once `Powerplay`'s own handler runs, since `apply_login_snapshot` unconditionally overwrites it.
+
+That correction depends on `Powerplay` actually arriving, though — and it only arrives on the *first* login of a client launch. A logout to the main menu and back in sends a fresh `LoadGame`, but Frontier does **not** re-send `Powerplay` on it, since the pledge itself hasn't changed. Resetting pledge tracking on every `LoadGame` (as EDPPMT originally did) therefore threw the correct pledge away on every relog, with nothing left to reconfirm it — permanently showing "not pledged" for the rest of the session once the relog's own `Location` event resolved it. Fixed by only calling `apply_login_reset` when `SessionManager.sync_session` reports a new session (§7) rather than a same-journal continuation — a relog keeps whatever pledge state is already tracked.
 
 If EDMC attaches to an already-running game, this startup sequence may already be behind the "replay window" EDMC exposes to plugins: EDMC does not replay backlog journal events to plugins on its own startup — only genuinely new events are passed to `journal_entry`, plus one synthesized `StartUp` event (with `cmdr`/`state` already reconstructed from the full file) if the game is running, or nothing at all if it isn't. To cover this, `PowerplayTracker.apply_merits` also opportunistically resolves pledge status (and Power) from the first `PowerplayMerits` event seen, since earning PowerPlay merits is only possible while pledged.
 
@@ -149,8 +153,22 @@ Because EDMC does not replay old journal lines to plugins (§5), resuming an exi
 
 Stored as EDMC config string values, one per activity: `edppmt_ratio_acquisition`, `edppmt_ratio_reinforcement`, `edppmt_ratio_undermining` (see `ui.CONFIG_RATIO_PREFIX`). Missing or invalid values fall back to `formulas.DEFAULT_RATIOS`.
 
-## 10. Known Limitations
+## 10. Self-Update (`update.py`)
+
+`UpdateManager.check_async()` is called once, from `plugin_start3`. It's a no-op if either the `edppmt_auto_update` config setting (default on, toggled from the Settings tab) is off, or a `disable-auto-update.txt` file exists directly in `plugin_dir` — a hardcoded escape hatch for a folder being actively hand-edited (e.g. local development), independent of and not visible in Settings.
+
+Otherwise it spawns a daemon thread that:
+
+1. **GETs** `https://api.github.com/repos/rwharpernc/edppmt/releases/latest` (skips draft/prerelease responses) and compares its `tag_name` against `plugin.__version__`, both parsed as plain `(major, minor, patch)` integer tuples — no `semantic_version` dependency, since project versions never carry prerelease/build suffixes. A newer *or equal* remote version is a no-op.
+2. If newer, **downloads** the first `.zip` release asset to `plugin_dir/updates/`.
+3. **Backs up** the current plugin folder to a timestamped zip in `plugin_dir/backups/` (walking `plugin_dir`, excluding `updates/`, `backups/`, `__pycache__/`, and `sessions.json`), then trims backups down to the 3 most recent.
+4. **Extracts** the downloaded zip over `plugin_dir`, stripping the top-level `EDPPMT/` folder the release zip is packaged with (see `scripts/package.mjs`) — so files land directly in `plugin_dir`, and `sessions.json` is skipped by name even though it never appears in the zip anyway (it isn't part of the distributed source, same as the repo's own `.gitignore`).
+5. Calls `on_ready(version)` (the callback passed to `UpdateManager.__init__`) — `load.py` marshals this onto the Tk main thread via `frame.after(0, ...)` before touching any widget, since `update.py` itself has no Tkinter dependency and runs entirely off the main thread up to this point.
+
+Nothing here reloads running code — Python already has the old modules loaded in memory for this process. The staged files only take effect the *next* time EDMC starts, which is why step 5 surfaces a "restart to apply" notice (`ui.set_update_status`) in the main panel rather than claiming the update is live.
+
+## 11. Known Limitations
 
 - Activity classification is a heuristic (§4/§6), not a value the game reports directly — see `docs/ATTRIBUTIONS.md` for the sourcing and its confidence level, and the README for the classification rule.
 - The full set of `PowerplayState` values Frontier currently uses isn't documented (the last official journal manual predates Powerplay 2.0); `powerplay._CONTROLLED_STATES` is a conservative, extensible set rather than an exhaustive one.
-- No CAPI integration — data reflects the local journal stream only.
+- No CAPI integration for PowerPlay data — the merit/pledge/session data reflects the local journal stream only. (`update.py` does make outbound HTTPS requests to GitHub — the one exception to an otherwise fully local plugin — see §10.)

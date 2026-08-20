@@ -27,11 +27,14 @@ node_modules/
 Thumbs.db
 desktop.ini
 
-# Logs and local session data (installed copies write sessions.json alongside load.py)
+# Logs and local session/update data (installed copies write these alongside load.py)
 *.log
 .env
 .env.*
 plugin/sessions.json
+plugin/updates/
+plugin/backups/
+plugin/disable-auto-update.txt
 
 # AI assistant local config/context (kept locally, not tracked)
 .claude/

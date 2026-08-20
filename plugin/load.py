@@ -23,6 +23,7 @@ from .formulas import ACTIVITY_LABELS
 from .powerplay import PowerplayTracker
 from .session import SessionManager
 from .store import SessionStore
+from .update import UpdateManager
 from . import ui
 from . import window
 
@@ -45,6 +46,7 @@ if not logger.hasHandlers():
 _pp = PowerplayTracker()
 _sessions: Optional[SessionManager] = None
 _ui_frame: Optional[tk.Frame] = None
+_updater: Optional[UpdateManager] = None
 
 # Journal events that carry PowerplayState/Powers for the current system when
 # it's powerplay-relevant. "Location" is handled separately below (it also
@@ -57,10 +59,19 @@ _DELIVERY_EVENTS = ("SearchAndRescue", "DeliverPowerMicroResources")
 
 def plugin_start3(plugin_dir: str) -> str:
     """Load EDPPMT into EDMarketConnector."""
-    global _sessions
+    global _sessions, _updater
     logger.info("EDPPMT v%s starting from %s", __version__, plugin_dir)
     _sessions = SessionManager(SessionStore(plugin_dir))
+    _updater = UpdateManager(plugin_dir, on_ready=_on_update_ready)
+    _updater.check_async()
     return "EDPPMT"
+
+
+def _on_update_ready(version: str) -> None:
+    # Called from the update-check background thread — marshal onto the Tk
+    # main thread before touching any widgets.
+    if _ui_frame is not None:
+        _ui_frame.after(0, lambda: ui.set_update_status(f"EDPPMT v{version} downloaded — restart EDMC to apply"))
 
 
 def plugin_stop() -> None:
@@ -123,16 +134,28 @@ def _dispatch(cmdr: str, system: str, entry: Dict[str, Any]) -> Optional[str]:
     event = entry.get("event", "")
 
     if event == "LoadGame":
-        _pp.apply_login_reset()
         credits_start = entry.get("Credits")
-        _sessions.sync_session(
+        continued = _sessions.sync_session(
             cmdr,
             None,
             credits_start if isinstance(credits_start, int) else None,
             monitor.logfile,
         )
-        logger.info("LoadGame for %s", cmdr)
-        ui.set_status(f"{cmdr}: checking PowerPlay pledge…")
+        logger.info("LoadGame for %s (%s)", cmdr, "continuing session" if continued else "new session")
+        if continued:
+            # Same journal file as before — a logout to the main menu and
+            # back in, not a fresh game launch. Frontier only re-sends
+            # "Powerplay" on the *first* login of a client launch, not on
+            # every relog, so the pledge state already tracked is still
+            # correct — resetting it here would leave nothing to
+            # reconfirm it with, permanently showing "not pledged" until
+            # the next real restart (see SessionManager.sync_session).
+            ui.set_status(
+                f"Pledged to {_pp.pledge_summary()}" if _pp.my_power else f"CMDR {cmdr}: not a PP Pledge"
+            )
+        else:
+            _pp.apply_login_reset()
+            ui.set_status(f"{cmdr}: checking PowerPlay pledge…")
         return None
 
     if event == "StartUp":

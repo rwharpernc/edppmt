@@ -34,13 +34,23 @@ It reads `PowerplayMerits` for the merit amount, `Powerplay`/`PowerplayJoin`/`Po
 
 Alternatively, `npm run package` builds and also zips the result to `dist/EDPPMT-v<version>.zip` — extract it and copy the `EDPPMT` folder it contains the same way. Handy for sharing a release without handing over the source tree.
 
+After that first install, EDPPMT updates itself — see Updates below.
+
+## Updates
+
+EDPPMT checks GitHub for a newer release once per EDMC launch and, if there is one, downloads and stages it automatically — it takes effect the next time you restart EDMC, and the main panel shows a notice ("EDPPMT vX.Y.Z downloaded — restart EDMC to apply") once it's ready. Your session history is never touched by this: it lives in `sessions.json` inside the plugin folder, which isn't part of the distributed release, so an update can't overwrite it (see Sessions below for what *does* remove it — deleting the whole plugin folder rather than updating it in place).
+
+A backup of your current install is kept (the 3 most recent, in `backups/` inside the plugin folder) before each update is applied, in case anything goes wrong.
+
+Turn it off from the Settings tab if you'd rather update manually. If you're actively hand-editing a local copy (developing, not just running it), drop an empty `disable-auto-update.txt` file directly in the plugin folder — that disables auto-update for that install regardless of the Settings checkbox, so a background check can't clobber in-progress work.
+
 ## What it shows
 
-- **Main EDMC panel** — pledged Power and rank (e.g. `Pledged to Yuri Grom (Rank 3)`), the current system and its PowerPlay state (e.g. `System: Nervi — Exploited (Zachary Hudson)`), live session merits, estimated CP, and merits/hr and credits/hr rates, updated as journal events arrive. If your commander isn't pledged, it says so directly: `CMDR <name>: not a PP Pledge`.
+- **Main EDMC panel** — pledged Power and rank (e.g. `Pledged to Yuri Grom (Rank 3)`), the current system and its PowerPlay state (e.g. `System: Nervi — Exploited (Zachary Hudson)`), live session merits, estimated CP, and merits/hr and credits/hr rates, updated as journal events arrive; an update-ready notice when one's been staged (see Updates above). If your commander isn't pledged, it says so directly: `CMDR <name>: not a PP Pledge`.
 - **Sessions window** (click "Sessions" in the panel):
-  - **Current Session** tab — a per-activity breakdown (Acquisition / Reinforcement / Undermining / Unattributed): merits, the ratio used, estimated CP, and CP/hr; the system name and raw `PowerplayState`/`Powers` last seen (for sanity-checking a row that looks wrong); and credits earned this session plus the rate.
+  - **Current Session** tab — a per-activity breakdown (Acquisition / Reinforcement / Undermining / Delivery-Donation / Unattributed): merits, the ratio used, estimated CP, and CP/hr; the system name and raw `PowerplayState`/`Powers` last seen (for sanity-checking a row that looks wrong); and credits earned this session plus the rate.
   - **History** tab — every past session (bounded to the most recent 200), so you can compare sessions later, not just watch the live one.
-- **Settings tab** — the merits-per-CP ratio for each activity, editable in case Frontier tunes Powerplay balance or a default turns out to be off.
+- **Settings tab** — the merits-per-CP ratio for each activity, editable in case Frontier tunes Powerplay balance or a default turns out to be off; a checkbox to turn auto-update on/off.
 
 ## How activity is classified
 
@@ -74,7 +84,9 @@ Pledge status is normally resolved right at login: the `Powerplay` event only fi
 
 ## Sessions
 
-A session spans one continuous game client launch, saved to `plugin/sessions.json` (next to the installed plugin). Logging out to the main menu and back in, or closing and reopening EDMC while the game keeps running, both continue the same session instead of starting a new one — EDPPMT recognizes them by the journal file they share. A new session only starts when the game itself is (re)launched, producing a new journal file; if the game isn't running, there's no active journal to continue, and your last session just sits there as-is until you launch it again. Sessions are per commander login, not per PowerPlay activity — defecting or leaving PowerPlay mid-session doesn't start a new one.
+A session spans one continuous game client launch, saved to `plugin/sessions.json` (next to the installed plugin, not part of the distributed release — see Updates above). Logging out to the main menu and back in, or closing and reopening EDMC while the game keeps running, both continue the same session instead of starting a new one — EDPPMT recognizes them by the journal file they share. A new session only starts when the game itself is (re)launched, producing a new journal file; if the game isn't running, there's no active journal to continue, and your last session just sits there as-is until you launch it again. Sessions are per commander login, not per PowerPlay activity — defecting or leaving PowerPlay mid-session doesn't start a new one.
+
+Deleting the plugin folder and dropping in a fresh copy removes `sessions.json` along with it, since it lives inside that same folder — copy a new version's files *into* the existing folder instead (which is what both the manual install steps above and auto-update do) to keep your history.
 
 ## Money
 

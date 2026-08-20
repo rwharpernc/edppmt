@@ -132,7 +132,7 @@ class SessionManager:
         power: Optional[str],
         credits_start: Optional[int],
         journal_file: Optional[str],
-    ) -> None:
+    ) -> bool:
         """Reconcile the live session against the journal file EDMC is
         currently tracking (or None if the game isn't running).
 
@@ -145,14 +145,23 @@ class SessionManager:
         means it's the same continuous session — keep it instead of
         starting a new one. A different (or missing) journal file means the
         previous session is over.
+
+        Returns True if the existing session was continued, False if a new
+        one was started — callers use this to decide whether pledge state
+        needs re-resolving (see load._dispatch's "LoadGame" handler): a menu
+        relog is a "LoadGame" too, but Frontier only re-sends "Powerplay" on
+        the *first* login of a client launch, not on every relog, so
+        resetting pledge tracking on a same-journal LoadGame would throw
+        away a still-correct pledge with nothing left to reconfirm it.
         """
         if journal_file and self.current.get("journal_file") == journal_file:
             if cmdr:
                 self.current["cmdr"] = cmdr
             self.current["updated_at"] = _now_iso()
             self._persist()
-            return
+            return True
         self.start_session(cmdr, power, credits_start, journal_file)
+        return False
 
     def record_merits(self, activity: str, merits: int) -> None:
         add_merits(self.current, activity, merits)
