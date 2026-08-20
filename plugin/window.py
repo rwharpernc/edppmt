@@ -170,9 +170,11 @@ class _CurrentTab:
         note = ttk.Label(
             self.frame,
             text=(
-                "Activity is guessed from the PowerPlay state of the system you're "
-                "in when merits land — check the raw state above if a row looks "
-                "wrong."
+                "The journal doesn't say which activity your merits were for, "
+                "so EDPPMT infers it from who controlled the system when they "
+                "landed: uncontrolled = Acquisition, your Power = "
+                "Reinforcement, a rival Power = Undermining. If a row looks "
+                "wrong, compare it against the system/state shown above."
             ),
             wraplength=900,
             justify=tk.LEFT,
