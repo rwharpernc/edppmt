@@ -5,6 +5,39 @@ All notable changes to EDPPMT are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0] - 2026-08-20
+
+### Added
+
+- **Session continuity across relogs and EDMC restarts.** A session now
+  spans one continuous game client launch instead of splitting on every
+  `LoadGame` — logging out to the main menu and back in, or closing and
+  reopening EDMC while the game keeps running, both continue the same
+  session instead of starting a new one. `sessions.json` now persists the
+  live session separately from history, so it actually survives an EDMC
+  restart instead of being indistinguishable from a completed one.
+- **Current system shown in the main panel and Sessions window.** The main
+  panel now shows the current system and its PowerPlay state (e.g. `System:
+  Nervi — Exploited (Zachary Hudson)`); the Sessions window's raw-state line
+  includes the system name too. Activity classification also cross-checks
+  the stored PowerplayState/Powers context against EDMC's live-tracked
+  system name, so a stale context (moved on since the last qualifying
+  event) falls back to Unattributed instead of misattributing to the wrong
+  system.
+- **Delivery/Donation activity tracking.** PowerPlay commodity hand-ins
+  (`SearchAndRescue`, for `Power*`-named commodities) and on-foot data
+  hand-ins (`DeliverPowerMicroResources`) at a power contact are now
+  recognized and classified as Delivery/Donation instead of being guessed
+  from system state or lumped into Unattributed. Tracked by merit count
+  only, not converted to CP — the journal doesn't report which of
+  Acquisition/Reinforcement/Undermining a given hand-in was aimed at.
+
+### Fixed
+
+- **Crowded Sessions window.** Default/minimum window size increased
+  (980×620, up from 760×520), with more padding and wider columns
+  throughout both the Current Session and History tabs.
+
 ## [1.1.1] - 2026-08-20
 
 ### Fixed
