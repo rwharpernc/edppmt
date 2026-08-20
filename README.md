@@ -32,6 +32,8 @@ It reads `PowerplayMerits` for the merit amount, `Powerplay`/`PowerplayJoin`/`Po
 2. Copy `dist/EDPPMT` into your EDMC plugins folder: `%LOCALAPPDATA%\EDMarketConnector\plugins\EDPPMT`.
 3. Restart EDMC.
 
+Alternatively, `npm run package` builds and also zips the result to `dist/EDPPMT-v<version>.zip` — extract it and copy the `EDPPMT` folder it contains the same way. Handy for sharing a release without handing over the source tree.
+
 ## What it shows
 
 - **Main EDMC panel** — pledged Power, live session merits, estimated CP, and merits/hr and credits/hr rates, updated as journal events arrive. If your commander isn't pledged, it says so directly: `CMDR <name>: not a PP Pledge`.
