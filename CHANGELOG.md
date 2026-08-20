@@ -5,6 +5,16 @@ All notable changes to EDPPMT are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.1] - 2026-08-20
+
+### Changed
+
+- **Clearer activity-inference note.** The Sessions window's Current Session
+  tab explained activity classification as "guessed from the PowerPlay
+  state," which didn't actually say how the guess is made. It now spells
+  out the rule: uncontrolled system = Acquisition, your Power's system =
+  Reinforcement, a rival Power's system = Undermining.
+
 ## [1.3.0] - 2026-08-20
 
 ### Added
