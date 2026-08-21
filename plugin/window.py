@@ -194,9 +194,11 @@ class _CurrentTab:
 
         name = pp.system_name or "(none seen yet)"
         state = pp.system_state or "(none seen yet)"
+        controller = pp.system_controller or "(none)"
         powers = ", ".join(pp.system_powers) if pp.system_powers else "(none)"
         self._raw_state_label["text"] = (
-            f"Last seen system: {name}      PowerplayState: {state}      Powers: {powers}"
+            f"Last seen system: {name}      PowerplayState: {state}      "
+            f"Controller: {controller}      Powers: {powers}"
         )
 
         self._tree.delete(*self._tree.get_children())
@@ -244,6 +246,35 @@ class _CurrentTab:
             self._money_label["text"] = f"Credits earned this session: {earned:+,}      Rate: {rate}"
 
 
+def _cumulative_summary(sessions: List[Dict[str, Any]]) -> str:
+    """'All sessions — Merits: 12,345   CP: Acquisition 120 / Reinforcement 80 / Undermining 40   Cr: +200,000'."""
+    merit_totals: Dict[str, int] = {activity: 0 for activity in ACTIVITIES}
+    for s in sessions:
+        totals = s.get("totals", {})
+        for activity in ACTIVITIES:
+            merit_totals[activity] += totals.get(activity, 0)
+
+    cumulative_merits = sum(merit_totals.values())
+    cp_bits = " / ".join(
+        f"{ACTIVITY_LABELS[activity]} {merits_to_cp(merit_totals[activity], ratio_for(activity)):,.1f}"
+        for activity in ACTIVITIES
+        if activity not in NO_CP_ACTIVITIES
+    )
+
+    cumulative_earned = 0
+    have_credits = False
+    for s in sessions:
+        earned = credits_earned(s)
+        if earned is not None:
+            cumulative_earned += earned
+            have_credits = True
+
+    parts = [f"All sessions — Merits: {cumulative_merits:,}", f"CP: {cp_bits}"]
+    if have_credits:
+        parts.append(f"Cr: {cumulative_earned:+,}")
+    return "   ".join(parts)
+
+
 class _HistoryTab:
     """Past sessions, most recent first."""
 
@@ -272,6 +303,9 @@ class _HistoryTab:
             self._tree.heading(col, text=text)
             self._tree.column(col, width=width, anchor=anchor, stretch=(col == "power"))
 
+        self._summary_label = ttk.Label(self.frame, text="", anchor=tk.W, justify=tk.LEFT)
+        self._summary_label.pack(side=tk.BOTTOM, fill=tk.X, pady=(10, 0))
+
         scrollbar = ttk.Scrollbar(self.frame, orient=tk.VERTICAL, command=self._tree.yview)
         self._tree.configure(yscrollcommand=scrollbar.set)
         self._tree.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=(0, 8))
@@ -281,6 +315,7 @@ class _HistoryTab:
         self._tree.delete(*self._tree.get_children())
 
         sessions = list(history) + [current]
+        self._summary_label["text"] = _cumulative_summary(sessions)
         for session in reversed(sessions):
             hours = duration_hours(session)
             cp_sum = sum(

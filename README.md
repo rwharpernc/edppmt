@@ -5,7 +5,7 @@
 A lightweight [Elite Dangerous Market Connector](https://github.com/EDCD/EDMarketConnector) (EDMC) plugin for *Elite Dangerous*. EDPPMT tracks how many PowerPlay merits you earn as you play, estimates how many Control Points (CP) that represents for Acquisition, Reinforcement, and Undermining activity, and tracks credit income alongside it — live, per session, with session history kept across game and EDMC restarts.
 
 **Author:** R.W. Harper (CMDR Bocheaux)
-**Version:** 1.4.0
+**Version:** 1.6.0
 **License:** [MIT](LICENSE)
 
 ---
@@ -46,20 +46,22 @@ Turn it off from the Settings tab if you'd rather update manually. If you're act
 
 ## What it shows
 
-- **Main EDMC panel** — pledged Power and rank (e.g. `Pledged to Yuri Grom (Rank 3)`), the current system and its PowerPlay state (e.g. `System: Nervi — Exploited (Zachary Hudson)`), live session merits, estimated CP for the current session, cumulative estimated CP across the current session plus all saved history, and merits/hr and credits/hr rates, updated as journal events arrive; a version link in the corner that doubles as the update-status indicator (see Updates above). If your commander isn't pledged, it says so directly: `CMDR <name>: not a PP Pledge`.
+- **Main EDMC panel** — pledged Power and rank (e.g. `Pledged to Yuri Grom (Rank 3)`), the current system and its PowerPlay state (e.g. `System: Nervi — Exploited (Zachary Hudson)`), and the current session's merits, CP by activity (Acq/Reinf/UM), and credits earned, updated as journal events arrive; a version link in the corner that doubles as the update-status indicator (see Updates above). If your commander isn't pledged, it says so directly: `CMDR <name>: not a PP Pledge`.
 - **Sessions window** (click "Sessions" in the panel):
-  - **Current Session** tab — a per-activity breakdown (Acquisition / Reinforcement / Undermining / Delivery-Donation / Unattributed): merits, the ratio used, estimated CP, and CP/hr; the system name and raw `PowerplayState`/`Powers` last seen (for sanity-checking a row that looks wrong); and credits earned this session plus the rate.
-  - **History** tab — every past session (bounded to the most recent 200), so you can compare sessions later, not just watch the live one.
+  - **Current Session** tab — a per-activity breakdown (Acquisition / Reinforcement / Undermining / Delivery-Donation / Unattributed): merits, the ratio used, estimated CP, and CP/hr; the system name, raw `PowerplayState`, and `ControllingPower`/`Powers` last seen (for sanity-checking a row that looks wrong); and credits earned this session plus the rate.
+  - **History** tab — every past session (bounded to the most recent 200), so you can compare sessions later, not just watch the live one; plus an "All sessions" summary (cumulative merits, CP by activity, and credits earned across the current session and all saved history).
 - **Settings tab** — the same version/update-status link as the main panel; the merits-per-CP ratio for each activity, editable in case Frontier tunes Powerplay balance or a default turns out to be off; a checkbox to turn auto-update on/off.
 
 ## How activity is classified
 
-There's no journal field that says "these merits were Acquisition." EDPPMT infers it from the current system's `PowerplayState` and `Powers` fields (reported on `FSDJump` / `Location` / `Docked` whenever the system is PowerPlay-relevant) relative to your pledged Power:
+There's no journal field that says "these merits were Acquisition." EDPPMT infers it from the current system's `PowerplayState` and `ControllingPower` fields (reported on `FSDJump` / `Location` / `Docked` whenever the system is PowerPlay-relevant) relative to your pledged Power:
 
 - Nobody holds the system yet → **Acquisition**
 - You hold it → **Reinforcement**
 - A rival holds it → **Undermining**
 - Can't tell (not currently pledged, or no system context seen yet this session) → **Unattributed**
+
+Note: the journal's `Powers` field lists *every* Power active in the system — the controller plus any rival actively undermining it — so a settled Stronghold/Fortified/Exploited system can still show more than one name there. `ControllingPower` is the field that actually says who holds it, and is what the above rule is based on.
 
 EDPPMT also cross-checks this against EDMC's own live-tracked system name at the moment merits actually land. If you've moved on to a different system since the last `PowerplayState`/`Powers` context was captured — say, a `Docked` event that doesn't repeat those fields — that context is stale, and the merits are marked **Unattributed** instead of being misattributed to the wrong system.
 

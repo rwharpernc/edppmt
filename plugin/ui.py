@@ -14,9 +14,18 @@ from theme import theme
 from ttkHyperlinkLabel import HyperlinkLabel
 
 from . import __version__
-from .formulas import ACTIVITIES, ACTIVITY_LABELS, DEFAULT_RATIOS, NO_CP_ACTIVITIES, merits_to_cp
+from .formulas import (
+    ACQUISITION,
+    ACTIVITIES,
+    ACTIVITY_LABELS,
+    DEFAULT_RATIOS,
+    NO_CP_ACTIVITIES,
+    REINFORCEMENT,
+    UNDERMINING,
+    merits_to_cp,
+)
 from .powerplay import PowerplayTracker
-from .session import SessionManager, credits_earned, duration_hours, per_hour, total_merits
+from .session import SessionManager, credits_earned, total_merits
 from .update import CONFIG_AUTO_UPDATE, RELEASES_PAGE_URL
 
 plugin_name = os.path.basename(os.path.dirname(__file__))
@@ -30,6 +39,14 @@ _VERSION_COLORS = {
     "downloading": "#c07000",
     "downloaded": "#d9534f",
     "updated": "#2e7d32",
+}
+
+# Short activity labels for the session CP breakdown, where "Reinforcement"
+# and "Undermining" spelled out would run the main panel too wide.
+_SHORT_ACTIVITY_LABELS: Dict[str, str] = {
+    ACQUISITION: "Acq",
+    REINFORCEMENT: "Reinf",
+    UNDERMINING: "UM",
 }
 
 _frame: Optional[tk.Frame] = None
@@ -96,13 +113,14 @@ def create_plugin_app(parent: tk.Frame, on_show_details: Callable[[], None]) -> 
     return _frame
 
 
-def _session_cp(session: dict) -> float:
-    """Est. CP for a single session, from its raw merit totals."""
-    return sum(
-        merits_to_cp(session.get("totals", {}).get(activity, 0), ratio_for(activity))
+def _session_cp_by_activity(session: dict) -> Dict[str, float]:
+    """Est. CP per CP-earning activity for a single session, from its raw merit totals."""
+    totals = session.get("totals", {})
+    return {
+        activity: merits_to_cp(totals.get(activity, 0), ratio_for(activity))
         for activity in ACTIVITIES
         if activity not in NO_CP_ACTIVITIES
-    )
+    }
 
 
 def refresh(sessions: SessionManager, pp: PowerplayTracker) -> None:
@@ -115,30 +133,36 @@ def refresh(sessions: SessionManager, pp: PowerplayTracker) -> None:
 
     session = sessions.current
     merits = total_merits(session)
-    hours = duration_hours(session)
-    cp_total = _session_cp(session)
-    cumulative_cp = cp_total + sum(_session_cp(s) for s in sessions.history)
+    cp_by_activity = _session_cp_by_activity(session)
     earned = credits_earned(session)
-    money_rate = per_hour(earned, hours) if earned is not None else None
 
-    parts = [f"Merits: {merits}", f"Est. CP: {cp_total:.0f}", f"Total CP: {cumulative_cp:.0f}"]
-    if hours > 0:
-        parts.append(f"{per_hour(merits, hours):.0f}/hr")
+    cp_bits = " / ".join(
+        f"{_SHORT_ACTIVITY_LABELS[activity]} {cp_by_activity[activity]:.0f}" for activity in ACTIVITIES if activity in cp_by_activity
+    )
+    parts = [f"Session — Merits: {merits:,}", f"CP: {cp_bits}"]
     if earned is not None:
         parts.append(f"Cr: {earned:+,}")
-        if money_rate is not None and hours > 0:
-            parts.append(f"{money_rate:+,.0f} cr/hr")
 
     _summary_label["text"] = "   ".join(parts)
 
 
 def _system_summary(pp: PowerplayTracker) -> str:
-    """'System: Nervi — Exploited (Zachary Hudson)', for the main panel."""
+    """'System: Nervi — Exploited (Zachary Hudson)', or with a rival
+    undermining it, 'System: Nervi — Stronghold (Zachary Hudson, undermined by
+    Aisling Duval)', for the main panel."""
     if not pp.system_name:
         return ""
     state = pp.system_state or "no PP data"
-    powers = ", ".join(pp.system_powers) if pp.system_powers else "uncontested"
-    return f"System: {pp.system_name} — {state} ({powers})"
+    if pp.system_controller:
+        rivals = [p for p in pp.system_powers if p != pp.system_controller]
+        detail = pp.system_controller
+        if rivals:
+            detail += f", undermined by {', '.join(rivals)}"
+    elif pp.system_powers:
+        detail = f"contested: {', '.join(pp.system_powers)}"
+    else:
+        detail = "uncontested"
+    return f"System: {pp.system_name} — {state} ({detail})"
 
 
 def create_prefs(parent: nb.Notebook) -> nb.Frame:

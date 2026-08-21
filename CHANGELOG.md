@@ -5,6 +5,35 @@ All notable changes to EDPPMT are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.6.0] - 2026-08-21
+
+### Fixed
+
+- **Stronghold/Fortified/Exploited systems showing more than one Power, and
+  merits misclassified there.** The journal's `Powers` field lists *every*
+  Power active in a system — the controlling Power plus any rival actively
+  undermining it — not just the controller. EDPPMT was inferring the
+  controller by assuming `Powers` had exactly one entry, so a settled
+  Stronghold under active undermining showed both names and had its merits
+  misclassified as Acquisition instead of Reinforcement. It now reads the
+  journal's `ControllingPower` field directly, and the panel shows it as
+  e.g. `Stronghold (A. Lavigny-Duval, undermined by Aisling Duval)` instead
+  of a flat power list.
+
+### Changed
+
+- **Main panel simplified to current-session data.** The session line now
+  shows a per-activity CP breakdown (Acq/Reinf/UM) instead of a single Est.
+  CP figure, and the merits/hr and credits/hr rates (already available in
+  the Sessions window) were dropped to make room. The "Total CP" figure
+  added in 1.5.0 — cumulative CP across the current session plus all saved
+  history — is no longer shown on the main panel.
+- **Cumulative totals moved to the Sessions window.** The History tab now
+  shows an "All sessions" summary (cumulative merits, CP by activity, and
+  credits earned) below the session table, replacing the main-panel "Total
+  CP" figure with a fuller breakdown in the window that already holds
+  session history.
+
 ## [1.5.0] - 2026-08-20
 
 ### Added

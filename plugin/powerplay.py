@@ -65,6 +65,7 @@ class PowerplayTracker:
         self.system_name: Optional[str] = None
         self.system_state: Optional[str] = None
         self.system_powers: List[str] = []
+        self.system_controller: Optional[str] = None
         self.pledge_status: str = PLEDGE_UNKNOWN
         self._delivery_pending: bool = False
 
@@ -167,7 +168,7 @@ class PowerplayTracker:
         return self.my_power
 
     def apply_system_context(self, system: Optional[str], entry: Mapping[str, Any]) -> None:
-        """FSDJump / Location / Docked: refresh PowerplayState + Powers for 'here'.
+        """FSDJump / Location / Docked: refresh PowerplayState/Powers/ControllingPower for 'here'.
 
         `system` is EDMC's own live-tracked current system name (the `system`
         argument `journal_entry` receives, sourced from monitor.state), not
@@ -177,7 +178,7 @@ class PowerplayTracker:
         when the commander has moved on from the system this context
         describes (see there).
         """
-        if "PowerplayState" not in entry and "Powers" not in entry:
+        if "PowerplayState" not in entry and "Powers" not in entry and "ControllingPower" not in entry:
             # Not a powerplay-relevant system right now. Deliberately don't
             # clear the previous context here — a Docked event, for instance,
             # doesn't repeat the fields of the FSDJump that got us here, and
@@ -187,6 +188,14 @@ class PowerplayTracker:
         self.system_state = entry.get("PowerplayState")
         powers = entry.get("Powers")
         self.system_powers = [str(p) for p in powers] if isinstance(powers, list) else []
+        # "Powers" lists *every* Power active in the system — the controller
+        # plus any rival actively undermining it — so it can have more than
+        # one entry even in a settled Stronghold/Fortified/Exploited system.
+        # "ControllingPower" is the one field that actually names who holds
+        # it; classify_current_activity() relies on this, not on Powers'
+        # length, to tell Reinforcement/Undermining apart in that case.
+        controller = entry.get("ControllingPower")
+        self.system_controller = str(controller) if controller else None
 
     def apply_merits(self, entry: Mapping[str, Any]) -> Optional[int]:
         """
@@ -252,16 +261,16 @@ class PowerplayTracker:
             return UNKNOWN
 
         state = (self.system_state or "").lower()
-        controller = self.system_powers[0] if len(self.system_powers) == 1 else None
+        controller = self.system_controller
 
         if state in _CONTROLLED_STATES:
             if controller == self.my_power:
                 return REINFORCEMENT
             if controller:
                 return UNDERMINING
-            # A controlled-type state but more than one Power listed: still
-            # being fought over rather than settled, so treat as Acquisition
-            # if we're one of the contenders.
+            # A controlled-type state but no ControllingPower reported
+            # (shouldn't normally happen): fall back to Acquisition if we're
+            # among the Powers listed as active there.
             return ACQUISITION if self.my_power in self.system_powers else UNKNOWN
 
         if self.system_state:
