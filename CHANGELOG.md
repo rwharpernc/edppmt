@@ -5,6 +5,41 @@ All notable changes to EDPPMT are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.7.0] - 2026-08-23
+
+### Added
+
+- **Auto-Honk.** Automatically fires your ship's Discovery Scanner — the
+  basic system-wide "honk" that reveals bodies, not the Detailed Surface
+  Scanner — every time you jump into a new system. Ported from a sibling
+  project (EDDDT) and modeled on EDCoPilot's own AutoHonk feature: EDPPMT
+  reads your active Elite Dangerous keybindings file to find which
+  keyboard key your Primary or Secondary fire button is bound to (your
+  choice, in Settings), then simulates that key being held down for a
+  configurable duration on `FSDJump`/`CarrierJump`. Off by default; turn
+  it on, pick your fire button and hold duration, and use "Rescan" /
+  "Test Honk Now" in the Settings tab to confirm it resolves your keybind
+  and can reach the game window before relying on it. Windows only. If
+  EDCoPilot is also running with its own AutoHonk enabled, the Settings
+  tab flags the overlap so you can turn one off and avoid double-honking.
+
+### Fixed
+
+- **Main panel could grow wider than EDMC's default window width.** The
+  system-context and session-summary lines had no `wraplength`, so a long
+  system or Power name could stretch the whole EDMC main window rather
+  than wrapping. Both now wrap like the existing last-event line already
+  did, and the system line drops the full rival/contested-Powers list
+  (the actual unbounded part) since that detail is already shown in full
+  in the Sessions window's Current Session tab.
+
+### Changed
+
+- **Auto-Honk Settings block tightened.** Fire button and hold duration
+  now share one row, as do the two behavior checkboxes, and the Rescan/
+  Test Honk Now buttons sit alongside their result text instead of each
+  getting a separate row — same settings, fewer rows to scan.
+
 ## [1.6.0] - 2026-08-21
 
 ### Fixed

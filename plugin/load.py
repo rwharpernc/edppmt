@@ -19,6 +19,7 @@ from config import appname
 from monitor import monitor
 
 from . import __version__
+from . import autohonk
 from .formulas import ACTIVITY_LABELS
 from .powerplay import PowerplayTracker
 from .session import SessionManager
@@ -47,6 +48,7 @@ _pp = PowerplayTracker()
 _sessions: Optional[SessionManager] = None
 _ui_frame: Optional[tk.Frame] = None
 _updater: Optional[UpdateManager] = None
+_autohonk: Optional[autohonk.AutoHonkController] = None
 
 # Journal events that carry PowerplayState/Powers for the current system when
 # it's powerplay-relevant. "Location" is handled separately below (it also
@@ -59,9 +61,10 @@ _DELIVERY_EVENTS = ("SearchAndRescue", "DeliverPowerMicroResources")
 
 def plugin_start3(plugin_dir: str) -> str:
     """Load EDPPMT into EDMarketConnector."""
-    global _sessions, _updater
+    global _sessions, _updater, _autohonk
     logger.info("EDPPMT v%s starting from %s", __version__, plugin_dir)
     _sessions = SessionManager(SessionStore(plugin_dir))
+    _autohonk = autohonk.AutoHonkController()
 
     applied_version = check_applied_update()
     if applied_version is not None:
@@ -115,6 +118,10 @@ def plugin_prefs(parent, cmdr: str, is_beta: bool):
 def prefs_changed(cmdr: str, is_beta: bool) -> None:
     """Settings were saved."""
     ui.save_prefs()
+    if _autohonk is not None:
+        # Picks up enabled/fire-button/hold-duration changes immediately,
+        # rather than only on EDMC's next restart.
+        _autohonk.reload_config()
     if _sessions is not None:
         _sessions.flush()
 
@@ -146,6 +153,9 @@ def _dispatch(cmdr: str, system: str, entry: Dict[str, Any]) -> Optional[str]:
     assert _sessions is not None
     event = entry.get("event", "")
 
+    if _autohonk is not None:
+        _autohonk.handle_event(entry, system)
+
     if event == "LoadGame":
         credits_start = entry.get("Credits")
         continued = _sessions.sync_session(
@@ -168,6 +178,8 @@ def _dispatch(cmdr: str, system: str, entry: Dict[str, Any]) -> Optional[str]:
             )
         else:
             _pp.apply_login_reset()
+            if _autohonk is not None:
+                _autohonk.reset_session()
             ui.set_status(f"{cmdr}: checking PowerPlay pledge…")
         return None
 

@@ -5,7 +5,7 @@
 A lightweight [Elite Dangerous Market Connector](https://github.com/EDCD/EDMarketConnector) (EDMC) plugin for *Elite Dangerous*. EDPPMT tracks how many PowerPlay merits you earn as you play, estimates how many Control Points (CP) that represents for Acquisition, Reinforcement, and Undermining activity, and tracks credit income alongside it — live, per session, with session history kept across game and EDMC restarts.
 
 **Author:** R.W. Harper (CMDR Bocheaux)
-**Version:** 1.6.0
+**Version:** 1.7.0
 **License:** [MIT](LICENSE)
 
 ---
@@ -50,7 +50,15 @@ Turn it off from the Settings tab if you'd rather update manually. If you're act
 - **Sessions window** (click "Sessions" in the panel):
   - **Current Session** tab — a per-activity breakdown (Acquisition / Reinforcement / Undermining / Delivery-Donation / Unattributed): merits, the ratio used, estimated CP, and CP/hr; the system name, raw `PowerplayState`, and `ControllingPower`/`Powers` last seen (for sanity-checking a row that looks wrong); and credits earned this session plus the rate.
   - **History** tab — every past session (bounded to the most recent 200), so you can compare sessions later, not just watch the live one; plus an "All sessions" summary (cumulative merits, CP by activity, and credits earned across the current session and all saved history).
-- **Settings tab** — the same version/update-status link as the main panel; the merits-per-CP ratio for each activity, editable in case Frontier tunes Powerplay balance or a default turns out to be off; a checkbox to turn auto-update on/off.
+- **Settings tab** — the same version/update-status link as the main panel; Auto-Honk configuration (see below); the merits-per-CP ratio for each activity, editable in case Frontier tunes Powerplay balance or a default turns out to be off; a checkbox to turn auto-update on/off.
+
+## Auto-Honk
+
+Automatically fires your ship's Discovery Scanner — the basic system-wide "honk" that reveals bodies, not the Detailed Surface Scanner (that one only does anything while already in FSS mode) — every time you jump into a new system. Modeled on EDCoPilot's own AutoHonk feature: off by default, Windows only.
+
+Turn it on from the Settings tab, choose which fire button (Primary/Secondary) the Discovery Scanner is bound to in your firegroup, and set a hold duration — the scanner charges up while the button stays held down and only fires once fully charged, so this needs to be long enough to cover your ship's actual charge time. EDPPMT reads your active Elite Dangerous keybindings file to find which physical keyboard key that fire button maps to; if it's only bound to a joystick/HOTAS button, or isn't bound at all, the Settings tab says so rather than guessing. Use "Rescan keybind & running apps" after rebinding in-game, and "Test Honk Now" to fire immediately and confirm it can reach the game window — both work independently of whether Auto-Honk itself is enabled or already saved.
+
+If EDCoPilot is also running with its own AutoHonk setting on, the Settings tab flags it — turn one off to avoid double-honking, since both fire the same physical key for the same purpose. "Skip systems already visited this session" (on by default) avoids re-honking a system you've already jumped into since your last login, so backtracking through familiar space doesn't repeatedly fire it.
 
 ## How activity is classified
 

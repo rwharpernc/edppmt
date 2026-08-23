@@ -4,7 +4,8 @@ from __future__ import annotations
 
 import logging
 import os
-from typing import Callable, Dict, Optional
+import threading
+from typing import Callable, Dict, Optional, Tuple
 
 import tkinter as tk
 
@@ -14,6 +15,7 @@ from theme import theme
 from ttkHyperlinkLabel import HyperlinkLabel
 
 from . import __version__
+from . import autohonk
 from .formulas import (
     ACQUISITION,
     ACTIVITIES,
@@ -49,15 +51,33 @@ _SHORT_ACTIVITY_LABELS: Dict[str, str] = {
     UNDERMINING: "UM",
 }
 
+# Every main-panel row whose text is built from live, unbounded data (a
+# system/Power name, a merit count, ...) gets this wraplength, so a long
+# value wraps onto a second line instead of stretching the whole EDMC main
+# window wider than its default width. Chosen to match EDMC's own default
+# main-window width, not the plugin's content.
+_MAIN_PANEL_WRAP = 380
+
 _frame: Optional[tk.Frame] = None
 _status_label: Optional[tk.Label] = None
 _system_label: Optional[tk.Label] = None
-_summary_label: Optional[tk.Label] = None
+_merits_label: Optional[tk.Label] = None
+_cp_label: Optional[tk.Label] = None
+_credits_label: Optional[tk.Label] = None
 _last_event_label: Optional[tk.Label] = None
 _version_label: Optional[HyperlinkLabel] = None
 _prefs_version_label: Optional[HyperlinkLabel] = None
 _ratio_vars: Dict[str, tk.StringVar] = {}
 _auto_update_var: Optional[tk.BooleanVar] = None
+
+_autohonk_frame: Optional[nb.Frame] = None
+_autohonk_enabled_var: Optional[tk.BooleanVar] = None
+_autohonk_firebutton_var: Optional[tk.StringVar] = None
+_autohonk_hold_var: Optional[tk.StringVar] = None
+_autohonk_focus_var: Optional[tk.BooleanVar] = None
+_autohonk_skipvisited_var: Optional[tk.BooleanVar] = None
+_autohonk_status_label: Optional[tk.Label] = None
+_autohonk_result_label: Optional[tk.Label] = None
 
 # (kind, version) — kind is one of "normal", "downloading", "downloaded", "updated".
 _version_state: tuple = ("normal", None)
@@ -78,9 +98,18 @@ def ratio_for(activity: str) -> float:
     return value if value > 0 else default
 
 
+def _separator(parent: tk.Frame) -> tk.Label:
+    """A themed dash-rule label used to break the main panel into groups
+    (header / system / session stats / last event) — plain tk.Label rather
+    than ttk.Separator so theme.update() colors it the same as the rest of
+    the panel without a second theming path to get wrong."""
+    return tk.Label(parent, text="─" * 46, anchor=tk.W)
+
+
 def create_plugin_app(parent: tk.Frame, on_show_details: Callable[[], None]) -> tk.Frame:
     """Create the main-window frame for EDMC."""
-    global _frame, _status_label, _system_label, _summary_label, _last_event_label, _version_label
+    global _frame, _status_label, _system_label, _merits_label, _cp_label, _credits_label
+    global _last_event_label, _version_label
 
     _frame = tk.Frame(parent)
     _frame.columnconfigure(1, weight=1)
@@ -88,7 +117,7 @@ def create_plugin_app(parent: tk.Frame, on_show_details: Callable[[], None]) -> 
     title = tk.Label(_frame, text="EDPPMT:")
     title.grid(row=0, column=0, sticky=tk.W, padx=(0, 4))
 
-    _status_label = tk.Label(_frame, text="Awaiting PowerPlay activity…")
+    _status_label = tk.Label(_frame, text="Awaiting PowerPlay activity…", wraplength=_MAIN_PANEL_WRAP)
     _status_label.grid(row=0, column=1, sticky=tk.W)
 
     _version_label = HyperlinkLabel(
@@ -96,17 +125,29 @@ def create_plugin_app(parent: tk.Frame, on_show_details: Callable[[], None]) -> 
     )
     _version_label.grid(row=0, column=2, sticky=tk.E, padx=(4, 0))
 
-    _system_label = tk.Label(_frame, text="", justify=tk.LEFT)
-    _system_label.grid(row=1, column=0, columnspan=3, sticky=tk.W, pady=(2, 0))
+    _separator(_frame).grid(row=1, column=0, columnspan=3, sticky=tk.W, pady=(4, 2))
 
-    _summary_label = tk.Label(_frame, text="", justify=tk.LEFT)
-    _summary_label.grid(row=2, column=0, columnspan=3, sticky=tk.W, pady=(2, 0))
+    _system_label = tk.Label(_frame, text="", wraplength=_MAIN_PANEL_WRAP, justify=tk.LEFT)
+    _system_label.grid(row=2, column=0, columnspan=3, sticky=tk.W)
 
-    _last_event_label = tk.Label(_frame, text="", wraplength=420, justify=tk.LEFT)
-    _last_event_label.grid(row=3, column=0, columnspan=3, sticky=tk.W, pady=(2, 0))
+    _separator(_frame).grid(row=3, column=0, columnspan=3, sticky=tk.W, pady=(4, 2))
+
+    _merits_label = tk.Label(_frame, text="", wraplength=_MAIN_PANEL_WRAP, justify=tk.LEFT)
+    _merits_label.grid(row=4, column=0, columnspan=3, sticky=tk.W)
+
+    _cp_label = tk.Label(_frame, text="", wraplength=_MAIN_PANEL_WRAP, justify=tk.LEFT)
+    _cp_label.grid(row=5, column=0, columnspan=3, sticky=tk.W)
+
+    _credits_label = tk.Label(_frame, text="", wraplength=_MAIN_PANEL_WRAP, justify=tk.LEFT)
+    _credits_label.grid(row=6, column=0, columnspan=3, sticky=tk.W)
+
+    _separator(_frame).grid(row=7, column=0, columnspan=3, sticky=tk.W, pady=(4, 2))
+
+    _last_event_label = tk.Label(_frame, text="", wraplength=_MAIN_PANEL_WRAP, justify=tk.LEFT)
+    _last_event_label.grid(row=8, column=0, columnspan=3, sticky=tk.W)
 
     details_button = tk.Button(_frame, text="Sessions", command=on_show_details)
-    details_button.grid(row=4, column=0, columnspan=3, sticky=tk.E, pady=(6, 0))
+    details_button.grid(row=9, column=0, columnspan=3, sticky=tk.E, pady=(6, 0))
 
     _apply_version_state()
     theme.update(_frame)
@@ -125,7 +166,7 @@ def _session_cp_by_activity(session: dict) -> Dict[str, float]:
 
 def refresh(sessions: SessionManager, pp: PowerplayTracker) -> None:
     """Update the main-window summary strip from the live session."""
-    if _summary_label is None:
+    if _merits_label is None or _cp_label is None or _credits_label is None:
         return
 
     if _system_label is not None:
@@ -136,51 +177,66 @@ def refresh(sessions: SessionManager, pp: PowerplayTracker) -> None:
     cp_by_activity = _session_cp_by_activity(session)
     earned = credits_earned(session)
 
-    cp_bits = " / ".join(
+    _merits_label["text"] = f"Merits: {merits:,}"
+
+    cp_bits = " · ".join(
         f"{_SHORT_ACTIVITY_LABELS[activity]} {cp_by_activity[activity]:.0f}" for activity in ACTIVITIES if activity in cp_by_activity
     )
-    parts = [f"Session — Merits: {merits:,}", f"CP: {cp_bits}"]
-    if earned is not None:
-        parts.append(f"Cr: {earned:+,}")
+    _cp_label["text"] = f"CP: {cp_bits}"
 
-    _summary_label["text"] = "   ".join(parts)
+    # Hidden (not just blank) until there's balance data to show, so the
+    # row doesn't sit there empty between session start and the first
+    # Cargo/Wallet event.
+    if earned is None:
+        _credits_label.grid_remove()
+    else:
+        _credits_label["text"] = f"Credits: {earned:+,}"
+        _credits_label.grid()
 
 
 def _system_summary(pp: PowerplayTracker) -> str:
-    """'System: Nervi — Exploited (Zachary Hudson)', or with a rival
-    undermining it, 'System: Nervi — Stronghold (Zachary Hudson, undermined by
-    Aisling Duval)', for the main panel."""
+    """'Nervi — Exploited (Zachary Hudson)' for the main panel.
+
+    Deliberately just the controller, not the full rival/contested-Powers
+    list — that's the one thing here whose length is genuinely unbounded
+    (a contested system can list several Powers), and it's already shown
+    in full in the Sessions window's Current Session tab (the raw
+    Controller/Powers line), which is a better home for it anyway since
+    that's where you'd go to sanity-check a merit classification. Keeping
+    it off the main panel keeps this row's width predictable."""
     if not pp.system_name:
         return ""
     state = pp.system_state or "no PP data"
     if pp.system_controller:
-        rivals = [p for p in pp.system_powers if p != pp.system_controller]
         detail = pp.system_controller
-        if rivals:
-            detail += f", undermined by {', '.join(rivals)}"
     elif pp.system_powers:
-        detail = f"contested: {', '.join(pp.system_powers)}"
+        detail = "contested"
     else:
         detail = "uncontested"
-    return f"System: {pp.system_name} — {state} ({detail})"
+    return f"{pp.system_name} — {state} ({detail})"
 
 
 def create_prefs(parent: nb.Notebook) -> nb.Frame:
     """Create the EDPPMT tab in EDMC's settings window."""
-    global _ratio_vars, _auto_update_var, _prefs_version_label
+    global _ratio_vars, _auto_update_var, _prefs_version_label, _autohonk_frame
 
     frame = nb.Frame(parent)
     frame.columnconfigure(0, weight=1)
+    _autohonk_frame = frame
 
     _prefs_version_label = HyperlinkLabel(
         frame, text=f"EDPPMT v{__version__}", background=nb.Label().cget("background"), url=RELEASES_PAGE_URL, underline=True,
     )
     _prefs_version_label.grid(row=0, column=0, columnspan=2, sticky=tk.W, padx=10, pady=(10, 2))
+    row = 1
+
+    row = _create_autohonk_section(frame, row)
 
     nb.Label(
         frame,
         text="Merit-to-Control-Point ratios",
-    ).grid(row=1, column=0, columnspan=2, sticky=tk.W, padx=10, pady=(10, 2))
+    ).grid(row=row, column=0, columnspan=2, sticky=tk.W, padx=10, pady=(10, 2))
+    row += 1
 
     nb.Label(
         frame,
@@ -191,7 +247,8 @@ def create_prefs(parent: nb.Notebook) -> nb.Frame:
         ),
         wraplength=440,
         justify=tk.LEFT,
-    ).grid(row=2, column=0, columnspan=2, sticky=tk.W, padx=10, pady=(0, 8))
+    ).grid(row=row, column=0, columnspan=2, sticky=tk.W, padx=10, pady=(0, 8))
+    row += 1
 
     nb.Label(
         frame,
@@ -204,10 +261,10 @@ def create_prefs(parent: nb.Notebook) -> nb.Frame:
         wraplength=440,
         justify=tk.LEFT,
         foreground="#c07000",
-    ).grid(row=3, column=0, columnspan=2, sticky=tk.W, padx=10, pady=(0, 10))
+    ).grid(row=row, column=0, columnspan=2, sticky=tk.W, padx=10, pady=(0, 10))
+    row += 1
 
     _ratio_vars = {}
-    row = 4
     for activity in ACTIVITIES:
         default = DEFAULT_RATIOS.get(activity)
         if default is None:
@@ -241,6 +298,152 @@ def create_prefs(parent: nb.Notebook) -> nb.Frame:
     return frame
 
 
+def _create_autohonk_section(frame: nb.Frame, row: int) -> int:
+    """Auto-Honk (Discovery Scanner on jump) settings block. Returns the
+    next free grid row."""
+    global _autohonk_enabled_var, _autohonk_firebutton_var, _autohonk_hold_var
+    global _autohonk_focus_var, _autohonk_skipvisited_var
+    global _autohonk_status_label, _autohonk_result_label
+
+    cfg = autohonk.load_config()
+
+    nb.Label(
+        frame, text="Auto-Honk (Discovery Scanner on jump)",
+    ).grid(row=row, column=0, columnspan=2, sticky=tk.W, padx=10, pady=(14, 2))
+    row += 1
+
+    nb.Label(
+        frame,
+        text=(
+            "Automatically fires your ship's Discovery Scanner — the basic system-wide "
+            "\"honk\" that reveals bodies, not the Detailed Surface Scanner (that one only "
+            "does anything while already in FSS mode) — every time you jump into a new "
+            "system. Modeled on EDCoPilot's own AutoHonk feature; if EDCoPilot is also "
+            "running with its AutoHonk on, turn one off below to avoid double-honking."
+        ),
+        wraplength=440,
+        justify=tk.LEFT,
+    ).grid(row=row, column=0, columnspan=2, sticky=tk.W, padx=10, pady=(0, 8))
+    row += 1
+
+    _autohonk_enabled_var = tk.BooleanVar(value=cfg.enabled)
+    nb.Checkbutton(
+        frame, text="Enable Auto-Honk", variable=_autohonk_enabled_var,
+    ).grid(row=row, column=0, columnspan=2, sticky=tk.W, padx=10, pady=2)
+    row += 1
+
+    # Fire button + hold duration on one row — both answer "how do we honk",
+    # so they read as one setting rather than two.
+    nb.Label(frame, text="Fire button:").grid(row=row, column=0, sticky=tk.W, padx=10, pady=2)
+    fire_row = tk.Frame(frame)
+    fire_row.grid(row=row, column=1, sticky=tk.W, padx=(0, 10), pady=2)
+    _autohonk_firebutton_var = tk.StringVar(value=cfg.fire_button)
+    tk.OptionMenu(fire_row, _autohonk_firebutton_var, *autohonk.FIRE_BUTTONS).pack(side=tk.LEFT)
+    nb.Label(fire_row, text="   Hold (sec):").pack(side=tk.LEFT)
+    _autohonk_hold_var = tk.StringVar(value=_format_ratio(cfg.hold_ms / 1000))
+    nb.EntryMenu(fire_row, textvariable=_autohonk_hold_var, width=5).pack(side=tk.LEFT, padx=(4, 0))
+    row += 1
+
+    # Both behavior toggles on one row for the same reason.
+    behavior_row = tk.Frame(frame)
+    behavior_row.grid(row=row, column=0, columnspan=2, sticky=tk.W, padx=10, pady=2)
+    _autohonk_focus_var = tk.BooleanVar(value=cfg.focus_game_window)
+    nb.Checkbutton(
+        behavior_row, text="Focus game window first", variable=_autohonk_focus_var,
+    ).pack(side=tk.LEFT)
+    _autohonk_skipvisited_var = tk.BooleanVar(value=cfg.skip_if_visited_this_session)
+    nb.Checkbutton(
+        behavior_row, text="Skip systems already visited", variable=_autohonk_skipvisited_var,
+    ).pack(side=tk.LEFT, padx=(16, 0))
+    row += 1
+
+    _autohonk_status_label = nb.Label(frame, text="", wraplength=440, justify=tk.LEFT)
+    _autohonk_status_label.grid(row=row, column=0, columnspan=2, sticky=tk.W, padx=10, pady=(4, 2))
+    row += 1
+
+    # Buttons and their one result label share a row so "do a thing" and
+    # "here's what happened" stay visually paired.
+    action_row = tk.Frame(frame)
+    action_row.grid(row=row, column=0, columnspan=2, sticky=tk.W, padx=10, pady=(0, 6))
+    tk.Button(action_row, text="Rescan", command=_rescan_autohonk).pack(side=tk.LEFT)
+    tk.Button(action_row, text="Test Honk Now", command=_test_autohonk).pack(side=tk.LEFT, padx=(6, 0))
+    _autohonk_result_label = nb.Label(action_row, text="", wraplength=280, justify=tk.LEFT)
+    _autohonk_result_label.pack(side=tk.LEFT, padx=(10, 0))
+    row += 1
+
+    _rescan_autohonk()
+    return row
+
+
+def _autohonk_binding_text(fire_button: str) -> Tuple[str, str]:
+    """(text, color) describing the current keybind resolution for
+    fire_button — resolved fresh each call, not cached, so it always
+    reflects the (possibly unsaved) fire-button choice in the dialog."""
+    binding = autohonk.resolve_key_binding(fire_button)
+    status = binding["status"]
+    if status == "resolved":
+        return f"Will press {binding['label']} when you jump into a system.", "#2e7d32"
+    return autohonk.BINDING_STATUS_TEXT.get(status, status), "#c07000"
+
+
+def _rescan_autohonk() -> None:
+    """Re-reads the binds file and re-checks companion-app processes for
+    the currently-selected (possibly unsaved) fire button."""
+    if _autohonk_firebutton_var is None or _autohonk_status_label is None:
+        return
+
+    text, color = _autohonk_binding_text(_autohonk_firebutton_var.get())
+    conflicts = [name for exe, name in autohonk.COMPANION_APPS if autohonk.is_process_running(exe)]
+    if conflicts:
+        text += (
+            "\n" + ", ".join(conflicts)
+            + " is running — if its own Auto-Honk is also enabled, you'll get duplicate honks."
+        )
+    _autohonk_status_label["text"] = text
+    _autohonk_status_label["foreground"] = color
+
+
+def _set_autohonk_result(system: str, outcome: str) -> None:
+    if _autohonk_result_label is None:
+        return
+    _autohonk_result_label["text"] = f"Last test ({system}): {autohonk.HONK_OUTCOME_TEXT.get(outcome, outcome)}"
+
+
+def _test_autohonk() -> None:
+    """Fires immediately using whatever is currently selected in the
+    dialog (even if not yet saved) — works regardless of the Enable
+    Auto-Honk checkbox, so it's a standalone sanity check of binding
+    resolution + key injection without needing a real jump."""
+    if _autohonk_firebutton_var is None or _autohonk_result_label is None:
+        return
+
+    fire_button = _autohonk_firebutton_var.get()
+    focus_window = bool(_autohonk_focus_var.get()) if _autohonk_focus_var is not None else autohonk.DEFAULT_FOCUS
+    try:
+        hold_ms = max(1, round(float(_autohonk_hold_var.get()) * 1000)) if _autohonk_hold_var is not None else autohonk.DEFAULT_HOLD_MS
+    except ValueError:
+        hold_ms = autohonk.DEFAULT_HOLD_MS
+
+    _autohonk_result_label["text"] = "Testing…"
+    frame = _autohonk_frame
+
+    def worker() -> None:
+        binding = autohonk.resolve_key_binding(fire_button)
+        if binding["status"] == "resolved":
+            vk = autohonk.KEY_MAP[binding["raw_key"]][0]
+            outcome = autohonk.send_key_press(vk, focus_window, hold_ms)
+        else:
+            outcome = "unresolved"
+
+        if frame is not None:
+            try:
+                frame.after(0, lambda: _set_autohonk_result("Test", outcome))
+            except tk.TclError:
+                pass  # Settings dialog was closed before the test finished.
+
+    threading.Thread(target=worker, name="EDPPMT-autohonk-test", daemon=True).start()
+
+
 def save_prefs() -> None:
     """Persist ratio and update-preference settings from the prefs tab."""
     for activity, var in _ratio_vars.items():
@@ -255,6 +458,38 @@ def save_prefs() -> None:
 
     if _auto_update_var is not None:
         config.set(CONFIG_AUTO_UPDATE, _auto_update_var.get())
+
+    _save_autohonk_prefs()
+
+
+def _save_autohonk_prefs() -> None:
+    if _autohonk_enabled_var is None:
+        return
+
+    fire_button = _autohonk_firebutton_var.get() if _autohonk_firebutton_var is not None else autohonk.DEFAULT_FIRE_BUTTON
+    if fire_button not in autohonk.FIRE_BUTTONS:
+        fire_button = autohonk.DEFAULT_FIRE_BUTTON
+
+    try:
+        hold_ms = (
+            max(1000, round(float(_autohonk_hold_var.get()) * 1000))
+            if _autohonk_hold_var is not None
+            else autohonk.DEFAULT_HOLD_MS
+        )
+    except ValueError:
+        hold_ms = autohonk.DEFAULT_HOLD_MS
+
+    autohonk.save_config(
+        autohonk.AutoHonkConfig(
+            enabled=bool(_autohonk_enabled_var.get()),
+            fire_button=fire_button,
+            focus_game_window=bool(_autohonk_focus_var.get()) if _autohonk_focus_var is not None else autohonk.DEFAULT_FOCUS,
+            skip_if_visited_this_session=(
+                bool(_autohonk_skipvisited_var.get()) if _autohonk_skipvisited_var is not None else autohonk.DEFAULT_SKIP_VISITED
+            ),
+            hold_ms=hold_ms,
+        )
+    )
 
 
 def _format_ratio(value: float) -> str:

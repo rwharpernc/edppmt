@@ -1,8 +1,8 @@
 # EDPPMT Technical Specification
 
-**Version:** 1.4.0
+**Version:** 1.7.0
 **Author:** R.W. Harper (CMDR Bocheaux)
-**Last updated:** 2026-08-20
+**Last updated:** 2026-08-23
 
 ## 1. Overview
 
@@ -23,6 +23,7 @@ edppmt/
 ├── plugin/                 # Source — deployed to dist/EDPPMT/
 │   ├── __init__.py         # __version__
 │   ├── load.py             # EDMC callbacks (entry point); journal event dispatch
+│   ├── autohonk.py         # AutoHonkController: binds-file lookup + Win32 key injection
 │   ├── formulas.py         # Activity constants + merits-per-CP ratio table
 │   ├── powerplay.py        # PowerplayTracker: pledge state, system context, classification
 │   ├── session.py          # Session dict helpers + SessionManager (live + history)
@@ -47,8 +48,8 @@ edppmt/
 | `plugin_start3(plugin_dir: str) -> str` | `load.py` | Initialisation; creates the `SessionManager`, starts the background update check (`UpdateManager.check_async`, see §11), returns `"EDPPMT"`. |
 | `plugin_stop() -> None` | `load.py` | Shutdown hook; flushes session state to disk, closes the Sessions window. |
 | `plugin_app(parent: tk.Frame) -> tk.Frame` | `load.py` | Creates the main-window summary strip. |
-| `plugin_prefs(parent, cmdr, is_beta) -> nb.Frame` | `load.py` | Creates the Settings tab (ratio table + auto-update checkbox). |
-| `prefs_changed(cmdr, is_beta) -> None` | `load.py` | Persists ratio and auto-update settings; flushes session state. |
+| `plugin_prefs(parent, cmdr, is_beta) -> nb.Frame` | `load.py` | Creates the Settings tab (Auto-Honk block + ratio table + auto-update checkbox). |
+| `prefs_changed(cmdr, is_beta) -> None` | `load.py` | Persists ratio, Auto-Honk, and auto-update settings; reloads the live `AutoHonkController`'s config; flushes session state. |
 | `journal_entry(...) -> Optional[str]` | `load.py` | Processes journal events (see §4). |
 
 ### 3.2 Not implemented
@@ -70,6 +71,8 @@ import requests                     # GitHub Releases API + download (update.py)
 
 `state['Credits']` (EDMC's own running balance, built from dozens of journal event types — see `monitor.py` in EDMC core) is read from the `state` dict passed into `journal_entry()`; PowerPlay pledge/merit/system state is tracked independently by `powerplay.py` directly from journal entries, not from `state['Powerplay']`, so that mid-session defection (`PowerplayDefect`) is handled correctly even though EDMC's own `state['Powerplay']` doesn't track that event. `monitor.logfile` (the path of the journal file EDMC is currently tailing) is read directly to detect whether a login is a continuation of the same journal file — see §4 and §7.
 
+`autohonk.py` deliberately does **not** add to this list. EDMC bundles `pywin32`/`psutil` for its own Windows build, but EDMC itself is not Windows-only, and this module needs to stay importable (and gracefully inert) on every platform EDMC runs on. Its Win32 key-injection and window-lookup calls (`FindWindowW`, `keybd_event`, `SetForegroundWindow`, the `AttachThreadInput` foreground-lock workaround) go through the standard-library `ctypes` module directly against `user32.dll`/`kernel32.dll`, guarded behind `sys.platform == "win32"` checks rather than an import-time dependency — see §12.
+
 ## 4. Journal Event Handling
 
 Dispatched in `load._dispatch`, delegating to `PowerplayTracker` (`powerplay.py`) and `SessionManager` (`session.py`):
@@ -83,8 +86,11 @@ Dispatched in `load._dispatch`, delegating to `PowerplayTracker` (`powerplay.py`
 | `PowerplayRank` | Updates tracked rank. |
 | `Location` | Always fires once at startup. Used as the checkpoint to resolve pledge status to `not_pledged` if no `Powerplay` event arrived first (see §5). Also a system-context event (see below). |
 | `FSDJump`, `Docked` | Refresh the current system's name/`PowerplayState`/`Powers`/`ControllingPower` fields, when present (`PowerplayTracker.apply_system_context`). |
+| `FSDJump`, `CarrierJump` | Also forwarded to `AutoHonkController.handle_event` — see §12. |
 | `SearchAndRescue`, `DeliverPowerMicroResources` | PowerPlay commodity/data hand-ins (`PowerplayTracker.apply_delivery_signal`) — see §6. |
 | `PowerplayMerits` | The core event. See §6. |
+
+`_dispatch` forwards *every* event (not just the ones in the table above) to `AutoHonkController.handle_event` first, unconditionally — the controller itself is what filters for `FSDJump`/`CarrierJump` and whether Auto-Honk is enabled, the same way `PowerplayTracker`'s methods are only ever called for the specific events they handle. See §12.
 
 Every dispatch also forwards the `system` argument `journal_entry` receives — EDMC's own live-tracked current system name, not parsed from the entry — so `PowerplayTracker` always knows both which system its stored context describes and which system the commander is actually in right now (see §6).
 
@@ -189,3 +195,31 @@ The Settings-tab label prefixes its text with `EDPPMT ` since it has no adjacent
 - Activity classification is a heuristic (§4/§6), not a value the game reports directly — see `docs/ATTRIBUTIONS.md` for the sourcing and its confidence level, and the README for the classification rule.
 - The full set of `PowerplayState` values Frontier currently uses isn't documented (the last official journal manual predates Powerplay 2.0); `powerplay._CONTROLLED_STATES` is a conservative, extensible set rather than an exhaustive one.
 - No CAPI integration for PowerPlay data — the merit/pledge/session data reflects the local journal stream only. (`update.py` does make outbound HTTPS requests to GitHub — the one exception to an otherwise fully local plugin — see §10.)
+
+## 12. Auto-Honk (`autohonk.py`)
+
+Ported from a sibling project (EDDDT, an Electron/TypeScript app — `src/main/auto-honk/`, `src/main/input/`, `src/main/journal/binds.ts`) and modeled on EDCoPilot's own AutoHonk feature: fires the ship's Discovery Scanner automatically on system entry by simulating the keyboard key bound to a configurable fire button. Windows only — inert everywhere else (see §3.3).
+
+### 12.1 Keybind resolution
+
+`resolve_key_binding(fire_button)` (`fire_button` is `"Primary"` or `"Secondary"`, chosen in Settings — this is *which fire group's button* the Discovery Scanner is mapped to, mirroring EDCoPilot's own "HonkFiregroup" setting, not the DSS, which only does anything while already in FSS mode):
+
+1. Finds the active `Custom.<major>.<minor>.binds` file under `%LOCALAPPDATA%\Frontier Developments\Elite Dangerous\Options\Bindings` (`StartPreset.start` names the active preset by base name — near-universally `Custom`; ED bumps the version suffix on schema changes, so the most recently *modified* matching file is used rather than parsing version numbers).
+2. Extracts that action's `<Primary>`/`<Secondary>` input slots via a targeted regex (the binds XML is flat and regular enough that a full parser isn't needed).
+3. Picks the `Device="Keyboard"` slot, if any, and maps its `Key="..."` token (e.g. `Key_Numpad_Divide`) to a Windows virtual-key code via `KEY_MAP` — ported 1:1 from EDDDT's `keymap.ts`, deliberately not exhaustive.
+
+Re-resolved fresh on every honk attempt (not cached) — binds can change any time the user edits their control scheme in-game, and this only runs once per jump, so the extra file read is cheap. Possible outcomes: `resolved`, `no-keyboard-binding` (bound to a joystick/HOTAS only), `not-bound`, `unsupported-key` (bound to a keyboard key `KEY_MAP` doesn't cover), `binds-not-found`.
+
+### 12.2 Key injection
+
+`send_key_press(vk, focus_window, hold_ms)` finds the `Elite - Dangerous (CLIENT)` window (`FindWindowW`, matched by both title and class — `FrontierDevelopmentsAppWinClass` — since EDMC's Python is bundled 64-bit and a `None`/empty class argument can misbehave), optionally brings it to the foreground (the `AttachThreadInput` + simulated Alt-tap dance that works around Windows' foreground-lock heuristic silently ignoring `SetForegroundWindow` from a background process), then holds the resolved key down for `hold_ms` via `keybd_event` before releasing it — a tap alone never honks, since the Discovery Scanner charges while the button stays physically depressed. All Win32 calls go through `ctypes` directly (see §3.3's note on why not `pywin32`), with explicit `ctypes.wintypes` `argtypes`/`restype` throughout to avoid HWND truncation on 64-bit Windows. Blocking for the full hold duration, so it must only ever run on a background thread — never the Tk main thread `journal_entry` itself runs on.
+
+### 12.3 Controller (`AutoHonkController`)
+
+One instance, created in `plugin_start3`, held in `load._autohonk`. `handle_event(entry, system)` is called from `_dispatch` for every journal event (see §4) and is itself the filter: no-ops unless `enabled` and the event is `FSDJump`/`CarrierJump`. When it fires, it spawns a daemon thread that re-resolves the keybind and calls `send_key_press` — `journal_entry` itself never blocks. `skip_if_visited_this_session` (default on) tracks jumped-into `SystemAddress` values in a per-controller-instance set so backtracking through familiar space doesn't re-honk; `reset_session()` clears it, called from `load._dispatch`'s `LoadGame` handler exactly when `SessionManager.sync_session` reports a genuinely new session (not a same-journal relog — see §5/§7), since a fresh flight is the natural boundary for "already visited," not an EDMC restart.
+
+### 12.4 Settings & persistence
+
+Stored as individual EDMC config values (`ui._save_autohonk_prefs`/`autohonk.load_config`/`autohonk.save_config`): `edppmt_autohonk_enabled`, `edppmt_autohonk_firebutton`, `edppmt_autohonk_holdms` (milliseconds, stored as a string, entered in the UI as seconds), `edppmt_autohonk_focus`, `edppmt_autohonk_skipvisited`. `load._prefs_changed` calls `AutoHonkController.reload_config()` right after `ui.save_prefs()`, so a toggle takes effect immediately rather than only on EDMC's next restart (unlike the ratio/auto-update settings, which only affect display-time calculations and the next update check respectively, and so don't need a live-reload path).
+
+The Settings tab's "Rescan keybind & running apps" and "Test Honk Now" buttons operate on whatever is currently selected in the dialog — including unsaved changes — independently of the live `AutoHonkController` and its saved config, so a user can verify a keybind or fire a manual test honk before committing to Save. "Rescan" also flags `COMPANION_APPS` (currently just `EDCoPilot.exe`) if running, via `tasklist` (chosen over `psutil` for the same reason as §3.3's ctypes note — no new EDMC-bundled dependency), since EDCoPilot has its own AutoHonk setting that would double-honk if both are enabled.
