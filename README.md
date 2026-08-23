@@ -10,25 +10,23 @@ A lightweight [Elite Dangerous Market Connector](https://github.com/EDCD/EDMarke
 
 ---
 
-## Why
+## Table of Contents
 
-The journal's `PowerplayMerits` event reports your actual merit take, already including every bonus the game applies — system strength/frontline penalties, ethos buffs, your Squadron's PP bonus, all of it. What it does *not* say is how many Control Points that's worth for the system, because that depends on which activity earned it, and Frontier has never documented the conversion in the journal (the last official journal manual predates Powerplay 2.0 entirely).
-
-EDPPMT infers the activity from the PowerPlay state of the system you're in when the merits land, and converts to an estimated CP figure using an editable ratio table — so you can watch your CP contribution and credit income build in real time instead of doing the math yourself after the fact.
-
-## How it works
-
-EDPPMT never touches the game. It's a passive listener sitting behind EDMC:
-
-```
-Elite Dangerous  →  writes journal files  →  EDMC tails them  →  EDPPMT reacts
-```
-
-It reads `PowerplayMerits` for the merit amount, `Powerplay`/`PowerplayJoin`/`PowerplayDefect`/`PowerplayLeave` for which Power you're pledged to, and `FSDJump`/`Location`/`Docked` for the PowerPlay state of the system you're currently in — combining the last two to decide whether a batch of merits was Acquisition, Reinforcement, or Undermining. EDMC's own running credit balance (built from dozens of journal event types) is diffed against the session start to report money earned.
+- [Install](#install)
+- [Updates](#updates)
+- [What it shows](#what-it-shows)
+- [Why](#why)
+- [How it works](#how-it-works)
+- [Auto-Honk](#auto-honk)
+- [How activity is classified](#how-activity-is-classified)
+- [Ratios](#ratios)
+- [Pledge detection](#pledge-detection)
+- [Sessions](#sessions)
+- [Money](#money)
+- [For Developers](#for-developers)
+- [Documentation](#documentation)
 
 ## Install
-
-### For players
 
 You don't need Node.js, Python, or any of this repo's source tree — just a release zip.
 
@@ -37,18 +35,6 @@ You don't need Node.js, Python, or any of this repo's source tree — just a rel
 3. Restart EDMC.
 
 After that first install, EDPPMT updates itself automatically — see Updates below.
-
-### For developers
-
-Building from source instead of using a release zip:
-
-1. `npm run build` (or `node scripts/build.mjs`) — produces `dist/EDPPMT/`.
-2. Copy `dist/EDPPMT` into your EDMC plugins folder the same way as the player steps above.
-3. Restart EDMC.
-
-`npm run package` does both of those *and* zips the result to `dist/EDPPMT-v<version>.zip` — the same artifact published on the Releases page.
-
-There's no EDMC install available in this repo, so `plugin/`'s modules can't be imported standalone — `config`, `theme`, `myNotebook`, and `companion` are all provided by EDMC at runtime, not installable packages. See `docs/tech-spec.md` for the module layout and the EDMC API surface this plugin uses.
 
 ## Updates
 
@@ -65,6 +51,22 @@ Turn it off from the Settings tab if you'd rather update manually. If you're act
   - **Current Session** tab — a per-activity breakdown (Acquisition / Reinforcement / Undermining / Delivery-Donation / Unattributed): merits, the ratio used, estimated CP, and CP/hr; the system name, raw `PowerplayState`, and `ControllingPower`/`Powers` last seen (for sanity-checking a row that looks wrong); and credits earned this session plus the rate.
   - **History** tab — every past session (bounded to the most recent 200), so you can compare sessions later, not just watch the live one; plus an "All sessions" summary (cumulative merits, CP by activity, and credits earned across the current session and all saved history).
 - **Settings tab** — the same version/update-status link as the main panel; Auto-Honk configuration (see below); the merits-per-CP ratio for each activity, editable in case Frontier tunes Powerplay balance or a default turns out to be off; a checkbox to turn auto-update on/off.
+
+## Why
+
+The journal's `PowerplayMerits` event reports your actual merit take, already including every bonus the game applies — system strength/frontline penalties, ethos buffs, your Squadron's PP bonus, all of it. What it does *not* say is how many Control Points that's worth for the system, because that depends on which activity earned it, and Frontier has never documented the conversion in the journal (the last official journal manual predates Powerplay 2.0 entirely).
+
+EDPPMT infers the activity from the PowerPlay state of the system you're in when the merits land, and converts to an estimated CP figure using an editable ratio table — so you can watch your CP contribution and credit income build in real time instead of doing the math yourself after the fact.
+
+## How it works
+
+EDPPMT never touches the game. It's a passive listener sitting behind EDMC:
+
+```
+Elite Dangerous  →  writes journal files  →  EDMC tails them  →  EDPPMT reacts
+```
+
+It reads `PowerplayMerits` for the merit amount, `Powerplay`/`PowerplayJoin`/`PowerplayDefect`/`PowerplayLeave` for which Power you're pledged to, and `FSDJump`/`Location`/`Docked` for the PowerPlay state of the system you're currently in — combining the last two to decide whether a batch of merits was Acquisition, Reinforcement, or Undermining. EDMC's own running credit balance (built from dozens of journal event types) is diffed against the session start to report money earned.
 
 ## Auto-Honk
 
@@ -115,6 +117,18 @@ Deleting the plugin folder and dropping in a fresh copy removes `sessions.json` 
 ## Money
 
 "Credits earned" is a simple diff of your credit balance from session start to now — it covers all income and expenses (trading, bounties, PP salary, ship costs, etc.), not just PowerPlay-specific income.
+
+## For Developers
+
+Building from source instead of using a release zip:
+
+1. `npm run build` (or `node scripts/build.mjs`) — produces `dist/EDPPMT/`.
+2. Copy `dist/EDPPMT` into your EDMC plugins folder the same way as the player steps above.
+3. Restart EDMC.
+
+`npm run package` does both of those *and* zips the result to `dist/EDPPMT-v<version>.zip` — the same artifact published on the Releases page.
+
+There's no EDMC install available in this repo, so `plugin/`'s modules can't be imported standalone — `config`, `theme`, `myNotebook`, and `companion` are all provided by EDMC at runtime, not installable packages. See [`docs/tech-spec.md`](docs/tech-spec.md) for the module layout and the EDMC API surface this plugin uses.
 
 ## Documentation
 
