@@ -28,13 +28,27 @@ It reads `PowerplayMerits` for the merit amount, `Powerplay`/`PowerplayJoin`/`Po
 
 ## Install
 
-1. `npm run build` (or `node scripts/build.mjs`) — produces `dist/EDPPMT/`.
-2. Copy `dist/EDPPMT` into your EDMC plugins folder: `%LOCALAPPDATA%\EDMarketConnector\plugins\EDPPMT`.
+### For players
+
+You don't need Node.js, Python, or any of this repo's source tree — just a release zip.
+
+1. Download the latest `EDPPMT-vX.Y.Z.zip` from the [Releases page](https://github.com/rwharpernc/edppmt/releases/latest).
+2. Extract it, then copy the `EDPPMT` folder it contains into your EDMC plugins folder: `%LOCALAPPDATA%\EDMarketConnector\plugins\EDPPMT`.
 3. Restart EDMC.
 
-Alternatively, `npm run package` builds and also zips the result to `dist/EDPPMT-v<version>.zip` — extract it and copy the `EDPPMT` folder it contains the same way. Handy for sharing a release without handing over the source tree.
+After that first install, EDPPMT updates itself automatically — see Updates below.
 
-After that first install, EDPPMT updates itself — see Updates below.
+### For developers
+
+Building from source instead of using a release zip:
+
+1. `npm run build` (or `node scripts/build.mjs`) — produces `dist/EDPPMT/`.
+2. Copy `dist/EDPPMT` into your EDMC plugins folder the same way as the player steps above.
+3. Restart EDMC.
+
+`npm run package` does both of those *and* zips the result to `dist/EDPPMT-v<version>.zip` — the same artifact published on the Releases page.
+
+There's no EDMC install available in this repo, so `plugin/`'s modules can't be imported standalone — `config`, `theme`, `myNotebook`, and `companion` are all provided by EDMC at runtime, not installable packages. See `docs/tech-spec.md` for the module layout and the EDMC API surface this plugin uses.
 
 ## Updates
 
@@ -101,14 +115,6 @@ Deleting the plugin folder and dropping in a fresh copy removes `sessions.json` 
 ## Money
 
 "Credits earned" is a simple diff of your credit balance from session start to now — it covers all income and expenses (trading, bounties, PP salary, ship costs, etc.), not just PowerPlay-specific income.
-
-## Development
-
-```
-npm run build     # plugin/ -> dist/EDPPMT/
-```
-
-There's no EDMC install available in this repo, so `plugin/`'s modules can't be imported standalone — `config`, `theme`, `myNotebook`, and `companion` are all provided by EDMC at runtime, not installable packages. See `docs/tech-spec.md` for the module layout and the EDMC API surface this plugin uses.
 
 ## Documentation
 
