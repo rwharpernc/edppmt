@@ -5,6 +5,41 @@ All notable changes to EDPPMT are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.7.3] - 2026-08-23
+
+### Fixed
+
+- **Main panel sat blank until the first journal event.** The system,
+  merits, CP, and last-event rows started out as empty strings and only
+  picked up real text once a journal event triggered a refresh — right
+  after an EDMC restart, that could leave the panel looking broken for a
+  while. It now shows placeholder text ("Awaiting system data…", "Merits:
+  0", "CP: —", "No merit events yet this session.") until real data
+  arrives, and is refreshed with whatever session was persisted from last
+  run immediately on startup instead of waiting for the next event.
+
+## [1.7.2] - 2026-08-23
+
+### Added
+
+- **Main panel is now collapsible.** Click the "▾ EDPPMT:" title to collapse
+  everything below the status/version row — system, merits, CP, credits, and
+  last-event lines — down to a single line, for when you don't need it
+  taking up space in EDMC's main window. Click again ("▸ EDPPMT:") to
+  expand. The collapsed/expanded state is remembered across restarts. The
+  version/update label always stays visible either way, so a pending update
+  is never hidden by collapsing the section.
+
+### Changed
+
+- **Clearer update messaging on the main panel.** The version label now
+  reads "Restart to Update (vX)" once an update has finished downloading,
+  instead of the longer "vX downloaded — restart to apply". After the
+  restart that applies it, "Updated to vX" now clears itself back to a
+  plain version number after 15 seconds — previously it stuck around for
+  the rest of that EDMC session and only cleared after a second, unrelated
+  restart.
+
 ## [1.7.1] - 2026-08-23
 
 ### Fixed

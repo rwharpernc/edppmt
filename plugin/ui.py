@@ -5,7 +5,7 @@ from __future__ import annotations
 import logging
 import os
 import threading
-from typing import Callable, Dict, Optional, Tuple
+from typing import Callable, Dict, List, Optional, Tuple
 
 import tkinter as tk
 
@@ -34,6 +34,7 @@ plugin_name = os.path.basename(os.path.dirname(__file__))
 logger = logging.getLogger(f"{appname}.{plugin_name}")
 
 CONFIG_RATIO_PREFIX = "edppmt_ratio_"
+CONFIG_COLLAPSED = "edppmt_main_collapsed"
 
 # Colors for the version/update HyperlinkLabel, keyed by _version_state's kind.
 _VERSION_COLORS = {
@@ -42,6 +43,11 @@ _VERSION_COLORS = {
     "downloaded": "#d9534f",
     "updated": "#2e7d32",
 }
+
+# How long "Updated to vX" stays up on the main panel before reverting to a
+# plain version number on its own — long enough to notice, short enough that
+# you don't need to restart EDMC a second time just to clear it.
+_UPDATED_MESSAGE_DURATION_MS = 15_000
 
 # Short activity labels for the session CP breakdown, where "Reinforcement"
 # and "Undermining" spelled out would run the main panel too wide.
@@ -70,6 +76,14 @@ _prefs_version_label: Optional[HyperlinkLabel] = None
 _ratio_vars: Dict[str, tk.StringVar] = {}
 _auto_update_var: Optional[tk.BooleanVar] = None
 
+# Main-panel collapse: title label doubles as the toggle, everything below
+# the title/status/version row hides when collapsed (version stays visible
+# so an update-pending message is never hidden by collapsing the section).
+_title_label: Optional[tk.Label] = None
+_collapsed: bool = False
+_collapsible_widgets: List[tk.Widget] = []
+_last_credits_earned: Optional[int] = None
+
 _autohonk_frame: Optional[nb.Frame] = None
 _autohonk_enabled_var: Optional[tk.BooleanVar] = None
 _autohonk_firebutton_var: Optional[tk.StringVar] = None
@@ -81,6 +95,7 @@ _autohonk_result_label: Optional[tk.Label] = None
 
 # (kind, version) — kind is one of "normal", "downloading", "downloaded", "updated".
 _version_state: tuple = ("normal", None)
+_updated_clear_scheduled: bool = False
 
 
 def ratio_for(activity: str) -> float:
@@ -109,13 +124,16 @@ def _separator(parent: tk.Frame) -> tk.Label:
 def create_plugin_app(parent: tk.Frame, on_show_details: Callable[[], None]) -> tk.Frame:
     """Create the main-window frame for EDMC."""
     global _frame, _status_label, _system_label, _merits_label, _cp_label, _credits_label
-    global _last_event_label, _version_label
+    global _last_event_label, _version_label, _title_label, _collapsed, _collapsible_widgets
 
     _frame = tk.Frame(parent)
     _frame.columnconfigure(1, weight=1)
 
-    title = tk.Label(_frame, text="EDPPMT:")
-    title.grid(row=0, column=0, sticky=tk.W, padx=(0, 4))
+    _collapsed = config.get_bool(CONFIG_COLLAPSED, default=False)
+
+    _title_label = tk.Label(_frame, text=_title_text(), cursor="hand2")
+    _title_label.grid(row=0, column=0, sticky=tk.W, padx=(0, 4))
+    _title_label.bind("<Button-1>", _toggle_collapsed)
 
     _status_label = tk.Label(_frame, text="Awaiting PowerPlay activity…", wraplength=_MAIN_PANEL_WRAP)
     _status_label.grid(row=0, column=1, sticky=tk.W)
@@ -125,33 +143,72 @@ def create_plugin_app(parent: tk.Frame, on_show_details: Callable[[], None]) -> 
     )
     _version_label.grid(row=0, column=2, sticky=tk.E, padx=(4, 0))
 
-    _separator(_frame).grid(row=1, column=0, columnspan=3, sticky=tk.W, pady=(4, 2))
+    separator1 = _separator(_frame)
+    separator1.grid(row=1, column=0, columnspan=3, sticky=tk.W, pady=(4, 2))
 
-    _system_label = tk.Label(_frame, text="", wraplength=_MAIN_PANEL_WRAP, justify=tk.LEFT)
+    _system_label = tk.Label(_frame, text="Awaiting system data…", wraplength=_MAIN_PANEL_WRAP, justify=tk.LEFT)
     _system_label.grid(row=2, column=0, columnspan=3, sticky=tk.W)
 
-    _separator(_frame).grid(row=3, column=0, columnspan=3, sticky=tk.W, pady=(4, 2))
+    separator2 = _separator(_frame)
+    separator2.grid(row=3, column=0, columnspan=3, sticky=tk.W, pady=(4, 2))
 
-    _merits_label = tk.Label(_frame, text="", wraplength=_MAIN_PANEL_WRAP, justify=tk.LEFT)
+    _merits_label = tk.Label(_frame, text="Merits: 0", wraplength=_MAIN_PANEL_WRAP, justify=tk.LEFT)
     _merits_label.grid(row=4, column=0, columnspan=3, sticky=tk.W)
 
-    _cp_label = tk.Label(_frame, text="", wraplength=_MAIN_PANEL_WRAP, justify=tk.LEFT)
+    _cp_label = tk.Label(_frame, text="CP: —", wraplength=_MAIN_PANEL_WRAP, justify=tk.LEFT)
     _cp_label.grid(row=5, column=0, columnspan=3, sticky=tk.W)
 
     _credits_label = tk.Label(_frame, text="", wraplength=_MAIN_PANEL_WRAP, justify=tk.LEFT)
     _credits_label.grid(row=6, column=0, columnspan=3, sticky=tk.W)
 
-    _separator(_frame).grid(row=7, column=0, columnspan=3, sticky=tk.W, pady=(4, 2))
+    separator3 = _separator(_frame)
+    separator3.grid(row=7, column=0, columnspan=3, sticky=tk.W, pady=(4, 2))
 
-    _last_event_label = tk.Label(_frame, text="", wraplength=_MAIN_PANEL_WRAP, justify=tk.LEFT)
+    _last_event_label = tk.Label(
+        _frame, text="No merit events yet this session.", wraplength=_MAIN_PANEL_WRAP, justify=tk.LEFT,
+    )
     _last_event_label.grid(row=8, column=0, columnspan=3, sticky=tk.W)
 
     details_button = tk.Button(_frame, text="Sessions", command=on_show_details)
     details_button.grid(row=9, column=0, columnspan=3, sticky=tk.E, pady=(6, 0))
 
+    # Everything but the title/status/version row — that row stays visible
+    # while collapsed so an update-pending message is never hidden by it.
+    _collapsible_widgets = [
+        separator1, _system_label, separator2, _merits_label, _cp_label,
+        _credits_label, separator3, _last_event_label, details_button,
+    ]
+    _apply_collapsed_state()
+
     _apply_version_state()
     theme.update(_frame)
     return _frame
+
+
+def _title_text() -> str:
+    return f"{'▸' if _collapsed else '▾'} EDPPMT:"
+
+
+def _toggle_collapsed(_event: Optional[tk.Event] = None) -> None:
+    global _collapsed
+    _collapsed = not _collapsed
+    config.set(CONFIG_COLLAPSED, _collapsed)
+    _apply_collapsed_state()
+
+
+def _apply_collapsed_state() -> None:
+    if _title_label is not None:
+        _title_label["text"] = _title_text()
+    for widget in _collapsible_widgets:
+        if _collapsed:
+            widget.grid_remove()
+        else:
+            widget.grid()
+    # credits_label's own visibility also depends on whether there's balance
+    # data yet (see refresh()) — re-apply that on top of the blanket show
+    # above rather than always forcing it visible on expand.
+    if not _collapsed and _credits_label is not None and _last_credits_earned is None:
+        _credits_label.grid_remove()
 
 
 def _session_cp_by_activity(session: dict) -> Dict[str, float]:
@@ -166,6 +223,7 @@ def _session_cp_by_activity(session: dict) -> Dict[str, float]:
 
 def refresh(sessions: SessionManager, pp: PowerplayTracker) -> None:
     """Update the main-window summary strip from the live session."""
+    global _last_credits_earned
     if _merits_label is None or _cp_label is None or _credits_label is None:
         return
 
@@ -187,11 +245,13 @@ def refresh(sessions: SessionManager, pp: PowerplayTracker) -> None:
     # Hidden (not just blank) until there's balance data to show, so the
     # row doesn't sit there empty between session start and the first
     # Cargo/Wallet event.
+    _last_credits_earned = earned
     if earned is None:
         _credits_label.grid_remove()
     else:
         _credits_label["text"] = f"Credits: {earned:+,}"
-        _credits_label.grid()
+        if not _collapsed:
+            _credits_label.grid()
 
 
 def _system_summary(pp: PowerplayTracker) -> str:
@@ -205,7 +265,7 @@ def _system_summary(pp: PowerplayTracker) -> str:
     that's where you'd go to sanity-check a merit classification. Keeping
     it off the main panel keeps this row's width predictable."""
     if not pp.system_name:
-        return ""
+        return "Awaiting system data…"
     state = pp.system_state or "no PP data"
     if pp.system_controller:
         detail = pp.system_controller
@@ -535,16 +595,35 @@ def _version_text(kind: str, version: Optional[str], *, prefixed: bool) -> str:
     if kind == "downloading":
         return f"{plugin}Downloading v{version}…"
     if kind == "downloaded":
-        return f"{plugin}v{version} downloaded — restart to apply"
+        return f"{plugin}Restart to Update (v{version})"
     if kind == "updated":
         return f"{plugin}Updated to v{version}"
     return f"{plugin}v{__version__}"
 
 
 def _apply_version_state() -> None:
+    global _updated_clear_scheduled
     kind, version = _version_state
     color = _VERSION_COLORS.get(kind, _VERSION_COLORS["normal"])
     if _version_label is not None:
         _version_label.configure(text=_version_text(kind, version, prefixed=False), url=RELEASES_PAGE_URL, foreground=color)
     if _prefs_version_label is not None:
         _prefs_version_label.configure(text=_version_text(kind, version, prefixed=True), url=RELEASES_PAGE_URL, foreground=color)
+
+    # "Updated to vX" is only interesting right after the restart that
+    # applied it — clear it back to a plain version number on its own after
+    # a while instead of leaving it stuck until yet another restart.
+    if kind == "updated" and not _updated_clear_scheduled and _version_label is not None:
+        _updated_clear_scheduled = True
+        _version_label.after(_UPDATED_MESSAGE_DURATION_MS, _clear_updated_state)
+
+
+def _clear_updated_state() -> None:
+    global _version_state, _updated_clear_scheduled
+    _updated_clear_scheduled = False
+    if _version_state[0] == "updated":
+        _version_state = ("normal", None)
+        try:
+            _apply_version_state()
+        except tk.TclError:
+            pass  # Main window was closed before the timer fired.

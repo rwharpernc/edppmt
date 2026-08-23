@@ -102,6 +102,11 @@ def plugin_app(parent: tk.Frame) -> tk.Frame:
     """Create EDPPMT widgets on the EDMC main window."""
     global _ui_frame
     _ui_frame = ui.create_plugin_app(parent, _show_sessions)
+    if _sessions is not None:
+        # Show whatever session state was persisted from last run right
+        # away, rather than leaving the panel on its placeholder text until
+        # the next journal event happens to arrive.
+        ui.refresh(_sessions, _pp)
     return _ui_frame
 
 
