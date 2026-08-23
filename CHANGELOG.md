@@ -5,6 +5,21 @@ All notable changes to EDPPMT are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.7.1] - 2026-08-23
+
+### Fixed
+
+- **Switching commanders mid-client kept the previous commander's merit
+  totals.** Elite Dangerous keeps writing to the same journal file across a
+  logout-to-menu-and-back even when you pick a *different* commander at the
+  login screen. EDPPMT decided whether a `LoadGame` continued the current
+  session by journal file alone, so a commander switch (without fully
+  restarting the game client) was treated as a continuation and quietly
+  relabeled the still-tallying session with the new commander's name. A
+  `LoadGame` now only continues the session if both the journal file *and*
+  the commander match; a different commander always starts a fresh,
+  zeroed-out session.
+
 ## [1.7.0] - 2026-08-23
 
 ### Added

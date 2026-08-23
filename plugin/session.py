@@ -153,8 +153,17 @@ class SessionManager:
         the *first* login of a client launch, not on every relog, so
         resetting pledge tracking on a same-journal LoadGame would throw
         away a still-correct pledge with nothing left to reconfirm it.
+
+        A same-journal login is only a continuation if it's the *same*
+        commander, too: Frontier keeps writing to one journal file across a
+        logout-to-menu-and-back even when a different commander is picked at
+        the login screen, so matching on journal file alone would carry the
+        previous commander's merit totals over onto the new one.
         """
-        if journal_file and self.current.get("journal_file") == journal_file:
+        same_journal = bool(journal_file) and self.current.get("journal_file") == journal_file
+        current_cmdr = self.current.get("cmdr")
+        same_cmdr = not current_cmdr or not cmdr or current_cmdr == cmdr
+        if same_journal and same_cmdr:
             if cmdr:
                 self.current["cmdr"] = cmdr
             self.current["updated_at"] = _now_iso()
