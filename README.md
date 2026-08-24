@@ -70,7 +70,7 @@ It reads `PowerplayMerits` for the merit amount, `Powerplay`/`PowerplayJoin`/`Po
 
 ## Auto-Honk
 
-Automatically fires your ship's Discovery Scanner — the basic system-wide "honk" that reveals bodies, not the Detailed Surface Scanner (that one only does anything while already in FSS mode) — every time you jump into a new system. Modeled on EDCoPilot's own AutoHonk feature: off by default, Windows only.
+Automatically fires your ship's Discovery Scanner — the basic system-wide "honk" that reveals bodies, not the Detailed Surface Scanner (that one only does anything while already in FSS mode) — every time you jump into a new system. Off by default, Windows only.
 
 Turn it on from the Settings tab, choose which fire button (Primary/Secondary) the Discovery Scanner is bound to in your firegroup, and set a hold duration — the scanner charges up while the button stays held down and only fires once fully charged, so this needs to be long enough to cover your ship's actual charge time. EDPPMT reads your active Elite Dangerous keybindings file to find which physical keyboard key that fire button maps to; if it's only bound to a joystick/HOTAS button, or isn't bound at all, the Settings tab says so rather than guessing. Use "Rescan keybind & running apps" after rebinding in-game, and "Test Honk Now" to fire immediately and confirm it can reach the game window — both work independently of whether Auto-Honk itself is enabled or already saved.
 

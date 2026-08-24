@@ -204,15 +204,15 @@ The `updated` state doesn't stay up indefinitely: `_apply_version_state()` sched
 
 ## 12. Auto-Honk (`autohonk.py`)
 
-Ported from a sibling project (EDDDT, an Electron/TypeScript app — `src/main/auto-honk/`, `src/main/input/`, `src/main/journal/binds.ts`) and modeled on EDCoPilot's own AutoHonk feature: fires the ship's Discovery Scanner automatically on system entry by simulating the keyboard key bound to a configurable fire button. Windows only — inert everywhere else (see §3.3).
+Fires the ship's Discovery Scanner automatically on system entry by simulating the keyboard key bound to a configurable fire button. Windows only — inert everywhere else (see §3.3). See `docs/ATTRIBUTIONS.md` for prior art this feature draws on.
 
 ### 12.1 Keybind resolution
 
-`resolve_key_binding(fire_button)` (`fire_button` is `"Primary"` or `"Secondary"`, chosen in Settings — this is *which fire group's button* the Discovery Scanner is mapped to, mirroring EDCoPilot's own "HonkFiregroup" setting, not the DSS, which only does anything while already in FSS mode):
+`resolve_key_binding(fire_button)` (`fire_button` is `"Primary"` or `"Secondary"`, chosen in Settings — this is *which fire group's button* the Discovery Scanner is mapped to, not the DSS, which only does anything while already in FSS mode):
 
 1. Finds the active `Custom.<major>.<minor>.binds` file under `%LOCALAPPDATA%\Frontier Developments\Elite Dangerous\Options\Bindings` (`StartPreset.start` names the active preset by base name — near-universally `Custom`; ED bumps the version suffix on schema changes, so the most recently *modified* matching file is used rather than parsing version numbers).
 2. Extracts that action's `<Primary>`/`<Secondary>` input slots via a targeted regex (the binds XML is flat and regular enough that a full parser isn't needed).
-3. Picks the `Device="Keyboard"` slot, if any, and maps its `Key="..."` token (e.g. `Key_Numpad_Divide`) to a Windows virtual-key code via `KEY_MAP` — ported 1:1 from EDDDT's `keymap.ts`, deliberately not exhaustive.
+3. Picks the `Device="Keyboard"` slot, if any, and maps its `Key="..."` token (e.g. `Key_Numpad_Divide`) to a Windows virtual-key code via `KEY_MAP` — deliberately not exhaustive.
 
 Re-resolved fresh on every honk attempt (not cached) — binds can change any time the user edits their control scheme in-game, and this only runs once per jump, so the extra file read is cheap. Possible outcomes: `resolved`, `no-keyboard-binding` (bound to a joystick/HOTAS only), `not-bound`, `unsupported-key` (bound to a keyboard key `KEY_MAP` doesn't cover), `binds-not-found`.
 

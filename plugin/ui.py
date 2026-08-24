@@ -378,8 +378,8 @@ def _create_autohonk_section(frame: nb.Frame, row: int) -> int:
             "Automatically fires your ship's Discovery Scanner — the basic system-wide "
             "\"honk\" that reveals bodies, not the Detailed Surface Scanner (that one only "
             "does anything while already in FSS mode) — every time you jump into a new "
-            "system. Modeled on EDCoPilot's own AutoHonk feature; if EDCoPilot is also "
-            "running with its AutoHonk on, turn one off below to avoid double-honking."
+            "system. If EDCoPilot is also running with its AutoHonk on, turn one off "
+            "below to avoid double-honking."
         ),
         wraplength=440,
         justify=tk.LEFT,

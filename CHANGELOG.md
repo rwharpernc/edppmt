@@ -61,17 +61,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Auto-Honk.** Automatically fires your ship's Discovery Scanner — the
   basic system-wide "honk" that reveals bodies, not the Detailed Surface
-  Scanner — every time you jump into a new system. Ported from a sibling
-  project (EDDDT) and modeled on EDCoPilot's own AutoHonk feature: EDPPMT
-  reads your active Elite Dangerous keybindings file to find which
-  keyboard key your Primary or Secondary fire button is bound to (your
-  choice, in Settings), then simulates that key being held down for a
-  configurable duration on `FSDJump`/`CarrierJump`. Off by default; turn
-  it on, pick your fire button and hold duration, and use "Rescan" /
-  "Test Honk Now" in the Settings tab to confirm it resolves your keybind
-  and can reach the game window before relying on it. Windows only. If
-  EDCoPilot is also running with its own AutoHonk enabled, the Settings
-  tab flags the overlap so you can turn one off and avoid double-honking.
+  Scanner — every time you jump into a new system. EDPPMT reads your
+  active Elite Dangerous keybindings file to find which keyboard key
+  your Primary or Secondary fire button is bound to (your choice, in
+  Settings), then simulates that key being held down for a configurable
+  duration on `FSDJump`/`CarrierJump`. Off by default; turn it on, pick
+  your fire button and hold duration, and use "Rescan" / "Test Honk Now"
+  in the Settings tab to confirm it resolves your keybind and can reach
+  the game window before relying on it. Windows only. If another
+  companion app is also running with its own auto-honk feature enabled,
+  the Settings tab flags the overlap so you can turn one off and avoid
+  double-honking.
 
 ### Fixed
 

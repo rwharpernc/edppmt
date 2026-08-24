@@ -1,20 +1,15 @@
 """Auto-Honk: fires the ship's Discovery Scanner on system entry.
 
-Mirrors EDCoPilot's own "AutoHonk" feature, and is a straight port of the
-same feature from a sibling project (EDDDT, an Electron app —
-src/main/auto-honk/, src/main/input/, src/main/journal/binds.ts). The
-algorithm is unchanged: read the commander's active Elite Dangerous binds
-file to find which physical key the configured fire button (Primary/
-Secondary) is bound to on the keyboard, then simulate that key being held
-down for a configurable duration whenever a jump lands in a new system.
+Reads the commander's active Elite Dangerous binds file to find which
+physical key the configured fire button (Primary/Secondary) is bound to
+on the keyboard, then simulates that key being held down for a
+configurable duration whenever a jump lands in a new system.
 
-EDDDT shelled out to a PowerShell/C# helper for the Win32 key-injection
-calls because Node's own SendInput bindings didn't work reliably there;
-this port does the equivalent calls in-process via `ctypes` against
-`user32.dll`/`kernel32.dll` instead — no extra process, and no dependency
-beyond the Python standard library (see docs/tech-spec.md §3.3's "Allowed
-EDMC imports" — this module deliberately doesn't add pywin32/psutil to
-that list even though EDMC itself bundles them, since EDMC is not
+Win32 key-injection calls go in-process via `ctypes` against
+`user32.dll`/`kernel32.dll` — no extra process, and no dependency beyond
+the Python standard library (see docs/tech-spec.md §3.3's "Allowed EDMC
+imports" — this module deliberately doesn't add pywin32/psutil to that
+list even though EDMC itself bundles them, since EDMC is not
 Windows-only and this module needs to stay importable everywhere; every
 Windows-only call below is behind an explicit `sys.platform == "win32"`
 check).
@@ -44,9 +39,8 @@ FIRE_BUTTONS: Tuple[str, ...] = ("Primary", "Secondary")
 _ACTION_BY_FIRE_BUTTON: Dict[str, str] = {"Primary": "PrimaryFire", "Secondary": "SecondaryFire"}
 
 # Other ED companion apps whose own automation could double up with this
-# feature — currently just EDCoPilot, the tool this was modeled on, since
-# it has its own AutoHonk setting that fires the same physical key for the
-# same purpose.
+# feature — currently just EDCoPilot, since it has its own AutoHonk
+# setting that fires the same physical key for the same purpose.
 COMPANION_APPS: Tuple[Tuple[str, str], ...] = (("EDCoPilot.exe", "EDCoPilot"),)
 
 # System-entry events that should trigger a honk attempt.
@@ -112,11 +106,10 @@ def save_config(cfg: AutoHonkConfig) -> None:
 
 # ---------------------------------------------------------------------------
 # Key map: ED binds-file key tokens (e.g. "Key_Numpad_Divide") -> a Windows
-# virtual-key code and a human-readable label. Ported 1:1 from EDDDT's
-# src/main/input/keymap.ts (see that file's own header for provenance —
-# taken from a real Custom.binds file, then extended with the obvious
-# logical siblings). Deliberately not exhaustive; an unmapped key is
-# reported to the user rather than guessed at.
+# virtual-key code and a human-readable label. Built from a real
+# Custom.binds file, then extended with the obvious logical siblings.
+# Deliberately not exhaustive; an unmapped key is reported to the user
+# rather than guessed at.
 # ---------------------------------------------------------------------------
 
 KEY_MAP: Dict[str, Tuple[int, str]] = {}
@@ -182,8 +175,7 @@ _map("Key_Period", 0xBE, ".")
 
 # ---------------------------------------------------------------------------
 # Binds-file lookup. ED's own bindings folder (Local AppData) is a
-# different root from the journal's (Saved Games). Ported from EDDDT's
-# src/main/journal/binds.ts.
+# different root from the journal's (Saved Games).
 # ---------------------------------------------------------------------------
 
 def _bindings_directory() -> str:
@@ -313,10 +305,9 @@ HONK_OUTCOME_TEXT: Dict[str, str] = {
 
 
 # ---------------------------------------------------------------------------
-# Win32 key injection. Ported from EDDDT's send-key.ps1 (a PowerShell/C#
-# helper, used there because Node's own SendInput bindings weren't
-# reliable) to direct ctypes calls against user32.dll/kernel32.dll — no
-# subprocess needed for a same-process Python call.
+# Win32 key injection via direct ctypes calls against
+# user32.dll/kernel32.dll — no subprocess needed for a same-process
+# Python call.
 # ---------------------------------------------------------------------------
 
 # Stable across ED's Horizons/Odyssey/live builds — every third-party ED
@@ -386,8 +377,7 @@ def _bring_to_foreground(hwnd: int) -> bool:
     # Windows' foreground-lock heuristic silently ignores
     # SetForegroundWindow from a background process unless it just
     # observed a genuine Alt keypress — simulate one to unlock it (the
-    # well-known "fake Alt tap" workaround; see EDDDT's send-key.ps1 for
-    # where this was originally worked out against this exact game).
+    # well-known "fake Alt tap" workaround).
     _user32.keybd_event(_VK_MENU, 0, 0, 0)
     _user32.keybd_event(_VK_MENU, 0, _KEYEVENTF_KEYUP, 0)
 
@@ -459,7 +449,7 @@ def is_process_running(image_name: str) -> bool:
 
 # ---------------------------------------------------------------------------
 # Controller: watches system-entry journal events and fires a honk when
-# enabled. Ported from EDDDT's src/main/auto-honk/controller.ts.
+# enabled.
 # ---------------------------------------------------------------------------
 
 def _attempt_honk(
