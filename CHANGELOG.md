@@ -5,7 +5,64 @@ All notable changes to EDPPMT are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.8.0] - Unreleased
+## [1.9.0] - 2026-08-25
+
+### Added
+
+- **Per-system CP tracking.** The main panel now shows two "Here" lines —
+  a merit count, then the full CP breakdown (Acquisition/Reinforcement/
+  Undermining, all three shown even at zero) — for *just the system you're
+  currently in*. It switches the instant you jump, and keeps an accurate
+  running total per system if you jump back to somewhere you've already
+  worked this session, rather than folding everything into one session-wide
+  number. The Sessions window's Current Session tab gains a matching **By
+  System** table (merits, Est. CP, and a per-activity breakdown for every
+  system visited this session, current system pinned to the top and
+  marked). The existing session-wide Merits/CP lines are still there, just
+  relabeled "Session merits"/"Session CP" so they're not confused with the
+  per-system figures.
+- **Pledge status now recovers from the journal file on a relog, without a
+  full game restart.** Frontier only writes a `Powerplay` event once per
+  client launch, not on every logout-to-menu-and-back, so if EDMC (or this
+  plugin) had restarted in between, there was no live event left to tell
+  EDPPMT the pledge status again — it showed "not pledged" until you fully
+  relaunched the game. EDPPMT now falls back to reading the current journal
+  file directly for the most recent pledge-lifecycle event
+  (`Powerplay`/`PowerplayJoin`/`PowerplayLeave`/`PowerplayDefect`, whichever
+  happened last) whenever it doesn't already know pledge status from a live
+  event, the same way Auto-Honk already reads the keybindings file directly
+  rather than waiting on the game.
+
+### Changed
+
+- **Settings tab reorganized into Auto-Honk / CP Ratios / Updates sub-tabs.**
+  Previously everything sat in one long scroll, with Auto-Honk's five
+  controls easy to lose among the CP ratio entries below them. Auto-Honk's
+  tab now leads with a 3-step "how to set this up" note, and its fire
+  button/hold-duration/behavior controls grey out together with the "Enable
+  Auto-Honk" checkbox so it's visually obvious they only matter once it's
+  on — Rescan and Test Honk Now stay active either way, since they're a
+  standalone sanity check.
+- **Sessions window readability pass.** The heading and PowerPlay-context
+  blocks are now aligned label/value grids instead of hand-spaced single
+  lines, and bold section headers ("By System", "By Activity (session
+  total)", "Current PowerPlay Context", "All Sessions") break up what was
+  one dense block per tab.
+
+### Fixed
+
+- **Main panel lines wrapping well short of the window's actual width.**
+  The pledge status line ("Pledged to \<Power\> (Rank N)") shared a row with
+  the title and version label, leaving it far less room than the panel's
+  real width before wrapping — it now has its own full-width row. The
+  "Here" line is now two dedicated lines (merit count, then the CP
+  breakdown) instead of one line that could wrap mid-phrase. The wrap width
+  shared by every other row was also a guessed, overly tight approximation
+  of "EDMC's default width" that didn't hold up against real installs
+  (typically running several plugins, each widening the window) — increased
+  accordingly.
+
+## [1.8.0] - 2026-08-25
 
 ### Changed
 

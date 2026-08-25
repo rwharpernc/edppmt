@@ -20,9 +20,10 @@ this tracker handles those events directly instead of relying on EDMC's state.
 
 from __future__ import annotations
 
+import json
 import logging
 import os
-from typing import Any, List, Mapping, Optional
+from typing import Any, Dict, List, Mapping, Optional
 
 from config import appname
 
@@ -278,3 +279,94 @@ class PowerplayTracker:
             return ACQUISITION
 
         return UNKNOWN
+
+
+# ---------------------------------------------------------------------------
+# Pledge recovery from the journal file itself.
+#
+# Frontier only writes a "Powerplay" event once per client launch (at the
+# first login) — not on a logout-to-menu-and-back, and EDMC doesn't replay
+# journal history when it (re)attaches to an already-running game either. So
+# if this tracker starts out not knowing pledge status (a fresh
+# EDMC/plugin start, mid-session or right after a relog), there's no new
+# live event coming to tell it. The journal file itself still has the
+# answer, though: the pledge-lifecycle event(s) from earlier in this same
+# client launch are still sitting in it. This reads that file directly to
+# recover it — the same approach autohonk.py uses for the binds file,
+# rather than waiting on the game for a full restart.
+# ---------------------------------------------------------------------------
+
+# Every event type that changes pledge status - not just "Powerplay" (the
+# initial login snapshot). A commander could pledge, then leave/defect mid
+# client-launch, then relog to the menu and back; scanning for "Powerplay"
+# alone would find the *original* pledge and miss that they've since left or
+# switched Powers. Reading backward, the first of these encountered is
+# whatever pledge status actually holds right now.
+_PLEDGE_LIFECYCLE_EVENTS = frozenset({"Powerplay", "PowerplayJoin", "PowerplayLeave", "PowerplayDefect"})
+
+# Read from EOF backward in chunks of this size, rather than loading the
+# whole (potentially many-MB) journal file into memory up front — the common
+# case (pledged, playing normally) finds the last pledge-lifecycle event
+# within the first chunk or two, since PowerplayMerits/FSDJump events between
+# it and the current end of the file are typically small in number by
+# comparison.
+_REVERSE_READ_CHUNK = 65536
+
+
+def _iter_lines_reverse(path: str, chunk_size: int = _REVERSE_READ_CHUNK):
+    """Yields non-blank lines from `path` in reverse order (last line
+    first), reading backward in chunks instead of loading the whole file."""
+    with open(path, "rb") as fh:
+        fh.seek(0, os.SEEK_END)
+        remaining = fh.tell()
+        tail = b""
+        while remaining > 0:
+            read_size = min(chunk_size, remaining)
+            remaining -= read_size
+            fh.seek(remaining)
+            tail = fh.read(read_size) + tail
+            lines = tail.split(b"\n")
+            # The first element may be a line straddling this chunk boundary
+            # - hold it back and let the next (earlier) chunk complete it,
+            # rather than yielding and losing its missing prefix.
+            tail = lines[0]
+            for line in reversed(lines[1:]):
+                if line.strip():
+                    yield line
+        if tail.strip():
+            yield tail
+
+
+def find_last_pledge_event(journal_file: Optional[str]) -> Optional[Dict[str, Any]]:
+    """Scans `journal_file` backward for the most recent pledge-lifecycle
+    event already written to it (see _PLEDGE_LIFECYCLE_EVENTS) — whichever
+    of Powerplay/PowerplayJoin/PowerplayLeave/PowerplayDefect happened last,
+    not just the original "Powerplay" login snapshot. Stops (returning None)
+    at "Fileheader" — the first line of every journal file — since that
+    marks the start of this client launch with nothing earlier left to
+    check.
+
+    Returns None (rather than raising) if the file can't be read or found,
+    or contains no pledge-lifecycle event before its start — callers should
+    treat that the same as "couldn't recover it here" and fall back to
+    whatever they'd otherwise do (e.g.
+    PowerplayTracker.confirm_not_pledged_if_unresolved). Apply the result
+    with whichever of PowerplayTracker's apply_* methods matches its
+    "event" field.
+    """
+    if not journal_file:
+        return None
+    try:
+        for raw_line in _iter_lines_reverse(journal_file):
+            try:
+                entry = json.loads(raw_line)
+            except ValueError:
+                continue
+            event = entry.get("event")
+            if event in _PLEDGE_LIFECYCLE_EVENTS:
+                return entry
+            if event == "Fileheader":
+                break
+    except OSError:
+        logger.warning("Could not read %s for pledge recovery", journal_file, exc_info=True)
+    return None

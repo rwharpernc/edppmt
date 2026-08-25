@@ -21,7 +21,7 @@ from monitor import monitor
 from . import __version__
 from . import autohonk
 from .formulas import ACTIVITY_LABELS
-from .powerplay import PowerplayTracker
+from .powerplay import PLEDGE_UNKNOWN, PowerplayTracker, find_last_pledge_event
 from .session import SessionManager
 from .store import SessionStore
 from .update import UpdateManager, check_applied_update
@@ -49,6 +49,14 @@ _sessions: Optional[SessionManager] = None
 _ui_frame: Optional[tk.Frame] = None
 _updater: Optional[UpdateManager] = None
 _autohonk: Optional[autohonk.AutoHonkController] = None
+
+# EDMC's own live-tracked current-system name, refreshed on every journal
+# event regardless of whether it carries PowerPlay context - unlike
+# PowerplayTracker.system_name (only updated when a PP-relevant event fires,
+# so it can lag behind an actual jump). This is what the main panel and
+# Sessions window use to show "what am I earning here" and to file merits
+# under the right system as they're earned. See ui.refresh/window.refresh.
+_current_system: Optional[str] = None
 
 # Journal events that carry PowerplayState/Powers for the current system when
 # it's powerplay-relevant. "Location" is handled separately below (it also
@@ -106,13 +114,13 @@ def plugin_app(parent: tk.Frame) -> tk.Frame:
         # Show whatever session state was persisted from last run right
         # away, rather than leaving the panel on its placeholder text until
         # the next journal event happens to arrive.
-        ui.refresh(_sessions, _pp)
+        ui.refresh(_sessions, _pp, _current_system)
     return _ui_frame
 
 
 def _show_sessions() -> None:
     if _ui_frame is not None and _sessions is not None:
-        window.show(_ui_frame, _sessions, _pp)
+        window.show(_ui_frame, _sessions, _pp, _current_system)
 
 
 def plugin_prefs(parent, cmdr: str, is_beta: bool):
@@ -140,8 +148,12 @@ def journal_entry(
     state: Dict[str, Any],
 ) -> Optional[str]:
     """Handle journal events for PowerPlay merit/CP tracking."""
+    global _current_system
     if _sessions is None:
         return None
+
+    if system:
+        _current_system = system
 
     try:
         credits_now = state.get("Credits") if isinstance(state, dict) else None
@@ -150,8 +162,35 @@ def journal_entry(
 
         return _dispatch(cmdr, system, entry)
     finally:
-        ui.refresh(_sessions, _pp)
-        window.refresh()
+        ui.refresh(_sessions, _pp, _current_system)
+        window.refresh(_current_system)
+
+
+_PLEDGE_EVENT_APPLIERS = {
+    "Powerplay": lambda pp, entry: pp.apply_login_snapshot(entry),
+    "PowerplayJoin": lambda pp, entry: pp.apply_join(entry),
+    "PowerplayLeave": lambda pp, entry: pp.apply_leave(entry),
+    "PowerplayDefect": lambda pp, entry: pp.apply_defect(entry),
+}
+
+
+def _recover_pledge_state() -> None:
+    """Falls back to reading the current journal file directly for the last
+    pledge-lifecycle event when _pp doesn't already know pledge status in
+    memory — see the "LoadGame" (continued) and "StartUp" handlers below for
+    the two situations that need it. A no-op if _pp already has an answer
+    (the common case), so it's safe to call unconditionally from both.
+    """
+    if _pp.pledge_status != PLEDGE_UNKNOWN:
+        return
+    entry = find_last_pledge_event(monitor.logfile)
+    if entry is not None:
+        _PLEDGE_EVENT_APPLIERS[entry["event"]](_pp, entry)
+        logger.info("Recovered pledge state from journal file: %s", _pp.pledge_summary() or "not pledged")
+    # If nothing was found, leave pledge_status as PLEDGE_UNKNOWN — the
+    # "Location" handler's confirm_not_pledged_if_unresolved() is still the
+    # one place that settles it to NOT_PLEDGED, so there's exactly one path
+    # to that conclusion rather than two that could disagree.
 
 
 def _dispatch(cmdr: str, system: str, entry: Dict[str, Any]) -> Optional[str]:
@@ -174,10 +213,14 @@ def _dispatch(cmdr: str, system: str, entry: Dict[str, Any]) -> Optional[str]:
             # Same journal file as before — a logout to the main menu and
             # back in, not a fresh game launch. Frontier only re-sends
             # "Powerplay" on the *first* login of a client launch, not on
-            # every relog, so the pledge state already tracked is still
-            # correct — resetting it here would leave nothing to
-            # reconfirm it with, permanently showing "not pledged" until
-            # the next real restart (see SessionManager.sync_session).
+            # every relog, so there's no new live event to (re)confirm
+            # pledge status with here. Usually that's fine because _pp
+            # already has the right answer in memory from before the relog
+            # — but if EDMC (or this plugin) restarted between the relog and
+            # now, _pp is a fresh tracker that never saw it. Recover it from
+            # the journal file itself in that case rather than showing "not
+            # pledged" until a full game restart (see _recover_pledge_state).
+            _recover_pledge_state()
             ui.set_status(
                 f"Pledged to {_pp.pledge_summary()}" if _pp.my_power else f"CMDR {cmdr}: not a PP Pledge"
             )
@@ -196,6 +239,11 @@ def _dispatch(cmdr: str, system: str, entry: Dict[str, Any]) -> Optional[str]:
         # file we were already tracking.
         _sessions.sync_session(cmdr, None, None, monitor.logfile)
         logger.info("StartUp (EDMC attached to a running game) for %s", cmdr)
+        # No journal replay means no "Powerplay" event is coming either, so
+        # _pp (freshly created this run) has no way to learn pledge status
+        # on its own — recover it from the journal file directly.
+        _recover_pledge_state()
+        ui.set_status(f"Pledged to {_pp.pledge_summary()}" if _pp.my_power else f"CMDR {cmdr}: not a PP Pledge")
         return None
 
     if event == "Powerplay":
@@ -262,7 +310,7 @@ def _handle_merits(system: str, entry: Dict[str, Any]) -> Optional[str]:
         return None
 
     activity = _pp.classify_current_activity(system)
-    _sessions.record_merits(activity, gained)
+    _sessions.record_merits(activity, gained, system)
 
     ratio = ui.ratio_for(activity)
     cp = 0.0 if not ratio else gained / ratio

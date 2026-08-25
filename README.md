@@ -5,7 +5,7 @@
 A lightweight [Elite Dangerous Market Connector](https://github.com/EDCD/EDMarketConnector) (EDMC) plugin for *Elite Dangerous*. EDPPMT tracks how many PowerPlay merits you earn as you play, estimates how many Control Points (CP) that represents for Acquisition, Reinforcement, and Undermining activity, and tracks credit income alongside it — live, per session, with session history kept across game and EDMC restarts.
 
 **Author:** R.W. Harper (CMDR Bocheaux)
-**Version:** 1.8.0
+**Version:** 1.9.0
 **License:** [MIT](LICENSE)
 
 ---
@@ -48,11 +48,14 @@ If you turn it on for a copy you're actively hand-editing (developing, not just 
 
 ## What it shows
 
-- **Main EDMC panel** — pledged Power and rank (e.g. `Pledged to Yuri Grom (Rank 3)`), the current system and its PowerPlay state (e.g. `System: Nervi — Exploited (Zachary Hudson)`), and the current session's merits, CP by activity (Acq/Reinf/UM), and credits earned, updated as journal events arrive. If your commander isn't pledged, it says so directly: `CMDR <name>: not a PP Pledge`. Click the "▾ EDPPMT:" title to collapse everything below the status row down to one line — handy when you don't need it taking up space — and click again ("▸ EDPPMT:") to expand; the collapsed/expanded state is remembered across restarts. That top row is otherwise silent about the plugin version (see Updates above for where that lives) except right after an auto-update takes effect, when it briefly shows "Updated to vX.Y.Z" — that row stays visible even while collapsed, so you don't miss it. Rows that don't have real data yet show placeholder text ("Awaiting system data…", "Merits: 0", etc.) rather than sitting blank, and the panel is refreshed with whatever session was already saved from your last run immediately on EDMC startup.
+- **Main EDMC panel** — pledged Power and rank on its own line (e.g. `Pledged to Yuri Grom (Rank 3)`), the current system and its PowerPlay state (e.g. `System: Nervi — Exploited (Zachary Hudson)`), two **"Here"** lines — a merit count, then the full CP breakdown (Acquisition/Reinforcement/Undermining, all three shown even at zero) — for *just the system you're in right now* — it switches the instant you jump, and keeps an accurate running total per system if you backtrack to somewhere you've already worked this session — and, below that, the session-wide merits/CP totals and credits earned, updated as journal events arrive. If your commander isn't pledged, it says so directly: `CMDR <name>: not a PP Pledge`. Click the "▾ EDPPMT:" title to collapse everything below the pledge-status row down to one line — handy when you don't need it taking up space — and click again ("▸ EDPPMT:") to expand; the collapsed/expanded state is remembered across restarts. The title/pledge-status rows stay visible either way, and are otherwise silent about the plugin version (see Updates above for where that lives) except right after an auto-update takes effect, when it briefly shows "Updated to vX.Y.Z" next to the title. Rows that don't have real data yet show placeholder text ("Awaiting system data…", "Here: awaiting system data…", "Session merits: 0", etc.) rather than sitting blank, and the panel is refreshed with whatever session was already saved from your last run immediately on EDMC startup.
 - **Sessions window** (click "Sessions" in the panel):
-  - **Current Session** tab — a per-activity breakdown (Acquisition / Reinforcement / Undermining / Delivery-Donation / Unattributed): merits, the ratio used, estimated CP, and CP/hr; the system name, raw `PowerplayState`, and `ControllingPower`/`Powers` last seen (for sanity-checking a row that looks wrong); and credits earned this session plus the rate.
+  - **Current Session** tab — a **By System** table (every system visited this session: merits, estimated CP, and a per-activity breakdown, current system pinned to the top and marked); a **By Activity** table with the session-wide breakdown (Acquisition / Reinforcement / Undermining / Delivery-Donation / Unattributed): merits, the ratio used, estimated CP, and CP/hr; the current PowerPlay context (system, state, controller, rival Powers — for sanity-checking a row that looks wrong); and credits earned this session plus the rate.
   - **History** tab — every past session (bounded to the most recent 200), so you can compare sessions later, not just watch the live one; plus an "All sessions" summary (cumulative merits, CP by activity, and credits earned across the current session and all saved history).
-- **Settings tab** — the installed version (a static link to the Releases page); Auto-Honk configuration (see below); the merits-per-CP ratio for each activity, editable in case Frontier tunes Powerplay balance or a default turns out to be off; a checkbox to turn auto-update on (off by default).
+- **Settings tab** — the installed version (a static link to the Releases page) at the top, then three sub-tabs:
+  - **Auto-Honk** — a quick-setup note plus the configuration below.
+  - **CP Ratios** — the merits-per-CP ratio for each activity, editable in case Frontier tunes Powerplay balance or a default turns out to be off.
+  - **Updates** — the auto-update checkbox (off by default).
 
 ## Why
 
@@ -108,7 +111,7 @@ These are community-sourced for Powerplay 2.0 (Undermining is the least certain 
 
 ## Pledge detection
 
-Pledge status is normally resolved right at login: the `Powerplay` event only fires if pledged, and its absence by the time the always-present `Location` event fires means not pledged. If you start EDMC *after* the game is already running, that startup handshake is missed — EDPPMT falls back to resolving pledge status (and which Power) from the first `PowerplayMerits` event it sees instead, so it still catches up, just not instantly.
+Pledge status is normally resolved right at login: the `Powerplay` event only fires if pledged, and its absence by the time the always-present `Location` event fires means not pledged. Frontier only writes that `Powerplay` event once per client launch, though — not on a logout-to-menu-and-back — so if EDMC (or EDPPMT itself) had restarted in between, there's no fresh live event to tell it the pledge status again. EDPPMT falls back to reading the current journal file directly in that case, scanning backward for the most recent pledge-lifecycle event (`Powerplay`/`PowerplayJoin`/`PowerplayLeave`/`PowerplayDefect` — whichever happened last, so a commander who pledged and later left isn't recovered as still pledged) — the same way Auto-Honk reads the keybindings file directly rather than waiting on the game. If you start EDMC *after* the game is already running and there's nothing recoverable that way either, EDPPMT falls back further to resolving pledge status (and which Power) from the first `PowerplayMerits` event it sees, so it still catches up, just not instantly.
 
 ## Sessions
 

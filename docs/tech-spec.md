@@ -1,8 +1,8 @@
 # EDPPMT Technical Specification
 
-**Version:** 1.7.0
+**Version:** 1.9.0
 **Author:** R.W. Harper (CMDR Bocheaux)
-**Last updated:** 2026-08-23
+**Last updated:** 2026-08-25
 
 ## 1. Overview
 
@@ -25,8 +25,8 @@ edppmt/
 │   ├── load.py             # EDMC callbacks (entry point); journal event dispatch
 │   ├── autohonk.py         # AutoHonkController: binds-file lookup + Win32 key injection
 │   ├── formulas.py         # Activity constants + merits-per-CP ratio table
-│   ├── powerplay.py        # PowerplayTracker: pledge state, system context, classification
-│   ├── session.py          # Session dict helpers + SessionManager (live + history)
+│   ├── powerplay.py        # PowerplayTracker: pledge state, system context, classification, journal-file pledge recovery
+│   ├── session.py          # Session dict helpers (incl. per-system totals) + SessionManager (live + history)
 │   ├── store.py            # sessions.json persistence
 │   ├── update.py           # UpdateManager: background self-update from GitHub Releases
 │   ├── ui.py                # Tkinter panel + settings tab (also owns ratio config access)
@@ -48,7 +48,7 @@ edppmt/
 | `plugin_start3(plugin_dir: str) -> str` | `load.py` | Initialisation; creates the `SessionManager`, starts the background update check (`UpdateManager.check_async`, see §11), returns `"EDPPMT"`. |
 | `plugin_stop() -> None` | `load.py` | Shutdown hook; flushes session state to disk, closes the Sessions window. |
 | `plugin_app(parent: tk.Frame) -> tk.Frame` | `load.py` | Creates the main-window summary strip. |
-| `plugin_prefs(parent, cmdr, is_beta) -> nb.Frame` | `load.py` | Creates the Settings tab (Auto-Honk block + ratio table + auto-update checkbox). |
+| `plugin_prefs(parent, cmdr, is_beta) -> nb.Frame` | `load.py` | Creates the Settings tab: a static version link, then an `nb.Notebook` with three sub-tabs — Auto-Honk, CP Ratios, Updates (`ui.create_prefs`). |
 | `prefs_changed(cmdr, is_beta) -> None` | `load.py` | Persists ratio, Auto-Honk, and auto-update settings; reloads the live `AutoHonkController`'s config; flushes session state. |
 | `journal_entry(...) -> Optional[str]` | `load.py` | Processes journal events (see §4). |
 
@@ -100,9 +100,11 @@ Every call to `journal_entry` also updates `SessionManager`'s live credit tracki
 
 There is no journal event for "you are NOT pledged" — only `Powerplay`, which fires at startup *if* pledged. EDPPMT resolves the negative case by using `Location` (always written at startup) as a checkpoint: if pledge status is still unresolved when `Location` arrives, it's set to `not_pledged`. In practice `Location` and `Powerplay` can arrive in either order — both have been observed with the same timestamp, `Location` first — so this is a same-batch race, not a strict ordering guarantee: if `Location` is processed first, pledge status is transiently (and incorrectly) resolved to `not_pledged`, then immediately corrected once `Powerplay`'s own handler runs, since `apply_login_snapshot` unconditionally overwrites it.
 
-That correction depends on `Powerplay` actually arriving, though — and it only arrives on the *first* login of a client launch. A logout to the main menu and back in sends a fresh `LoadGame`, but Frontier does **not** re-send `Powerplay` on it, since the pledge itself hasn't changed. Resetting pledge tracking on every `LoadGame` (as EDPPMT originally did) therefore threw the correct pledge away on every relog, with nothing left to reconfirm it — permanently showing "not pledged" for the rest of the session once the relog's own `Location` event resolved it. Fixed by only calling `apply_login_reset` when `SessionManager.sync_session` reports a new session (§7) rather than a same-journal continuation — a relog keeps whatever pledge state is already tracked.
+That correction depends on `Powerplay` actually arriving, though — and it only arrives on the *first* login of a client launch. A logout to the main menu and back in sends a fresh `LoadGame`, but Frontier does **not** re-send `Powerplay` on it, since the pledge itself hasn't changed. Resetting pledge tracking on every `LoadGame` (as EDPPMT originally did) therefore threw the correct pledge away on every relog, with nothing left to reconfirm it — permanently showing "not pledged" for the rest of the session once the relog's own `Location` event resolved it. Fixed by only calling `apply_login_reset` when `SessionManager.sync_session` reports a new session (§7) rather than a same-journal continuation — a relog keeps whatever pledge state is already tracked *in memory*.
 
-If EDMC attaches to an already-running game, this startup sequence may already be behind the "replay window" EDMC exposes to plugins: EDMC does not replay backlog journal events to plugins on its own startup — only genuinely new events are passed to `journal_entry`, plus one synthesized `StartUp` event (with `cmdr`/`state` already reconstructed from the full file) if the game is running, or nothing at all if it isn't. To cover this, `PowerplayTracker.apply_merits` also opportunistically resolves pledge status (and Power) from the first `PowerplayMerits` event seen, since earning PowerPlay merits is only possible while pledged.
+"In memory" is the operative phrase: if EDMC (or this plugin) restarts between the relog and the next event, `PowerplayTracker` is a fresh instance that never saw the original `Powerplay` event, and — since Frontier won't resend it — there's no live event left to recover it from either. `load._recover_pledge_state()` closes this gap by falling back to the journal file itself, whenever `PowerplayTracker.pledge_status` is still `unknown` going into the same-journal `LoadGame` branch or the `StartUp` handler (see §4): `powerplay.find_last_pledge_event(monitor.logfile)` reads the file backward in chunks (`powerplay._iter_lines_reverse`, no full-file load) for the most recent pledge-lifecycle event — `Powerplay`, `PowerplayJoin`, `PowerplayLeave`, or `PowerplayDefect`, whichever happened *last* (not just `Powerplay` alone, since a commander who pledged and then left or defected mid-launch would otherwise be recovered as still holding the original pledge) — stopping at `Fileheader`, the first line of every journal file. `load._PLEDGE_EVENT_APPLIERS` maps the found event's `"event"` field to the matching `PowerplayTracker.apply_*` method. If nothing is found, `pledge_status` is deliberately left `unknown` rather than set to `not_pledged` directly here — the `Location` handler's `confirm_not_pledged_if_unresolved()` (above) remains the single place that conclusion gets drawn, so there's one path to it, not two that could disagree.
+
+If EDMC attaches to an already-running game, this startup sequence may already be behind the "replay window" EDMC exposes to plugins: EDMC does not replay backlog journal events to plugins on its own startup — only genuinely new events are passed to `journal_entry`, plus one synthesized `StartUp` event (with `cmdr`/`state` already reconstructed from the full file) if the game is running, or nothing at all if it isn't. `StartUp` calls `_recover_pledge_state()` too, since no journal replay means no fresh `Powerplay` event is coming either way. If that still finds nothing (e.g. the journal file predates this plugin version, or genuinely has no pledge event because the commander was never pledged), `PowerplayTracker.apply_merits` opportunistically resolves pledge status (and Power) from the first `PowerplayMerits` event seen, since earning PowerPlay merits is only possible while pledged.
 
 ## 6. Merit → Activity → CP Pipeline
 
@@ -115,6 +117,15 @@ If EDMC attaches to an already-running game, this startup sequence may already b
 ### 6.1 Why `delivery` has no CP ratio
 
 A hand-in's target effect (Acquisition/Reinforcement/Undermining) is chosen in-game and isn't reported in the journal, so there's no correct single ratio to convert it with — same reasoning as `unknown`. `delivery` is tracked by raw merit count for visibility (so it isn't silently folded into `unknown`), not converted to CP.
+
+### 6.2 Per-system tracking
+
+`SessionManager.record_merits(activity, merits, system)` (the `system` argument is the same EDMC-live-tracked current-system name described in §4, threaded through from `journal_entry`) adds to the session's per-activity totals as before (§6 step 4), *and* to a per-system bucket — `session.add_merits` calls `session._system_bucket(session, system)` to get-or-create `session["by_system"][system]`, then increments that bucket's own `totals`/`events` the same way, plus stamps `last_seen_at`. Revisiting a system later in the session keeps adding to the same bucket rather than starting over, since it's looked up by system name each time rather than created fresh per visit — buckets are per-session, same as the top-level totals, so a new session (§7) starts every system back at zero.
+
+`session.system_totals(session, system)` / `system_merit_total(session, system)` read a bucket back (empty dict / zero if the system hasn't been visited); `session.visited_systems(session)` returns every system with a bucket, sorted by `last_seen_at` descending (most-recently-active first). CP for a bucket is computed the same way as the session-wide figure (§6 step 5) — derived at display time from the current ratio settings, never persisted — by both consumers:
+
+- **Main panel's "Here" rows** (`ui._here_lines`, driven by `load._current_system` — see §4) — two dedicated labels (`ui._here_merits_label`, `ui._here_cp_label`), not one line left to wrap on its own: a merit count, then the full three-activity CP breakdown for the current system, zeros included (`ui._full_cp_bits`), unlike the session-wide CP line (`ui._cp_bits`, which omits zero activities to stay short). `load._current_system` is set at the top of every `journal_entry` call from the `system` parameter (not gated on PowerPlay-relevance the way `PowerplayTracker.system_name` is — see §4), so the "Here" rows switch immediately on jumping into a system that's never been PowerPlay-relevant at all, showing zero merits there rather than lagging on the previous system.
+- **Sessions window's By System table** (`window._CurrentTab._update_system_tree`) — one row per `visited_systems(session)` entry (merits, summed Est. CP across activities, and a per-activity merit breakdown string), with the current system pinned to the front of the list (even if it has no bucket yet — i.e. zero merits so far) and marked with a `▶` prefix and "(current)" suffix.
 
 ## 7. Session Data Format (`sessions.json`)
 
@@ -196,7 +207,7 @@ The `updated` state doesn't stay up indefinitely: `_apply_version_state()` sched
 
 ### 10.2 Main panel collapse
 
-`ui._collapsed` (persisted as the `edppmt_main_collapsed` config bool) gates visibility of every main-panel row below the title/status/version row — the separators, system/merits/CP/credits/last-event labels, and the "Sessions" button — via `grid()`/`grid_remove()` in `ui._apply_collapsed_state()`. The title label itself (`▾ EDPPMT:` / `▸ EDPPMT:`) doubles as the toggle, bound via `<Button-1>` to `ui._toggle_collapsed`. The version label is deliberately *not* in the collapsible set, so a just-applied "Updated to vX" confirmation stays visible regardless of collapse state (even though that label is itself hidden the rest of the time - see 10.1). `_credits_label`'s own data-dependent visibility (hidden until there's a balance to show — see `refresh()`) is layered on top: `refresh()` won't `grid()` it back in while collapsed, and expanding re-applies the cached `_last_credits_earned is None` check rather than unconditionally showing it.
+`ui._collapsed` (persisted as the `edppmt_main_collapsed` config bool) gates visibility of every main-panel row below the title/version row and the status row — the separators, system/here-merits/here-CP/session-merits/session-CP/credits/last-event labels, and the "Sessions" button — via `grid()`/`grid_remove()` in `ui._apply_collapsed_state()`. The title label itself (`▾ EDPPMT:` / `▸ EDPPMT:`) doubles as the toggle, bound via `<Button-1>` to `ui._toggle_collapsed`. The version label and the status label (`ui._status_label`, on its own row since v1.9.0 — see §3.1/main-panel layout) are deliberately *not* in the collapsible set: pledge status stays visible at a glance, and a just-applied "Updated to vX" confirmation stays visible regardless of collapse state (even though that label is itself hidden the rest of the time - see 10.1). `_credits_label`'s own data-dependent visibility (hidden until there's a balance to show — see `refresh()`) is layered on top: `refresh()` won't `grid()` it back in while collapsed, and expanding re-applies the cached `_last_credits_earned is None` check rather than unconditionally showing it.
 
 ## 11. Known Limitations
 
