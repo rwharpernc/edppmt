@@ -36,17 +36,13 @@ logger = logging.getLogger(f"{appname}.{plugin_name}")
 CONFIG_RATIO_PREFIX = "edppmt_ratio_"
 CONFIG_COLLAPSED = "edppmt_main_collapsed"
 
-# Colors for the version/update HyperlinkLabel, keyed by _version_state's kind.
-_VERSION_COLORS = {
-    "normal": "#1e88c7",
-    "downloading": "#c07000",
-    "downloaded": "#d9534f",
-    "updated": "#2e7d32",
-}
+# Color for the main-panel "Updated to vX" HyperlinkLabel - the only state
+# that widget ever shows text for (see _apply_version_state).
+_UPDATED_COLOR = "#2e7d32"
 
-# How long "Updated to vX" stays up on the main panel before reverting to a
-# plain version number on its own — long enough to notice, short enough that
-# you don't need to restart EDMC a second time just to clear it.
+# How long "Updated to vX" stays up on the main panel before hiding again -
+# long enough to notice, short enough that you don't need to restart EDMC a
+# second time just to clear it.
 _UPDATED_MESSAGE_DURATION_MS = 15_000
 
 # Short activity labels for the session CP breakdown, where "Reinforcement"
@@ -72,13 +68,13 @@ _cp_label: Optional[tk.Label] = None
 _credits_label: Optional[tk.Label] = None
 _last_event_label: Optional[tk.Label] = None
 _version_label: Optional[HyperlinkLabel] = None
-_prefs_version_label: Optional[HyperlinkLabel] = None
 _ratio_vars: Dict[str, tk.StringVar] = {}
 _auto_update_var: Optional[tk.BooleanVar] = None
 
 # Main-panel collapse: title label doubles as the toggle, everything below
-# the title/status/version row hides when collapsed (version stays visible
-# so an update-pending message is never hidden by collapsing the section).
+# the title/status/version row hides when collapsed (that row stays visible
+# so a just-applied "Updated to vX" confirmation is never hidden by
+# collapsing the section).
 _title_label: Optional[tk.Label] = None
 _collapsed: bool = False
 _collapsible_widgets: List[tk.Widget] = []
@@ -138,10 +134,15 @@ def create_plugin_app(parent: tk.Frame, on_show_details: Callable[[], None]) -> 
     _status_label = tk.Label(_frame, text="Awaiting PowerPlay activity…", wraplength=_MAIN_PANEL_WRAP)
     _status_label.grid(row=0, column=1, sticky=tk.W)
 
+    # The plugin version itself lives only in the Settings tab now (see
+    # create_prefs) - this slot is reserved purely for the one-time
+    # "Updated to vX" confirmation right after a staged update takes
+    # effect (see _apply_version_state), so it starts hidden.
     _version_label = HyperlinkLabel(
-        _frame, text=f"v{__version__}", background=nb.Label().cget("background"), url=RELEASES_PAGE_URL, underline=True,
+        _frame, text="", background=nb.Label().cget("background"), url=RELEASES_PAGE_URL, underline=True,
     )
     _version_label.grid(row=0, column=2, sticky=tk.E, padx=(4, 0))
+    _version_label.grid_remove()
 
     separator1 = _separator(_frame)
     separator1.grid(row=1, column=0, columnspan=3, sticky=tk.W, pady=(4, 2))
@@ -173,7 +174,8 @@ def create_plugin_app(parent: tk.Frame, on_show_details: Callable[[], None]) -> 
     details_button.grid(row=9, column=0, columnspan=3, sticky=tk.E, pady=(6, 0))
 
     # Everything but the title/status/version row — that row stays visible
-    # while collapsed so an update-pending message is never hidden by it.
+    # while collapsed so a just-applied "Updated to vX" confirmation is
+    # never hidden by it.
     _collapsible_widgets = [
         separator1, _system_label, separator2, _merits_label, _cp_label,
         _credits_label, separator3, _last_event_label, details_button,
@@ -278,16 +280,18 @@ def _system_summary(pp: PowerplayTracker) -> str:
 
 def create_prefs(parent: nb.Notebook) -> nb.Frame:
     """Create the EDPPMT tab in EDMC's settings window."""
-    global _ratio_vars, _auto_update_var, _prefs_version_label, _autohonk_frame
+    global _ratio_vars, _auto_update_var, _autohonk_frame
 
     frame = nb.Frame(parent)
     frame.columnconfigure(0, weight=1)
     _autohonk_frame = frame
 
-    _prefs_version_label = HyperlinkLabel(
+    # Static - always shows the running version, regardless of auto-update
+    # state (which only ever surfaces on the main panel, and only right
+    # after an update is applied - see _apply_version_state).
+    HyperlinkLabel(
         frame, text=f"EDPPMT v{__version__}", background=nb.Label().cget("background"), url=RELEASES_PAGE_URL, underline=True,
-    )
-    _prefs_version_label.grid(row=0, column=0, columnspan=2, sticky=tk.W, padx=10, pady=(10, 2))
+    ).grid(row=0, column=0, columnspan=2, sticky=tk.W, padx=10, pady=(10, 2))
     row = 1
 
     row = _create_autohonk_section(frame, row)
@@ -346,7 +350,7 @@ def create_prefs(parent: nb.Notebook) -> nb.Frame:
     ).grid(row=row, column=0, columnspan=2, sticky=tk.W, padx=10, pady=(16, 2))
     row += 1
 
-    _auto_update_var = tk.BooleanVar(value=config.get_bool(CONFIG_AUTO_UPDATE, default=True))
+    _auto_update_var = tk.BooleanVar(value=config.get_bool(CONFIG_AUTO_UPDATE, default=False))
     nb.Checkbutton(
         frame,
         text="Automatically download updates (applied on EDMC's next restart)",
@@ -568,14 +572,16 @@ def set_last_event(message: str) -> None:
 
 
 def set_update_downloading(version: str) -> None:
-    """An update is being downloaded in the background."""
+    """An update is being downloaded in the background. Tracked but not
+    currently rendered anywhere - see _apply_version_state."""
     global _version_state
     _version_state = ("downloading", version)
     _apply_version_state()
 
 
 def set_update_downloaded(version: str) -> None:
-    """An update has been staged and will apply on EDMC's next restart."""
+    """An update has been staged and will apply on EDMC's next restart.
+    Tracked but not currently rendered anywhere - see _apply_version_state."""
     global _version_state
     _version_state = ("downloaded", version)
     _apply_version_state()
@@ -588,34 +594,25 @@ def set_update_applied(version: str) -> None:
     _apply_version_state()
 
 
-def _version_text(kind: str, version: Optional[str], *, prefixed: bool) -> str:
-    # The main-window label sits next to an "EDPPMT:" title, so it stays
-    # short; the prefs-tab label has no such title, so it names the plugin.
-    plugin = "EDPPMT " if prefixed else ""
-    if kind == "downloading":
-        return f"{plugin}Downloading v{version}…"
-    if kind == "downloaded":
-        return f"{plugin}Restart to Update (v{version})"
-    if kind == "updated":
-        return f"{plugin}Updated to v{version}"
-    return f"{plugin}v{__version__}"
-
-
 def _apply_version_state() -> None:
+    """The main-panel version slot only ever shows text for the "updated"
+    kind - "downloading"/"downloaded" are tracked (still logged by
+    update.py itself) but deliberately produce no visible change here. The
+    Settings tab's version label is fully static (see create_prefs) and is
+    never touched by this function at all."""
     global _updated_clear_scheduled
     kind, version = _version_state
-    color = _VERSION_COLORS.get(kind, _VERSION_COLORS["normal"])
-    if _version_label is not None:
-        _version_label.configure(text=_version_text(kind, version, prefixed=False), url=RELEASES_PAGE_URL, foreground=color)
-    if _prefs_version_label is not None:
-        _prefs_version_label.configure(text=_version_text(kind, version, prefixed=True), url=RELEASES_PAGE_URL, foreground=color)
+    if _version_label is None:
+        return
 
-    # "Updated to vX" is only interesting right after the restart that
-    # applied it — clear it back to a plain version number on its own after
-    # a while instead of leaving it stuck until yet another restart.
-    if kind == "updated" and not _updated_clear_scheduled and _version_label is not None:
-        _updated_clear_scheduled = True
-        _version_label.after(_UPDATED_MESSAGE_DURATION_MS, _clear_updated_state)
+    if kind == "updated" and version is not None:
+        _version_label.configure(text=f"Updated to v{version}", url=RELEASES_PAGE_URL, foreground=_UPDATED_COLOR)
+        _version_label.grid()
+        if not _updated_clear_scheduled:
+            _updated_clear_scheduled = True
+            _version_label.after(_UPDATED_MESSAGE_DURATION_MS, _clear_updated_state)
+    else:
+        _version_label.grid_remove()
 
 
 def _clear_updated_state() -> None:

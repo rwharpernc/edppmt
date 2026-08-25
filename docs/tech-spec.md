@@ -161,7 +161,7 @@ Stored as EDMC config string values, one per activity: `edppmt_ratio_acquisition
 
 ## 10. Self-Update (`update.py`)
 
-`UpdateManager.check_async()` is called once, from `plugin_start3`. It's a no-op if either the `edppmt_auto_update` config setting (default on, toggled from the Settings tab) is off, or a `disable-auto-update.txt` file exists directly in `plugin_dir` — a hardcoded escape hatch for a folder being actively hand-edited (e.g. local development), independent of and not visible in Settings.
+`UpdateManager.check_async()` is called once, from `plugin_start3`. It's a no-op if either the `edppmt_auto_update` config setting (**opt-in, default off** since v1.8.0 - previously default on since v1.2.0, toggled from the Settings tab) is off, or a `disable-auto-update.txt` file exists directly in `plugin_dir` — a hardcoded escape hatch for a folder being actively hand-edited (e.g. local development), independent of and not visible in Settings.
 
 Otherwise it spawns a daemon thread that:
 
@@ -177,24 +177,26 @@ Nothing here reloads running code — Python already has the old modules loaded 
 
 ### 10.1 Update status UI
 
-The main panel and Settings tab each show a `ttkHyperlinkLabel.HyperlinkLabel` (`ui._version_label` / `ui._prefs_version_label`) linking to `update.RELEASES_PAGE_URL` (`https://github.com/rwharpernc/edppmt/releases/latest`). Both labels are driven from one module-level `ui._version_state` tuple (`kind`, `version`), applied by `ui._apply_version_state()`, so the two stay in sync:
+**Since v1.8.0, the plugin version lives only in the Settings tab.** `create_prefs` builds a static `ttkHyperlinkLabel.HyperlinkLabel` (`EDPPMT v{__version__}`, linking to `update.RELEASES_PAGE_URL`) once, at creation, and nothing ever touches it again - no color, no text changes, regardless of update state. Previously this label was reactive (see the v1.7.x history in CHANGELOG.md for what that looked like); it's plain now.
 
-| Kind | Text (main panel) | Color | Set by |
-|------|--------------------|-------|--------|
-| `normal` | `vX.Y.Z` | blue `#1e88c7` | default at widget creation |
-| `downloading` | `Downloading vX.Y.Z…` | orange `#c07000` | `ui.set_update_downloading`, from `UpdateManager`'s `on_downloading` |
-| `downloaded` | `Restart to Update (vX.Y.Z)` | red `#d9534f` | `ui.set_update_downloaded`, from `on_ready` |
-| `updated` | `Updated to vX.Y.Z` | green `#2e7d32` | `ui.set_update_applied`, from `plugin_start3` (see below) |
+The main panel keeps one `ui._version_label` (`ttkHyperlinkLabel.HyperlinkLabel`, created empty and `grid_remove()`d immediately) purely for a one-time "Updated to vX.Y.Z" confirmation. It's driven by the same module-level `ui._version_state` tuple (`kind`, `version`) as before, applied by `ui._apply_version_state()`, but that function now does far less:
 
-The Settings-tab label prefixes its text with `EDPPMT ` since it has no adjacent title to give that context; the main-panel label doesn't.
+| Kind | Main-panel label | Set by |
+|------|-------------------|--------|
+| `normal` | hidden (`grid_remove()`) | default / after the "updated" message clears |
+| `downloading` | hidden - tracked, not shown | `ui.set_update_downloading`, from `UpdateManager`'s `on_downloading` |
+| `downloaded` | hidden - tracked, not shown | `ui.set_update_downloaded`, from `on_ready` |
+| `updated` | `Updated to vX.Y.Z`, green `#2e7d32`, `grid()`ed back in | `ui.set_update_applied`, from `plugin_start3` (see below) |
 
-`update.check_applied_update()` detects the `updated` case: it reads the `edppmt_last_version` config value written on the *previous* run, compares it to `plugin.__version__`, and rewrites it to the current version every run. A mismatch (and a non-empty previous value, so this doesn't fire on a first-ever install) means a staged update just took effect on this restart, and `plugin_start3` calls `ui.set_update_applied(version)` immediately — before `plugin_app` has created any widget, since `_apply_version_state()` is a no-op until the label exists, and `create_plugin_app`/`create_prefs` each call it again at the end of widget construction to pick up whatever state is already current.
+`downloading`/`downloaded` still update `_version_state` (so `update.py`'s own `logger.info` calls remain the only record of them) but `_apply_version_state()` deliberately renders nothing for either - this was a design choice to keep the main panel visually quiet, not an oversight.
 
-The `updated` state doesn't stay up indefinitely: `_apply_version_state()` schedules `_clear_updated_state()` via `_version_label.after(_UPDATED_MESSAGE_DURATION_MS, ...)` (15s) the first time it applies an `updated` kind, guarded by `_updated_clear_scheduled` so a second call (e.g. from `create_prefs` re-applying the same already-current state) doesn't schedule a duplicate timer. When it fires, it reverts `_version_state` to `("normal", None)` and re-applies — so a restart that applies an update only needs *that* restart, not a second one, to see the label settle back to a plain version number.
+`update.check_applied_update()` detects the `updated` case: it reads the `edppmt_last_version` config value written on the *previous* run, compares it to `plugin.__version__`, and rewrites it to the current version every run. A mismatch (and a non-empty previous value, so this doesn't fire on a first-ever install) means a staged update just took effect on this restart, and `plugin_start3` calls `ui.set_update_applied(version)` immediately — before `plugin_app` has created any widget, since `_apply_version_state()` is a no-op until `_version_label` exists, and `create_plugin_app` calls it again at the end of widget construction to pick up whatever state is already current.
+
+The `updated` state doesn't stay up indefinitely: `_apply_version_state()` schedules `_clear_updated_state()` via `_version_label.after(_UPDATED_MESSAGE_DURATION_MS, ...)` (15s) the first time it applies an `updated` kind, guarded by `_updated_clear_scheduled` so a second call doesn't schedule a duplicate timer. When it fires, it reverts `_version_state` to `("normal", None)` and re-applies, which `grid_remove()`s the label - so a restart that applies an update only needs *that* restart, not a second one, to see the label disappear again.
 
 ### 10.2 Main panel collapse
 
-`ui._collapsed` (persisted as the `edppmt_main_collapsed` config bool) gates visibility of every main-panel row below the title/status/version row — the separators, system/merits/CP/credits/last-event labels, and the "Sessions" button — via `grid()`/`grid_remove()` in `ui._apply_collapsed_state()`. The title label itself (`▾ EDPPMT:` / `▸ EDPPMT:`) doubles as the toggle, bound via `<Button-1>` to `ui._toggle_collapsed`. The version/update label is deliberately *not* in the collapsible set, so an update-pending message stays visible regardless of collapse state. `_credits_label`'s own data-dependent visibility (hidden until there's a balance to show — see `refresh()`) is layered on top: `refresh()` won't `grid()` it back in while collapsed, and expanding re-applies the cached `_last_credits_earned is None` check rather than unconditionally showing it.
+`ui._collapsed` (persisted as the `edppmt_main_collapsed` config bool) gates visibility of every main-panel row below the title/status/version row — the separators, system/merits/CP/credits/last-event labels, and the "Sessions" button — via `grid()`/`grid_remove()` in `ui._apply_collapsed_state()`. The title label itself (`▾ EDPPMT:` / `▸ EDPPMT:`) doubles as the toggle, bound via `<Button-1>` to `ui._toggle_collapsed`. The version label is deliberately *not* in the collapsible set, so a just-applied "Updated to vX" confirmation stays visible regardless of collapse state (even though that label is itself hidden the rest of the time - see 10.1). `_credits_label`'s own data-dependent visibility (hidden until there's a balance to show — see `refresh()`) is layered on top: `refresh()` won't `grid()` it back in while collapsed, and expanding re-applies the cached `_last_credits_earned is None` check rather than unconditionally showing it.
 
 ## 11. Known Limitations
 

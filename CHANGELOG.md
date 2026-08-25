@@ -5,6 +5,25 @@ All notable changes to EDPPMT are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.8.0] - Unreleased
+
+### Changed
+
+- **Auto-update is now opt-in, off by default.** Previously on by default
+  (since v1.2.0) - anyone who never touched the Settings checkbox was
+  getting automatic downloads without having asked for them. Existing
+  installs that never explicitly set the checkbox will have auto-update
+  turned off the next time they update to this version; anyone who wants
+  it back on needs to check the box in Settings again.
+- **The plugin version no longer shows permanently on the main panel.**
+  It now lives only in the Settings tab (a static link to the Releases
+  page, no longer changing color/text with update state). The main
+  panel's version slot is otherwise silent and only ever shows one thing:
+  a brief "Updated to vX.Y.Z" right after a staged update takes effect,
+  clearing itself after about 15 seconds. The previous "Downloading
+  vX…"/"Restart to Update (vX)" main-panel messages are gone - that state
+  is still tracked internally, it just isn't shown anywhere anymore.
+
 ## [1.7.3] - 2026-08-23
 
 ### Fixed

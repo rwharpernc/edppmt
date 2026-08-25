@@ -5,7 +5,7 @@
 A lightweight [Elite Dangerous Market Connector](https://github.com/EDCD/EDMarketConnector) (EDMC) plugin for *Elite Dangerous*. EDPPMT tracks how many PowerPlay merits you earn as you play, estimates how many Control Points (CP) that represents for Acquisition, Reinforcement, and Undermining activity, and tracks credit income alongside it — live, per session, with session history kept across game and EDMC restarts.
 
 **Author:** R.W. Harper (CMDR Bocheaux)
-**Version:** 1.7.3
+**Version:** 1.8.0
 **License:** [MIT](LICENSE)
 
 ---
@@ -34,23 +34,25 @@ You don't need Node.js, Python, or any of this repo's source tree — just a rel
 2. Extract it, then copy the `EDPPMT` folder it contains into your EDMC plugins folder: `%LOCALAPPDATA%\EDMarketConnector\plugins\EDPPMT`.
 3. Restart EDMC.
 
-After that first install, EDPPMT updates itself automatically — see Updates below.
+After that first install, you can turn on auto-update from the Settings tab if you'd rather not track new releases yourself — see Updates below.
 
 ## Updates
 
-EDPPMT checks GitHub for a newer release once per EDMC launch and, if there is one, downloads and stages it automatically — it takes effect the next time you restart EDMC. The version number shown in the main panel (and on the Settings tab) doubles as a status indicator, linking to the [latest release on GitHub](https://github.com/rwharpernc/edppmt/releases/latest): it reads `vX.Y.Z` normally, switches to "Downloading vX.Y.Z…" while a newer build is being fetched, "Restart to Update (vX.Y.Z)" once it's staged, and "Updated to vX.Y.Z" right after the restart that applies it — that last message clears itself back to a plain version number on its own after about 15 seconds, so you don't need a second restart just to make it go away. Your session history is never touched by any of this: it lives in `sessions.json` inside the plugin folder, which isn't part of the distributed release, so an update can't overwrite it (see Sessions below for what *does* remove it — deleting the whole plugin folder rather than updating it in place).
+**Off by default — this is opt-in, not opt-out.** Turn on "Automatically download updates" in the Settings tab if you want it: EDPPMT then checks GitHub for a newer release once per EDMC launch and, if there is one, downloads and stages it automatically — it takes effect the next time you restart EDMC. Nothing is sent in that check beyond the request itself (no telemetry, no session data). Your session history is never touched by any of this either way: it lives in `sessions.json` inside the plugin folder, which isn't part of the distributed release, so an update can't overwrite it (see Sessions below for what *does* remove it — deleting the whole plugin folder rather than updating it in place).
+
+The plugin version lives only in the Settings tab (a static link to the [latest release on GitHub](https://github.com/rwharpernc/edppmt/releases/latest)) — the main panel stays silent about it except for one thing: right after a staged update takes effect, it briefly shows "Updated to vX.Y.Z" in the corner for about 15 seconds, then goes back to showing nothing there.
 
 A backup of your current install is kept (the 3 most recent, in `backups/` inside the plugin folder) before each update is applied, in case anything goes wrong.
 
-Turn it off from the Settings tab if you'd rather update manually. If you're actively hand-editing a local copy (developing, not just running it), drop an empty `disable-auto-update.txt` file directly in the plugin folder — that disables auto-update for that install regardless of the Settings checkbox, so a background check can't clobber in-progress work.
+If you turn it on for a copy you're actively hand-editing (developing, not just running it), drop an empty `disable-auto-update.txt` file directly in the plugin folder — that disables auto-update for that install regardless of the Settings checkbox, so a background check can't clobber in-progress work.
 
 ## What it shows
 
-- **Main EDMC panel** — pledged Power and rank (e.g. `Pledged to Yuri Grom (Rank 3)`), the current system and its PowerPlay state (e.g. `System: Nervi — Exploited (Zachary Hudson)`), and the current session's merits, CP by activity (Acq/Reinf/UM), and credits earned, updated as journal events arrive; a version link in the corner that doubles as the update-status indicator (see Updates above). If your commander isn't pledged, it says so directly: `CMDR <name>: not a PP Pledge`. Click the "▾ EDPPMT:" title to collapse everything below the status/version row down to one line — handy when you don't need it taking up space — and click again ("▸ EDPPMT:") to expand; the collapsed/expanded state is remembered across restarts, and the version/update indicator always stays visible either way. Rows that don't have real data yet show placeholder text ("Awaiting system data…", "Merits: 0", etc.) rather than sitting blank, and the panel is refreshed with whatever session was already saved from your last run immediately on EDMC startup.
+- **Main EDMC panel** — pledged Power and rank (e.g. `Pledged to Yuri Grom (Rank 3)`), the current system and its PowerPlay state (e.g. `System: Nervi — Exploited (Zachary Hudson)`), and the current session's merits, CP by activity (Acq/Reinf/UM), and credits earned, updated as journal events arrive. If your commander isn't pledged, it says so directly: `CMDR <name>: not a PP Pledge`. Click the "▾ EDPPMT:" title to collapse everything below the status row down to one line — handy when you don't need it taking up space — and click again ("▸ EDPPMT:") to expand; the collapsed/expanded state is remembered across restarts. That top row is otherwise silent about the plugin version (see Updates above for where that lives) except right after an auto-update takes effect, when it briefly shows "Updated to vX.Y.Z" — that row stays visible even while collapsed, so you don't miss it. Rows that don't have real data yet show placeholder text ("Awaiting system data…", "Merits: 0", etc.) rather than sitting blank, and the panel is refreshed with whatever session was already saved from your last run immediately on EDMC startup.
 - **Sessions window** (click "Sessions" in the panel):
   - **Current Session** tab — a per-activity breakdown (Acquisition / Reinforcement / Undermining / Delivery-Donation / Unattributed): merits, the ratio used, estimated CP, and CP/hr; the system name, raw `PowerplayState`, and `ControllingPower`/`Powers` last seen (for sanity-checking a row that looks wrong); and credits earned this session plus the rate.
   - **History** tab — every past session (bounded to the most recent 200), so you can compare sessions later, not just watch the live one; plus an "All sessions" summary (cumulative merits, CP by activity, and credits earned across the current session and all saved history).
-- **Settings tab** — the same version/update-status link as the main panel; Auto-Honk configuration (see below); the merits-per-CP ratio for each activity, editable in case Frontier tunes Powerplay balance or a default turns out to be off; a checkbox to turn auto-update on/off.
+- **Settings tab** — the installed version (a static link to the Releases page); Auto-Honk configuration (see below); the merits-per-CP ratio for each activity, editable in case Frontier tunes Powerplay balance or a default turns out to be off; a checkbox to turn auto-update on (off by default).
 
 ## Why
 
@@ -129,6 +131,8 @@ Building from source instead of using a release zip:
 `npm run package` does both of those *and* zips the result to `dist/EDPPMT-v<version>.zip` — the same artifact published on the Releases page.
 
 There's no EDMC install available in this repo, so `plugin/`'s modules can't be imported standalone — `config`, `theme`, `myNotebook`, and `companion` are all provided by EDMC at runtime, not installable packages. See [`docs/tech-spec.md`](docs/tech-spec.md) for the module layout and the EDMC API surface this plugin uses.
+
+**Auto-update is off by default, but can still overwrite a local test install if you've turned it on for that copy.** A plugin folder dropped into your EDMC plugins directory for testing looks, to `update.py`, exactly like a real install - if "Automatically download updates" is enabled there and the local build is older than the latest GitHub Release, EDMC will download and stage that release over your hand-edited files on its next restart. Drop an empty `disable-auto-update.txt` file in the plugin folder to override the checkbox unconditionally if you want it on elsewhere while still hand-editing this copy.
 
 ## Documentation
 

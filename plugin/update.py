@@ -96,7 +96,7 @@ class UpdateManager:
         if os.path.exists(os.path.join(self._plugin_dir, DISABLE_SENTINEL)):
             logger.info("Auto-update disabled by %s", DISABLE_SENTINEL)
             return
-        if not config.get_bool(CONFIG_AUTO_UPDATE, default=True):
+        if not config.get_bool(CONFIG_AUTO_UPDATE, default=False):
             logger.info("Auto-update disabled in Settings")
             return
         threading.Thread(target=self._check, name="EDPPMT-update-check", daemon=True).start()
