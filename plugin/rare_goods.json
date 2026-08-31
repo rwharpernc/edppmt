@@ -1,7 +1,9 @@
 [
   {
     "rare": "Lavian Brandy",
+    "inaraId": 10006,
     "system": "Lave",
+    "spanshId64": 633742594786,
     "station": "Lave Station",
     "pad": "L",
     "illegalInSuperpowers": [],
@@ -33,7 +35,9 @@
   },
   {
     "rare": "Altairian Skin",
+    "inaraId": 10038,
     "system": "Altair",
+    "spanshId64": 306253399220,
     "station": "Solo Orbiter",
     "pad": "M",
     "illegalInSuperpowers": [],
@@ -53,7 +57,9 @@
   },
   {
     "rare": "Aganippe Rush",
+    "inaraId": 10130,
     "system": "Aganippe",
+    "spanshId64": 2557753725650,
     "station": "Julian Market",
     "pad": "L",
     "illegalInSuperpowers": [],
@@ -74,7 +80,9 @@
   },
   {
     "rare": "Leestian Evil Juice",
+    "inaraId": 10034,
     "system": "Leesti",
+    "spanshId64": 3932277478114,
     "station": "George Lucas",
     "pad": "L",
     "illegalInSuperpowers": [],
@@ -94,7 +102,9 @@
   },
   {
     "rare": "Azure Milk",
+    "inaraId": 10040,
     "system": "Leesti",
+    "spanshId64": 3932277478114,
     "station": "George Lucas",
     "pad": "L",
     "illegalInSuperpowers": [],
@@ -114,7 +124,9 @@
   },
   {
     "rare": "Diso Ma Corn",
+    "inaraId": 10043,
     "system": "Diso",
+    "spanshId64": 3382521664226,
     "station": "Shifnalport",
     "pad": "L",
     "illegalInSuperpowers": [],
@@ -134,7 +146,9 @@
   },
   {
     "rare": "Uszaian Tree Grub",
+    "inaraId": 10106,
     "system": "Uszaa",
+    "spanshId64": 4756911198946,
     "station": "Guest Installation",
     "pad": "M",
     "illegalInSuperpowers": [],
@@ -154,7 +168,9 @@
   },
   {
     "rare": "Eranin Pearl Whisky",
+    "inaraId": 10002,
     "system": "Eranin",
+    "spanshId64": 2832631632594,
     "station": "Azeban City",
     "pad": "M",
     "illegalInSuperpowers": [],
@@ -186,7 +202,9 @@
   },
   {
     "rare": "Ophiuch Exino Artefacts",
+    "inaraId": 10139,
     "system": "36 Ophiuchi",
+    "spanshId64": 1865903245675,
     "station": "Katzenstein Dock",
     "pad": "M",
     "illegalInSuperpowers": [],
@@ -206,7 +224,9 @@
   },
   {
     "rare": "Kachirigin Filter Leeches",
+    "inaraId": 10068,
     "system": "Kachirigin",
+    "spanshId64": 5031453463258,
     "station": "Nowak Orbital",
     "pad": "M",
     "illegalInSuperpowers": [],
@@ -226,7 +246,9 @@
   },
   {
     "rare": "Witchhaul Kobe Beef",
+    "inaraId": 10072,
     "system": "Witchhaul",
+    "spanshId64": 83852497602,
     "station": "Hornby Terminal",
     "pad": "L",
     "illegalInSuperpowers": [],
@@ -246,7 +268,9 @@
   },
   {
     "rare": "Alya Body Soap",
+    "inaraId": 10092,
     "system": "Alya",
+    "spanshId64": 2868903814577,
     "station": "Malaspina Gateway",
     "pad": "L",
     "illegalInSuperpowers": [],
@@ -266,7 +290,9 @@
   },
   {
     "rare": "CD-75 Kitten Brand Coffee",
+    "inaraId": 10017,
     "system": "CD-75 661",
+    "spanshId64": 2008132096730,
     "station": "Kirk Dock",
     "pad": "M",
     "illegalInSuperpowers": [],
@@ -286,7 +312,9 @@
   },
   {
     "rare": "Goman Yaupon Coffee",
+    "inaraId": 10031,
     "system": "Goman",
+    "spanshId64": 1458510369498,
     "station": "Gustav Sporer Port",
     "pad": "M",
     "illegalInSuperpowers": [],
@@ -306,7 +334,9 @@
   },
   {
     "rare": "Chateau De Aegaeon",
+    "inaraId": 10015,
     "system": "Aegaeon",
+    "spanshId64": 5069537944977,
     "station": "Schweickart Station",
     "pad": "M",
     "illegalInSuperpowers": [],
@@ -326,7 +356,9 @@
   },
   {
     "rare": "HIP 10175 Bush Meat",
+    "inaraId": 10094,
     "system": "HIP 10175",
+    "spanshId64": 2381299304803,
     "station": "Stefanyshyn-Piper Station",
     "pad": "L",
     "illegalInSuperpowers": [],
@@ -346,7 +378,9 @@
   },
   {
     "rare": "HIP 118311 Swarm",
+    "inaraId": 10150,
     "system": "HIP 118311",
+    "spanshId64": 670954104241,
     "station": "Lubbock Market",
     "pad": "L",
     "illegalInSuperpowers": [],
@@ -366,7 +400,9 @@
   },
   {
     "rare": "Kongga Ale",
+    "inaraId": 10032,
     "system": "Kongga",
+    "spanshId64": 3932009075402,
     "station": "Laplace Ring",
     "pad": "L",
     "illegalInSuperpowers": [],
@@ -398,7 +434,9 @@
   },
   {
     "rare": "Live Hecate Sea Worms",
+    "inaraId": 10004,
     "system": "Hecate",
+    "spanshId64": 113556572515,
     "station": "RJH1972",
     "pad": "M",
     "illegalInSuperpowers": [],
@@ -418,7 +456,9 @@
   },
   {
     "rare": "Helvetitj Pearls",
+    "inaraId": 10025,
     "system": "Helvetitj",
+    "spanshId64": 3686969395571,
     "station": "Friend Orbital",
     "pad": "M",
     "illegalInSuperpowers": [],
@@ -438,7 +478,9 @@
   },
   {
     "rare": "HIP Proto-Squid",
+    "inaraId": 10021,
     "system": "HIP 41181",
+    "spanshId64": 2282875851450,
     "station": "Andersson Station",
     "pad": "L",
     "illegalInSuperpowers": [],
@@ -458,7 +500,9 @@
   },
   {
     "rare": "Tauri Chimes",
+    "inaraId": 10060,
     "system": "39 Tauri",
+    "spanshId64": 1625385077091,
     "station": "Porta",
     "pad": "L",
     "illegalInSuperpowers": [],
@@ -478,7 +522,9 @@
   },
   {
     "rare": "Wulpa Hyperbore Systems",
+    "inaraId": 10103,
     "system": "Wulpa",
+    "spanshId64": 9465168209281,
     "station": "Williams Gateway",
     "pad": "M",
     "illegalInSuperpowers": [],
@@ -498,7 +544,9 @@
   },
   {
     "rare": "Wuthielo Ku Froth",
+    "inaraId": 10037,
     "system": "Wuthielo Ku",
+    "spanshId64": 2283009839826,
     "station": "Tarter Dock",
     "pad": "M",
     "illegalInSuperpowers": [],
@@ -518,7 +566,9 @@
   },
   {
     "rare": "Aepyornis Egg",
+    "inaraId": 10110,
     "system": "47 Ceti",
+    "spanshId64": 457153939811,
     "station": "Glushko Station",
     "pad": "L",
     "illegalInSuperpowers": [],
@@ -538,7 +588,9 @@
   },
   {
     "rare": "Eshu Umbrellas",
+    "inaraId": 10022,
     "system": "Eshu",
+    "spanshId64": 3657466450642,
     "station": "Shajn Terminal",
     "pad": "M",
     "illegalInSuperpowers": [],
@@ -558,7 +610,9 @@
   },
   {
     "rare": "Kamitra Cigars",
+    "inaraId": 10030,
     "system": "Kamitra",
+    "spanshId64": 2869977163201,
     "station": "Hammel Terminal",
     "pad": "L",
     "illegalInSuperpowers": [],
@@ -588,7 +642,9 @@
   },
   {
     "rare": "Kinago Violins",
+    "inaraId": 10082,
     "system": "Kinago",
+    "spanshId64": 3382253196018,
     "station": "Fozard Ring",
     "pad": "L",
     "illegalInSuperpowers": [],
@@ -608,7 +664,9 @@
   },
   {
     "rare": "Ngadandari Fire Opals",
+    "inaraId": 10062,
     "system": "Ngadandari",
+    "spanshId64": 13865899075025,
     "station": "Napier Terminal",
     "pad": "L",
     "illegalInSuperpowers": [],
@@ -628,7 +686,9 @@
   },
   {
     "rare": "Rapa Bao Snake Skins",
+    "inaraId": 10018,
     "system": "Rapa Bao",
+    "spanshId64": 2008131965650,
     "station": "Flagg Gateway",
     "pad": "M",
     "illegalInSuperpowers": [],
@@ -648,7 +708,9 @@
   },
   {
     "rare": "Terra Mater Blood Bores",
+    "inaraId": 10129,
     "system": "Terra Mater",
+    "spanshId64": 44837112163,
     "station": "GR8Minds",
     "pad": "L",
     "illegalInSuperpowers": [],
@@ -668,7 +730,9 @@
   },
   {
     "rare": "Vanayequi Ceratomorpha Fur",
+    "inaraId": 10036,
     "system": "Vanayequi",
+    "spanshId64": 11664728532433,
     "station": "Clauss Hub",
     "pad": "L",
     "illegalInSuperpowers": [],
@@ -688,7 +752,9 @@
   },
   {
     "rare": "Yaso Kondi Leaf",
+    "inaraId": 10029,
     "system": "Yaso Kondi",
+    "spanshId64": 5069000418729,
     "station": "Wheeler Market",
     "pad": "M",
     "illegalInSuperpowers": [],
@@ -708,7 +774,9 @@
   },
   {
     "rare": "Pantaa Prayer Sticks",
+    "inaraId": 10058,
     "system": "George Pantazis",
+    "spanshId64": 2832631599826,
     "station": "Zamka Platform",
     "pad": "M",
     "illegalInSuperpowers": [],
@@ -728,7 +796,9 @@
   },
   {
     "rare": "Gerasian Gueuze Beer",
+    "inaraId": 10056,
     "system": "Geras",
+    "spanshId64": 3932143227594,
     "station": "Yurchikhin Port",
     "pad": "M",
     "illegalInSuperpowers": [],
@@ -748,7 +818,9 @@
   },
   {
     "rare": "Centauri Mega Gin",
+    "inaraId": 10053,
     "system": "Alpha Centauri",
+    "spanshId64": 1178708478315,
     "station": "Hutton Orbital",
     "pad": "M",
     "illegalInSuperpowers": [],
@@ -780,7 +852,9 @@
   },
   {
     "rare": "Buckyball Beer Mats",
+    "inaraId": 10147,
     "system": "Fullerene C60",
+    "spanshId64": 4030566762835,
     "station": "Rebuy Prospect",
     "pad": "M",
     "illegalInSuperpowers": [],
@@ -800,7 +874,9 @@
   },
   {
     "rare": "Damna Carapaces",
+    "inaraId": 10020,
     "system": "Damna",
+    "spanshId64": 11665533904249,
     "station": "Nemere Market",
     "pad": "M",
     "illegalInSuperpowers": [],
@@ -820,7 +896,9 @@
   },
   {
     "rare": "Jotun Mookah",
+    "inaraId": 10111,
     "system": "Jotun",
+    "spanshId64": 670685799809,
     "station": "Icelock",
     "pad": "M",
     "illegalInSuperpowers": [],
@@ -840,7 +918,9 @@
   },
   {
     "rare": "Classified Experimental Equipment",
+    "inaraId": 10436,
     "system": "HIP 22460",
+    "spanshId64": 319715002691,
     "station": "Heart of Taurus",
     "pad": "M",
     "illegalInSuperpowers": [],
@@ -860,7 +940,9 @@
   },
   {
     "rare": "Tiegfries Synth Silk",
+    "inaraId": 10170,
     "system": "Tiegfries",
+    "spanshId64": 4756844090042,
     "station": "Larbalestier Dock",
     "pad": "M",
     "illegalInSuperpowers": [],
@@ -880,7 +962,9 @@
   },
   {
     "rare": "Wolf Fesh",
+    "inaraId": 10071,
     "system": "Wolf 1301",
+    "spanshId64": 1458242032322,
     "station": "Saunders's Dive",
     "pad": "M",
     "illegalInSuperpowers": [],
@@ -900,7 +984,9 @@
   },
   {
     "rare": "Momus Bog Spaniel",
+    "inaraId": 10039,
     "system": "Momus Reach",
+    "spanshId64": 2007930737346,
     "station": "Tartarus Point",
     "pad": "M",
     "illegalInSuperpowers": [],
@@ -920,7 +1006,9 @@
   },
   {
     "rare": "Saxon Wine",
+    "inaraId": 10169,
     "system": "9 Aurigae",
+    "spanshId64": 1797183768931,
     "station": "Hunt Enterprise",
     "pad": "M",
     "illegalInSuperpowers": [],
@@ -940,7 +1028,9 @@
   },
   {
     "rare": "Chameleon Cloth",
+    "inaraId": 10109,
     "system": "LDS 883",
+    "spanshId64": 4756709806794,
     "station": "Smith Reserve",
     "pad": "M",
     "illegalInSuperpowers": [],
@@ -960,7 +1050,9 @@
   },
   {
     "rare": "Fujin Tea",
+    "inaraId": 10055,
     "system": "Fujin",
+    "spanshId64": 3068494072163,
     "station": "Futen Spaceport",
     "pad": "M",
     "illegalInSuperpowers": [],
@@ -980,7 +1072,9 @@
   },
   {
     "rare": "Thrutis Cream",
+    "inaraId": 10005,
     "system": "Thrutis",
+    "spanshId64": 4756642730690,
     "station": "Kingsbury Dock",
     "pad": "M",
     "illegalInSuperpowers": [],
@@ -1000,7 +1094,9 @@
   },
   {
     "rare": "Banki Amphibious Leather",
+    "inaraId": 10049,
     "system": "Banki",
+    "spanshId64": 5856355717826,
     "station": "Antonio de Andrade Vista",
     "pad": "M",
     "illegalInSuperpowers": [],
@@ -1020,7 +1116,9 @@
   },
   {
     "rare": "Uzumoku Low-G Wings",
+    "inaraId": 10045,
     "system": "Uzumoku",
+    "spanshId64": 3308995479907,
     "station": "Sverdrup Ring",
     "pad": "M",
     "illegalInSuperpowers": [],
@@ -1040,7 +1138,9 @@
   },
   {
     "rare": "Rusani Old Smokey",
+    "inaraId": 10023,
     "system": "Rusani",
+    "spanshId64": 5068195898761,
     "station": "Fernandes Market",
     "pad": "M",
     "illegalInSuperpowers": [],
@@ -1060,7 +1160,9 @@
   },
   {
     "rare": "Volkhab Bee Drones",
+    "inaraId": 10085,
     "system": "Volkhab",
+    "spanshId64": 4207088341690,
     "station": "Vernadsky Dock",
     "pad": "M",
     "illegalInSuperpowers": [],
@@ -1080,7 +1182,9 @@
   },
   {
     "rare": "Havasupai Dream Catcher",
+    "inaraId": 10054,
     "system": "Havasupai",
+    "spanshId64": 7266681824665,
     "station": "Lovelace Port",
     "pad": "M",
     "illegalInSuperpowers": [],
@@ -1100,7 +1204,9 @@
   },
   {
     "rare": "Lucan Onionhead",
+    "inaraId": 10112,
     "system": "Tanmark",
+    "spanshId64": 633608278730,
     "station": "Cassie-L-Peia",
     "pad": "M",
     "illegalInSuperpowers": [
@@ -1169,7 +1275,9 @@
   },
   {
     "rare": "Tanmark Tranquil Tea",
+    "inaraId": 10019,
     "system": "Tanmark",
+    "spanshId64": 633608278730,
     "station": "Cassie-L-Peia",
     "pad": "M",
     "illegalInSuperpowers": [],
@@ -1189,7 +1297,9 @@
   },
   {
     "rare": "Ceti Rabbits",
+    "inaraId": 10108,
     "system": "47 Ceti",
+    "spanshId64": 457153939811,
     "station": "Kaufmanis Hub",
     "pad": "M",
     "illegalInSuperpowers": [],
@@ -1209,7 +1319,9 @@
   },
   {
     "rare": "Bast Snake Gin",
+    "inaraId": 10008,
     "system": "Bast",
+    "spanshId64": 633541268170,
     "station": "Hart Station",
     "pad": "M",
     "illegalInSuperpowers": [],
@@ -1229,7 +1341,9 @@
   },
   {
     "rare": "Belalans Ray Leather",
+    "inaraId": 10012,
     "system": "Belalans",
+    "spanshId64": 5070074422673,
     "station": "Boscovich Ring",
     "pad": "M",
     "illegalInSuperpowers": [],
@@ -1249,7 +1363,9 @@
   },
   {
     "rare": "Tarach Spice",
+    "inaraId": 10075,
     "system": "Tarach Tor",
+    "spanshId64": 2557753627346,
     "station": "Tranquillity",
     "pad": "M",
     "illegalInSuperpowers": [
@@ -1318,7 +1434,9 @@
   },
   {
     "rare": "Onionhead",
+    "inaraId": 10070,
     "system": "Kappa Fornacis",
+    "spanshId64": 1694104537451,
     "station": "Harvestport",
     "pad": "M",
     "illegalInSuperpowers": [
@@ -1387,7 +1505,9 @@
   },
   {
     "rare": "Mechucos High Tea",
+    "inaraId": 10088,
     "system": "Mechucos",
+    "spanshId64": 11666876212617,
     "station": "Brandenstein Port",
     "pad": "M",
     "illegalInSuperpowers": [],
@@ -1407,7 +1527,9 @@
   },
   {
     "rare": "Duradrives",
+    "inaraId": 10242,
     "system": "Anima",
+    "spanshId64": 697688901987,
     "station": "Cowper Dock",
     "pad": "M",
     "illegalInSuperpowers": [],
@@ -1427,7 +1549,9 @@
   },
   {
     "rare": "Albino Quechua Mammoth Meat",
+    "inaraId": 10100,
     "system": "Quechua",
+    "spanshId64": 11666607252889,
     "station": "Crown Ring",
     "pad": "M",
     "illegalInSuperpowers": [],
@@ -1447,7 +1571,9 @@
   },
   {
     "rare": "AZ Cancri Formula 42",
+    "inaraId": 10099,
     "system": "AZ Cancri",
+    "spanshId64": 20462432298393,
     "station": "Fisher Station",
     "pad": "M",
     "illegalInSuperpowers": [],
@@ -1467,7 +1593,9 @@
   },
   {
     "rare": "Haiden Black Brew",
+    "inaraId": 10046,
     "system": "Haiden",
+    "spanshId64": 5067121894809,
     "station": "Searfoss Enterprise",
     "pad": "M",
     "illegalInSuperpowers": [],
@@ -1487,7 +1615,9 @@
   },
   {
     "rare": "Zeessze Ant Grub Glue",
+    "inaraId": 10044,
     "system": "Zeessze",
+    "spanshId64": 2282875785938,
     "station": "Nicollier Hangar",
     "pad": "M",
     "illegalInSuperpowers": [],
@@ -1507,7 +1637,9 @@
   },
   {
     "rare": "Utgaroar Millennial Eggs",
+    "inaraId": 10073,
     "system": "Utgaroar",
+    "spanshId64": 1183364092626,
     "station": "Fort Klarix",
     "pad": "M",
     "illegalInSuperpowers": [],
@@ -1527,7 +1659,9 @@
   },
   {
     "rare": "Onionhead Alpha Strain",
+    "inaraId": 10216,
     "system": "Xelabara",
+    "spanshId64": 4756642796234,
     "station": "Navigator Market",
     "pad": "M",
     "illegalInSuperpowers": [
@@ -1596,7 +1730,9 @@
   },
   {
     "rare": "Nguna Modern Antiques",
+    "inaraId": 10066,
     "system": "Nguna",
+    "spanshId64": 669343557025,
     "station": "Biggle Hub",
     "pad": "M",
     "illegalInSuperpowers": [],
@@ -1616,7 +1752,9 @@
   },
   {
     "rare": "Neritus Berries",
+    "inaraId": 10077,
     "system": "Neritus",
+    "spanshId64": 1350523947363,
     "station": "Toll Ring",
     "pad": "M",
     "illegalInSuperpowers": [],
@@ -1636,7 +1774,9 @@
   },
   {
     "rare": "Crystalline Spheres",
+    "inaraId": 10214,
     "system": "Bento",
+    "spanshId64": 633675420370,
     "station": "Snow Moon",
     "pad": "M",
     "illegalInSuperpowers": [],
@@ -1656,7 +1796,9 @@
   },
   {
     "rare": "Holva Duelling Blades",
+    "inaraId": 10101,
     "system": "Holva",
+    "spanshId64": 7268828980633,
     "station": "Kreutz Orbital",
     "pad": "M",
     "illegalInSuperpowers": [],
@@ -1676,7 +1818,9 @@
   },
   {
     "rare": "Esuseku Caviar",
+    "inaraId": 10033,
     "system": "Esuseku",
+    "spanshId64": 2282674492114,
     "station": "Savinykh Orbital",
     "pad": "M",
     "illegalInSuperpowers": [],
@@ -1696,7 +1840,9 @@
   },
   {
     "rare": "Chi Eridani Marine Paste",
+    "inaraId": 10009,
     "system": "Chi Eridani",
+    "spanshId64": 4481966117586,
     "station": "Steve Masters",
     "pad": "M",
     "illegalInSuperpowers": [],
@@ -1716,7 +1862,9 @@
   },
   {
     "rare": "The Hutton Mug",
+    "inaraId": 10138,
     "system": "Alpha Centauri",
+    "spanshId64": 1178708478315,
     "station": "Hutton Orbital",
     "pad": "M",
     "illegalInSuperpowers": [],
@@ -1736,7 +1884,9 @@
   },
   {
     "rare": "Master Chefs",
+    "inaraId": 10142,
     "system": "Viracocha",
+    "spanshId64": 1522305845611,
     "station": "Pataarcy Corporate",
     "pad": "M",
     "illegalInSuperpowers": [],
@@ -1756,7 +1906,9 @@
   },
   {
     "rare": "Indi Bourbon",
+    "inaraId": 10042,
     "system": "Epsilon Indi",
+    "spanshId64": 908486251218,
     "station": "Mansfield Orbiter",
     "pad": "M",
     "illegalInSuperpowers": [],
@@ -1776,7 +1928,9 @@
   },
   {
     "rare": "Ethgreze Tea Buds",
+    "inaraId": 10003,
     "system": "Ethgreze",
+    "spanshId64": 83785487058,
     "station": "Bloch Station",
     "pad": "M",
     "illegalInSuperpowers": [],
@@ -1796,7 +1950,9 @@
   },
   {
     "rare": "Platinum Alloy",
+    "inaraId": 10233,
     "system": "Nahuatl",
+    "spanshId64": 358864589522,
     "station": "Artzybasheff Terminal",
     "pad": "M",
     "illegalInSuperpowers": [],
@@ -1816,7 +1972,9 @@
   },
   {
     "rare": "Vega Slimweed",
+    "inaraId": 10090,
     "system": "Vega",
+    "spanshId64": 301958431924,
     "station": "Taylor City",
     "pad": "M",
     "illegalInSuperpowers": [],
@@ -1836,7 +1994,9 @@
   },
   {
     "rare": "Honesty Pills",
+    "inaraId": 10104,
     "system": "LP 375-25",
+    "spanshId64": 670954694049,
     "station": "King Gateway",
     "pad": "M",
     "illegalInSuperpowers": [],
@@ -1856,7 +2016,9 @@
   },
   {
     "rare": "LTT Hyper Sweet",
+    "inaraId": 10135,
     "system": "LTT 9360",
+    "spanshId64": 3657265287898,
     "station": "Smeaton Orbital",
     "pad": "M",
     "illegalInSuperpowers": [],
@@ -1876,7 +2038,9 @@
   },
   {
     "rare": "Pavonis Ear Grubs",
+    "inaraId": 10105,
     "system": "Delta Pavonis",
+    "spanshId64": 633608344274,
     "station": "Hooper Relay",
     "pad": "M",
     "illegalInSuperpowers": [],
@@ -1896,7 +2060,9 @@
   },
   {
     "rare": "Void Extract Coffee",
+    "inaraId": 10059,
     "system": "LFT 1421",
+    "spanshId64": 2869172512169,
     "station": "Ehrlich Orbital",
     "pad": "M",
     "illegalInSuperpowers": [],
@@ -1916,7 +2082,9 @@
   },
   {
     "rare": "Ochoeng Chillies",
+    "inaraId": 10091,
     "system": "Ochoeng",
+    "spanshId64": 3996190247275,
     "station": "Roddenberry Gateway",
     "pad": "M",
     "illegalInSuperpowers": [],
@@ -1936,7 +2104,9 @@
   },
   {
     "rare": "Crom Silver Fesh",
+    "inaraId": 10151,
     "system": "Crom",
+    "spanshId64": 633675453138,
     "station": "Chorel Survey",
     "pad": "M",
     "illegalInSuperpowers": [],
@@ -1956,7 +2126,9 @@
   },
   {
     "rare": "Tiolce Waste2Paste Units",
+    "inaraId": 10098,
     "system": "Tiolce",
+    "spanshId64": 2007997846234,
     "station": "Gordon Terminal",
     "pad": "M",
     "illegalInSuperpowers": [],
@@ -1976,7 +2148,9 @@
   },
   {
     "rare": "Cherbones Blood Crystals",
+    "inaraId": 10047,
     "system": "Cherbones",
+    "spanshId64": 7268024526241,
     "station": "Chalker Landing",
     "pad": "M",
     "illegalInSuperpowers": [],
@@ -1996,7 +2170,9 @@
   },
   {
     "rare": "V Herculis Body Rub",
+    "inaraId": 10102,
     "system": "V1090 Herculis",
+    "spanshId64": 3932076151506,
     "station": "Kaku Plant",
     "pad": "M",
     "illegalInSuperpowers": [],
@@ -2016,7 +2192,9 @@
   },
   {
     "rare": "Harma Silver Sea Rum",
+    "inaraId": 10232,
     "system": "Harma",
+    "spanshId64": 4481764758234,
     "station": "Gabriel Enterprise",
     "pad": "M",
     "illegalInSuperpowers": [],
@@ -2036,7 +2214,9 @@
   },
   {
     "rare": "Xihe Biomorphic Companions",
+    "inaraId": 10010,
     "system": "Xihe",
+    "spanshId64": 1183364125402,
     "station": "Zhen Dock",
     "pad": "M",
     "illegalInSuperpowers": [],
@@ -2064,7 +2244,9 @@
   },
   {
     "rare": "Deuringas Truffles",
+    "inaraId": 10086,
     "system": "Deuringas",
+    "spanshId64": 4374197700963,
     "station": "Shukor Hub",
     "pad": "M",
     "illegalInSuperpowers": [],
@@ -2084,7 +2266,9 @@
   },
   {
     "rare": "Arouca Conventual Sweets",
+    "inaraId": 10051,
     "system": "Arouca",
+    "spanshId64": 1458443391698,
     "station": "Shipton Orbital",
     "pad": "M",
     "illegalInSuperpowers": [],
@@ -2104,7 +2288,9 @@
   },
   {
     "rare": "Coquim Spongiform Victuals",
+    "inaraId": 10078,
     "system": "Coquim",
+    "spanshId64": 7268292437425,
     "station": "Hirayama Installation",
     "pad": "M",
     "illegalInSuperpowers": [],
@@ -2124,7 +2310,9 @@
   },
   {
     "rare": "Nanomedicines",
+    "inaraId": 10241,
     "system": "Kuma",
+    "spanshId64": 1247411177835,
     "station": "Elion Dock",
     "pad": "M",
     "illegalInSuperpowers": [],
@@ -2144,7 +2332,9 @@
   },
   {
     "rare": "Delta Phoenicis Palms",
+    "inaraId": 10001,
     "system": "Delta Phoenicis",
+    "spanshId64": 1213084961131,
     "station": "Trading Post",
     "pad": "M",
     "illegalInSuperpowers": [],
@@ -2164,7 +2354,9 @@
   },
   {
     "rare": "Onionhead Beta Strain",
+    "inaraId": 10217,
     "system": "HIP 112974",
+    "spanshId64": 869470800235,
     "station": "la Cosa City",
     "pad": "M",
     "illegalInSuperpowers": [
@@ -2233,7 +2425,9 @@
   },
   {
     "rare": "Mulachi Giant Fungus",
+    "inaraId": 10050,
     "system": "Mulachi",
+    "spanshId64": 9154823459546,
     "station": "Clark Terminal",
     "pad": "M",
     "illegalInSuperpowers": [],
@@ -2253,7 +2447,9 @@
   },
   {
     "rare": "Personal Gifts",
+    "inaraId": 10213,
     "system": "Njambalba",
+    "spanshId64": 5069000484273,
     "station": "Frost Dock",
     "pad": "M",
     "illegalInSuperpowers": [],
@@ -2273,7 +2469,9 @@
   },
   {
     "rare": "Eden Apples Of Aerial",
+    "inaraId": 10063,
     "system": "Aerial",
+    "spanshId64": 672296347049,
     "station": "Andrade Legacy",
     "pad": "M",
     "illegalInSuperpowers": [],
@@ -2293,7 +2491,9 @@
   },
   {
     "rare": "Borasetani Pathogenetics",
+    "inaraId": 10067,
     "system": "Borasetani",
+    "spanshId64": 5069001401761,
     "station": "Katzenstein Terminal",
     "pad": "M",
     "illegalInSuperpowers": [],
@@ -2313,7 +2513,9 @@
   },
   {
     "rare": "Gilya Signature Weapons",
+    "inaraId": 10132,
     "system": "Gilya",
+    "spanshId64": 9465973908913,
     "station": "Bell Orbital",
     "pad": "M",
     "illegalInSuperpowers": [],
@@ -2333,7 +2535,9 @@
   },
   {
     "rare": "Mokojing Beast Feast",
+    "inaraId": 10095,
     "system": "Mokojing",
+    "spanshId64": 2870783255977,
     "station": "Noli Terminal",
     "pad": "M",
     "illegalInSuperpowers": [],
@@ -2353,7 +2557,9 @@
   },
   {
     "rare": "Medb Starlube",
+    "inaraId": 10076,
     "system": "Medb",
+    "spanshId64": 1762824030571,
     "station": "Vela Dock",
     "pad": "M",
     "illegalInSuperpowers": [],
@@ -2373,7 +2579,9 @@
   },
   {
     "rare": "The Waters Of Shintara",
+    "inaraId": 10069,
     "system": "Shinrarta Dezhra",
+    "spanshId64": 3932277478106,
     "station": "Jameson Memorial",
     "pad": "L",
     "illegalInSuperpowers": [],
@@ -2393,7 +2601,9 @@
   },
   {
     "rare": "Non Euclidian Exotanks",
+    "inaraId": 10134,
     "system": "LTT 8517",
+    "spanshId64": 3382387380954,
     "station": "Euclid Terminal",
     "pad": "M",
     "illegalInSuperpowers": [],
@@ -2413,7 +2623,9 @@
   },
   {
     "rare": "Lyrae Weed",
+    "inaraId": 10171,
     "system": "16 Lyrae",
+    "spanshId64": 112975676596,
     "station": "Budrys Ring",
     "pad": "M",
     "illegalInSuperpowers": [
@@ -2482,7 +2694,9 @@
   },
   {
     "rare": "Motrona Experience Jelly",
+    "inaraId": 10074,
     "system": "Dea Motrona",
+    "spanshId64": 2869709514161,
     "station": "Pinzon Dock",
     "pad": "M",
     "illegalInSuperpowers": [],
@@ -2502,7 +2716,9 @@
   },
   {
     "rare": "Galactic Travel Guide",
+    "inaraId": 10143,
     "system": "LHS 3447",
+    "spanshId64": 5306465653474,
     "station": "Bluford Orbital",
     "pad": "M",
     "illegalInSuperpowers": [],
@@ -2522,7 +2738,9 @@
   },
   {
     "rare": "Kamorin Historic Weapons",
+    "inaraId": 10064,
     "system": "Kamorin",
+    "spanshId64": 6405842997978,
     "station": "Godwin Vision",
     "pad": "M",
     "illegalInSuperpowers": [],
@@ -2542,7 +2760,9 @@
   },
   {
     "rare": "Alacarakmo Skin Art",
+    "inaraId": 10028,
     "system": "Alacarakmo",
+    "spanshId64": 5068464661905,
     "station": "Weyl Gateway",
     "pad": "M",
     "illegalInSuperpowers": [],
@@ -2562,7 +2782,9 @@
   },
   {
     "rare": "Hip Organophosphates",
+    "inaraId": 10107,
     "system": "HIP 80364",
+    "spanshId64": 697655380331,
     "station": "Stasheff Colony",
     "pad": "M",
     "illegalInSuperpowers": [],
@@ -2582,7 +2804,9 @@
   },
   {
     "rare": "Giant Verrix",
+    "inaraId": 10081,
     "system": "Phiagre",
+    "spanshId64": 671491106233,
     "station": "Greeboski's Outpost",
     "pad": "M",
     "illegalInSuperpowers": [],
@@ -2602,7 +2826,9 @@
   },
   {
     "rare": "Baltah'sine Vacuum Krill",
+    "inaraId": 10089,
     "system": "Baltah'Sine",
+    "spanshId64": 358864622298,
     "station": "Baltha'Sine Station",
     "pad": "M",
     "illegalInSuperpowers": [],
@@ -2622,7 +2848,9 @@
   },
   {
     "rare": "Any Na Coffee",
+    "inaraId": 10016,
     "system": "Any Na",
+    "spanshId64": 8880146879186,
     "station": "Libby Orbital",
     "pad": "M",
     "illegalInSuperpowers": [],
@@ -2642,7 +2870,9 @@
   },
   {
     "rare": "Mukusubii Chitin-os",
+    "inaraId": 10065,
     "system": "Mukusubii",
+    "spanshId64": 5066853328313,
     "station": "Ledyard Dock",
     "pad": "M",
     "illegalInSuperpowers": [],
@@ -2662,7 +2892,9 @@
   },
   {
     "rare": "Jaradharre Puzzle Box",
+    "inaraId": 10048,
     "system": "Jaradharre",
+    "spanshId64": 5198814644595,
     "station": "Gohar Station",
     "pad": "M",
     "illegalInSuperpowers": [],
@@ -2682,7 +2914,9 @@
   },
   {
     "rare": "Koro Kung Pellets",
+    "inaraId": 10080,
     "system": "Korro Kung",
+    "spanshId64": 9468121392561,
     "station": "Lonchakov Orbital",
     "pad": "M",
     "illegalInSuperpowers": [],
@@ -2702,7 +2936,9 @@
   },
   {
     "rare": "Baked Greebles",
+    "inaraId": 10266,
     "system": "38 Virginis",
+    "spanshId64": 2278236899691,
     "station": "Bamford Ring",
     "pad": "M",
     "illegalInSuperpowers": [],
@@ -2722,7 +2958,9 @@
   },
   {
     "rare": "Ultra-Compact Processor Prototypes",
+    "inaraId": 10148,
     "system": "17 Lyrae",
+    "spanshId64": 198875022524,
     "station": "Langford Enterprise",
     "pad": "M",
     "illegalInSuperpowers": [],
@@ -2742,7 +2980,9 @@
   },
   {
     "rare": "Rajukru Multi-Stoves",
+    "inaraId": 10084,
     "system": "Rajukru",
+    "spanshId64": 5067659290025,
     "station": "Snyder Terminal",
     "pad": "M",
     "illegalInSuperpowers": [],
@@ -2762,7 +3002,9 @@
   },
   {
     "rare": "Shan's Charis Orchid",
+    "inaraId": 10149,
     "system": "Arque",
+    "spanshId64": 113573366131,
     "station": "Baird Gateway",
     "pad": "M",
     "illegalInSuperpowers": [],
@@ -2782,7 +3024,9 @@
   },
   {
     "rare": "Jaroua Rice",
+    "inaraId": 10013,
     "system": "Jaroua",
+    "spanshId64": 3932411564762,
     "station": "McCool City",
     "pad": "M",
     "illegalInSuperpowers": [],
@@ -2802,7 +3046,9 @@
   },
   {
     "rare": "Ceremonial Heike Tea",
+    "inaraId": 10011,
     "system": "Heike",
+    "spanshId64": 2656160467315,
     "station": "Brunel City",
     "pad": "M",
     "illegalInSuperpowers": [],
@@ -2822,7 +3068,9 @@
   },
   {
     "rare": "Vidavantian Lace",
+    "inaraId": 10057,
     "system": "Vidavanta",
+    "spanshId64": 3657198277346,
     "station": "Lee Mines",
     "pad": "M",
     "illegalInSuperpowers": [],
@@ -2842,7 +3090,9 @@
   },
   {
     "rare": "Apa Vietii",
+    "inaraId": 10267,
     "system": "Upaniklis",
+    "spanshId64": 13862946481609,
     "station": "Forester's Choice",
     "pad": "M",
     "illegalInSuperpowers": [],
@@ -2862,7 +3112,9 @@
   },
   {
     "rare": "Njangari Saddles",
+    "inaraId": 10014,
     "system": "Njangari",
+    "spanshId64": 5069000287681,
     "station": "Lee Hub",
     "pad": "M",
     "illegalInSuperpowers": [],
@@ -2882,7 +3134,9 @@
   },
   {
     "rare": "HR 7221 Wheat",
+    "inaraId": 10024,
     "system": "HR 7221",
+    "spanshId64": 1458376250082,
     "station": "Veron City",
     "pad": "M",
     "illegalInSuperpowers": [],
@@ -2902,7 +3156,9 @@
   },
   {
     "rare": "Leathery Eggs",
+    "inaraId": 10041,
     "system": "Zaonce",
+    "spanshId64": 4482033292002,
     "station": "Ridley Scott",
     "pad": "M",
     "illegalInSuperpowers": [],
@@ -2922,7 +3178,9 @@
   },
   {
     "rare": "Karetii Couture",
+    "inaraId": 10026,
     "system": "Karetii",
+    "spanshId64": 11664191858121,
     "station": "Sinclair Platform",
     "pad": "M",
     "illegalInSuperpowers": [],
@@ -2942,7 +3200,9 @@
   },
   {
     "rare": "Orrerian Vicious Brew",
+    "inaraId": 10035,
     "system": "Orrere",
+    "spanshId64": 5306667012834,
     "station": "Sharon Lee Free Market",
     "pad": "M",
     "illegalInSuperpowers": [],
@@ -2962,7 +3222,9 @@
   },
   {
     "rare": "Burnham Bile Distillate",
+    "inaraId": 10097,
     "system": "HIP 59533",
+    "spanshId64": 84053856994,
     "station": "Burnham Beacon",
     "pad": "M",
     "illegalInSuperpowers": [],
@@ -2982,7 +3244,9 @@
   },
   {
     "rare": "Eleu Thermals",
+    "inaraId": 10027,
     "system": "Eleu",
+    "spanshId64": 2557686616810,
     "station": "Finney Dock",
     "pad": "M",
     "illegalInSuperpowers": [],
@@ -3002,7 +3266,9 @@
   },
   {
     "rare": "Giant Irukama Snails",
+    "inaraId": 10096,
     "system": "Irukama",
+    "spanshId64": 6681190666978,
     "station": "Blaauw City",
     "pad": "M",
     "illegalInSuperpowers": [],
@@ -3022,7 +3288,9 @@
   },
   {
     "rare": "Toxandji Virocide",
+    "inaraId": 10007,
     "system": "Toxandji",
+    "spanshId64": 2832900035298,
     "station": "Tsunenaga Orbital",
     "pad": "M",
     "illegalInSuperpowers": [],
@@ -3042,7 +3310,9 @@
   },
   {
     "rare": "Karsuki Locusts",
+    "inaraId": 10093,
     "system": "Karsuki Ti",
+    "spanshId64": 7269634352577,
     "station": "West Market",
     "pad": "M",
     "illegalInSuperpowers": [],
@@ -3062,7 +3332,9 @@
   },
   {
     "rare": "Sothis Crystalline Gold",
+    "inaraId": 10136,
     "system": "Sothis",
+    "spanshId64": 3137146456387,
     "station": "Newholm Station",
     "pad": "M",
     "illegalInSuperpowers": [],
@@ -3082,7 +3354,9 @@
   },
   {
     "rare": "Soontill Relics",
+    "inaraId": 10127,
     "system": "Ngurii",
+    "spanshId64": 1458510467810,
     "station": "Cheranovsky City",
     "pad": "M",
     "illegalInSuperpowers": [],
@@ -3102,7 +3376,9 @@
   },
   {
     "rare": "Sanuma Decorative Meat",
+    "inaraId": 10087,
     "system": "Sanuma",
+    "spanshId64": 2558022193890,
     "station": "Dunyach Gateway",
     "pad": "M",
     "illegalInSuperpowers": [],
@@ -3122,7 +3398,9 @@
   },
   {
     "rare": "Wheemete Wheat Cakes",
+    "inaraId": 10061,
     "system": "Wheemete",
+    "spanshId64": 4133679499635,
     "station": "Eisinga Enterprise",
     "pad": "M",
     "illegalInSuperpowers": [],
@@ -3142,7 +3420,9 @@
   },
   {
     "rare": "Geawen Dance Dust",
+    "inaraId": 10083,
     "system": "Geawen",
+    "spanshId64": 2282942927602,
     "station": "Obruchev Legacy",
     "pad": "M",
     "illegalInSuperpowers": [],
@@ -3162,7 +3442,9 @@
   },
   {
     "rare": "Jaques Quinentian Still",
+    "inaraId": 10128,
     "system": "Colonia",
+    "spanshId64": 3238296097059,
     "station": "Jaques Station",
     "pad": "L",
     "illegalInSuperpowers": [],

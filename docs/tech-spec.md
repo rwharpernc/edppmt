@@ -24,13 +24,14 @@ edppmt/
 │   ├── __init__.py         # __version__
 │   ├── load.py             # EDMC callbacks (entry point); journal event dispatch
 │   ├── autohonk.py         # AutoHonkController: binds-file lookup + Win32 key injection
-│   ├── clipboard.py        # Inara URL builder + "Copy Progress" line template substitution
+│   ├── clipboard.py        # Inara URL builders + "Copy Progress" line template substitution
 │   ├── formulas.py         # Activity constants + merits-per-CP ratio table
 │   ├── interdiction.py     # InterdictionTracker: detection state machine + overlay rendering
 │   ├── overlay.py          # OverlayClient: EDMCOverlay TCP/JSON transport (generic, reusable)
 │   ├── powerplay.py        # PowerplayTracker: pledge state, system context, classification, journal-file pledge recovery
-│   ├── rares.py             # Rare-goods dataset loader: nearest-N-by-distance + legality summary
-│   ├── rare_goods.json     # Bundled rare-goods dataset (141 entries, coords baked in — see ATTRIBUTIONS.md)
+│   ├── powerplay_lookup.py # Live Controlling-Power lookup (Spansh API) for the Rares window, threaded + cached
+│   ├── rares.py             # Rare-goods dataset loader: nearest-N-by-distance
+│   ├── rare_goods.json     # Bundled rare-goods dataset (141 entries, coords + Inara/Spansh ids baked in — see ATTRIBUTIONS.md)
 │   ├── rares_window.py     # Rares Toplevel (nearest rare goods to the current system)
 │   ├── session.py          # Session dict helpers (incl. per-system totals) + SessionManager (live + history)
 │   ├── store.py            # sessions.json persistence
@@ -72,7 +73,7 @@ from config import config           # Settings + window geometry persistence
 from theme import theme             # UI theming (ui.py, window.py)
 import myNotebook as nb             # Settings tab widgets (ui.py)
 from monitor import monitor         # monitor.logfile — journal file identity (load.py)
-import requests                     # GitHub Releases API + download (update.py) — bundled by EDMC itself
+import requests                     # GitHub Releases API + download (update.py); Spansh Controlling-Power lookup (powerplay_lookup.py) — bundled by EDMC itself
 ```
 
 `state['Credits']` (EDMC's own running balance, built from dozens of journal event types — see `monitor.py` in EDMC core) is read from the `state` dict passed into `journal_entry()`; PowerPlay pledge/merit/system state is tracked independently by `powerplay.py` directly from journal entries, not from `state['Powerplay']`, so that mid-session defection (`PowerplayDefect`) is handled correctly even though EDMC's own `state['Powerplay']` doesn't track that event. `monitor.logfile` (the path of the journal file EDMC is currently tailing) is read directly to detect whether a login is a continuation of the same journal file — see §4 and §7.

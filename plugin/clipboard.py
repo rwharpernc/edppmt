@@ -21,12 +21,13 @@ def inara_system_url(system: str) -> str:
     return f"https://inara.cz/elite/starsystem/?search={quote(system)}"
 
 
-def inara_commodity_url(commodity: str) -> str:
-    """Inara.cz search URL for `commodity`. Unlike the system search above,
-    Inara's own /elite/commodity/?search= doesn't resolve to the specific
-    item, so this uses the site-wide search instead — it lands on a results
-    page listing the commodity rather than the commodity's page directly."""
-    return f"https://inara.cz/elite/search/?search={quote(commodity)}"
+def inara_commodity_url(inara_id: int) -> str:
+    """Inara.cz page for the commodity with this numeric id. Unlike the
+    system search above, Inara's own /elite/commodity/?search= doesn't
+    resolve name searches to a specific item, so the Rares window instead
+    uses ids baked into rare_goods.json (scraped once from Inara's rare
+    goods listing — see docs/ATTRIBUTIONS.md) to link directly."""
+    return f"https://inara.cz/elite/commodity/{inara_id}/"
 
 
 def format_system_line(

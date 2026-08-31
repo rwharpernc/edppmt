@@ -23,11 +23,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   state.
 - **Rare Goods Finder.** A new "Rares" button on the main panel opens a
   window listing the nearest rare commodities to your current system —
-  rare good, origin system, station, and pad size — sorted by distance,
-  with double-click looking the rare good up on Inara. The bundled
+  rare good, origin system, station, pad size, and the origin system's
+  current PowerPlay Controlling Power — sorted by distance, with
+  double-click opening the rare good's page on Inara. The bundled
   141-entry dataset (ported from the author's sibling project
   ED-Rare-Router, coordinates resolved once via EDSM) ships with the
-  plugin, so this never makes a network call at runtime.
+  plugin and makes no network call; Controlling Power is looked up live
+  from [Spansh](https://www.spansh.co.uk/) instead, since PowerPlay
+  control isn't static like the rest of the dataset — it shows "…" while
+  loading and "—" if unclaimed or unreachable.
 - **Interdiction Warning.** Draws a warning on your in-game overlay the
   instant an interdiction starts (before it resolves), then updates it with
   who's interdicting — including their affiliated Power, when there is one —

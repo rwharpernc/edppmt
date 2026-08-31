@@ -9,12 +9,12 @@ import os
 import tkinter as tk
 import webbrowser
 from tkinter import ttk
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 from config import appname, config
 from theme import theme
 
-from . import rares
+from . import powerplay_lookup, rares
 from .clipboard import inara_commodity_url
 
 plugin_name = os.path.basename(os.path.dirname(__file__))
@@ -23,9 +23,9 @@ logger = logging.getLogger(f"{appname}.{plugin_name}")
 CONFIG_GEOMETRY = "edppmt_rares_window_geometry"
 CONFIG_LIMIT = "edppmt_rares_limit"
 
-MIN_WIDTH = 620
+MIN_WIDTH = 780
 MIN_HEIGHT = 420
-DEFAULT_GEOMETRY = "700x520"
+DEFAULT_GEOMETRY = "820x520"
 DEFAULT_LIMIT = 10
 MAX_LIMIT = 141  # size of the bundled dataset
 
@@ -88,6 +88,8 @@ class RaresWindow:
     ) -> None:
         self._current_system = current_system
         self._current_coords = current_coords
+        self._refresh_seq = 0
+        self._id64_to_iids: Dict[int, List[str]] = {}
 
         self._toplevel = tk.Toplevel(parent)
         self._toplevel.title("EDPPMT — Rare Goods Finder")
@@ -121,15 +123,16 @@ class RaresWindow:
         style = ttk.Style(table)
         style.configure("EDPPMT.Rares.Treeview", rowheight=26)
 
-        columns = ("rare", "system", "station", "pad")
+        columns = ("rare", "system", "station", "pad", "power")
         self._tree = ttk.Treeview(
             table, columns=columns, show="headings", selectmode="browse", style="EDPPMT.Rares.Treeview",
         )
         for col, text, width, anchor in (
-            ("rare", "Rare Good", 200, tk.W),
-            ("system", "Origin System", 190, tk.W),
-            ("station", "Station", 220, tk.W),
-            ("pad", "Pad", 60, tk.CENTER),
+            ("rare", "Rare Good", 190, tk.W),
+            ("system", "Origin System", 160, tk.W),
+            ("station", "Station", 190, tk.W),
+            ("pad", "Pad", 50, tk.CENTER),
+            ("power", "Controlling Power", 160, tk.W),
         ):
             self._tree.heading(col, text=text)
             self._tree.column(col, width=width, anchor=anchor, stretch=(col == "station"))
@@ -142,8 +145,12 @@ class RaresWindow:
 
         ttk.Label(
             container,
-            text="Double-click a row to look it up on Inara. Sorted by distance from your current system.",
-            wraplength=620,
+            text=(
+                "Double-click a row to open that rare good's page on Inara. Sorted by distance from your "
+                "current system. Controlling Power is looked up live from Spansh — \"…\" while loading, "
+                "\"—\" if unclaimed or unreachable."
+            ),
+            wraplength=780,
             justify=tk.LEFT,
         ).pack(fill=tk.X, pady=(8, 8))
 
@@ -190,6 +197,9 @@ class RaresWindow:
             return
         self._current_system = current_system
         self._current_coords = current_coords
+        self._refresh_seq += 1
+        seq = self._refresh_seq
+        self._id64_to_iids = {}
 
         self._tree.delete(*self._tree.get_children())
 
@@ -197,32 +207,52 @@ class RaresWindow:
             self._header_label["text"] = "Awaiting system data…"
             self._tree.insert(
                 "", tk.END,
-                values=("(waiting for a system jump or login to know where you are)", "", "", ""),
+                values=("(waiting for a system jump or login to know where you are)", "", "", "", ""),
             )
             return
 
         self._header_label["text"] = f"Current system: {current_system or '(unknown)'}"
 
-        for entry in rares.nearest(current_coords, self._limit()):
-            self._tree.insert("", tk.END, values=self._row_values(entry))
+        entries = rares.nearest(current_coords, self._limit())
+        for entry in entries:
+            iid = str(entry["inaraId"])
+            self._tree.insert("", tk.END, iid=iid, values=self._row_values(entry))
+            id64 = entry.get("spanshId64")
+            if id64 is not None:
+                self._id64_to_iids.setdefault(id64, []).append(iid)
+
+        powerplay_lookup.fetch_missing(self._id64_to_iids.keys(), lambda id64, power: self._toplevel.after(
+            0, lambda: self._apply_power_result(seq, id64, power),
+        ))
+
+    def _apply_power_result(self, seq: int, id64: int, power: Optional[str]) -> None:
+        if seq != self._refresh_seq or not self.alive:
+            return
+        for iid in self._id64_to_iids.get(id64, ()):
+            if self._tree.exists(iid):
+                self._tree.set(iid, "power", power or "—")
 
     @staticmethod
     def _row_values(entry: Dict[str, Any]) -> tuple:
+        id64 = entry.get("spanshId64")
+        found, power = powerplay_lookup.cached(id64) if id64 is not None else (True, None)
         return (
             entry["rare"],
             entry["system"],
             entry["station"],
             entry["pad"],
+            (power or "—") if found else "…",
         )
 
     def _open_selected(self, _event: Optional[tk.Event] = None) -> None:
         selection = self._tree.selection()
         if not selection:
             return
-        values = self._tree.item(selection[0], "values")
-        if not values or not values[0]:
+        try:
+            inara_id = int(selection[0])
+        except ValueError:
             return
-        webbrowser.open(inara_commodity_url(values[0]))
+        webbrowser.open(inara_commodity_url(inara_id))
 
     def close(self) -> None:
         if self.alive:
