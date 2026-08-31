@@ -115,8 +115,16 @@ class RaresWindow:
         table = ttk.Frame(container)
         table.pack(fill=tk.BOTH, expand=True)
 
+        # Default ttk row height is too tight for this table's font, which
+        # left rows visually clipping into each other - same fix window.py
+        # already applies to its own Treeviews (see EDPPMT.Treeview there).
+        style = ttk.Style(table)
+        style.configure("EDPPMT.Rares.Treeview", rowheight=26)
+
         columns = ("rare", "system", "distance", "station", "pad", "cost", "pp", "legality")
-        self._tree = ttk.Treeview(table, columns=columns, show="headings", selectmode="browse")
+        self._tree = ttk.Treeview(
+            table, columns=columns, show="headings", selectmode="browse", style="EDPPMT.Rares.Treeview",
+        )
         for col, text, width, anchor in (
             ("rare", "Rare Good", 170, tk.W),
             ("system", "Origin System", 150, tk.W),

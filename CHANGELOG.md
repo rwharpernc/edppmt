@@ -44,6 +44,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   **Tracking** (CP Ratios + Clipboard), **Alerts** (Auto-Honk + Interdiction
   Warning), and **Updates**.
 
+### Fixed
+
+- **Rare Goods Finder row height.** Its table used ttk's default row
+  height, which was too tight for the font and left rows visually
+  clipping into each other — same fix the Sessions window's tables
+  already had (see `EDPPMT.Treeview` in `window.py`).
+
 Inspired by a review of [alby666/EDMC-PowerPlayProgress](https://github.com/alby666/EDMC-PowerPlayProgress) — see `docs/ATTRIBUTIONS.md`.
 
 ## [1.9.0] - 2026-08-25
