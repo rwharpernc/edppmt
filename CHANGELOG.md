@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Game mode on the main panel.** A new line right below pledge status
+  shows which mode you're currently playing in — `Mode: Open`, `Mode:
+  Solo`, or `Mode: Private (<group name>)` — read from the `LoadGame`
+  journal event (recovered directly from the journal file if EDMC attached
+  to an already-running game, same as pledge-status recovery). Stays
+  visible when the main panel is collapsed, same as pledge status.
 - **Manual reset controls.** The Sessions window gains **Reset Session**
   (zeroes this session's merit totals — by system and by activity — without
   ending the session or touching credit tracking) and **Reset Current

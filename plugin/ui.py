@@ -81,6 +81,7 @@ _MAIN_PANEL_WRAP = 640
 
 _frame: Optional[tk.Frame] = None
 _status_label: Optional[tk.Label] = None
+_mode_label: Optional[tk.Label] = None
 _system_label: Optional[tk.Label] = None
 _here_merits_label: Optional[tk.Label] = None
 _here_cp_label: Optional[tk.Label] = None
@@ -166,7 +167,7 @@ def create_plugin_app(
     parent: tk.Frame, on_show_details: Callable[[], None], on_show_rares: Callable[[], None],
 ) -> tk.Frame:
     """Create the main-window frame for EDMC."""
-    global _frame, _status_label, _system_label, _here_merits_label, _here_cp_label
+    global _frame, _status_label, _mode_label, _system_label, _here_merits_label, _here_cp_label
     global _merits_label, _cp_label, _credits_label
     global _last_event_label, _version_label, _title_label, _collapsed, _collapsible_widgets
 
@@ -198,11 +199,19 @@ def create_plugin_app(
     )
     _status_label.grid(row=1, column=0, columnspan=3, sticky=tk.W)
 
+    # Same visibility exemption as _status_label - which mode you're in is
+    # identity info worth seeing at a glance even collapsed, same reasoning
+    # as pledge status.
+    _mode_label = tk.Label(
+        _frame, text="Mode: awaiting login…", wraplength=_MAIN_PANEL_WRAP, justify=tk.LEFT,
+    )
+    _mode_label.grid(row=2, column=0, columnspan=3, sticky=tk.W)
+
     separator1 = _separator(_frame)
-    separator1.grid(row=2, column=0, columnspan=3, sticky=tk.W, pady=(4, 2))
+    separator1.grid(row=3, column=0, columnspan=3, sticky=tk.W, pady=(4, 2))
 
     _system_label = tk.Label(_frame, text="Awaiting system data…", wraplength=_MAIN_PANEL_WRAP, justify=tk.LEFT)
-    _system_label.grid(row=3, column=0, columnspan=3, sticky=tk.W)
+    _system_label.grid(row=4, column=0, columnspan=3, sticky=tk.W)
 
     # What you're earning in *this* system specifically - the main reason
     # this panel exists. Directly under the system row since the two are
@@ -215,43 +224,43 @@ def create_plugin_app(
     # left to wrap on its own - it always has two distinct things to say,
     # so it says them on two dedicated lines instead of gambling on width.
     _here_merits_label = tk.Label(_frame, text="Here: awaiting system data…", wraplength=_MAIN_PANEL_WRAP, justify=tk.LEFT)
-    _here_merits_label.grid(row=4, column=0, columnspan=3, sticky=tk.W)
+    _here_merits_label.grid(row=5, column=0, columnspan=3, sticky=tk.W)
 
     _here_cp_label = tk.Label(_frame, text="", wraplength=_MAIN_PANEL_WRAP, justify=tk.LEFT)
-    _here_cp_label.grid(row=5, column=0, columnspan=3, sticky=tk.W)
+    _here_cp_label.grid(row=6, column=0, columnspan=3, sticky=tk.W)
 
     separator2 = _separator(_frame)
-    separator2.grid(row=6, column=0, columnspan=3, sticky=tk.W, pady=(4, 2))
+    separator2.grid(row=7, column=0, columnspan=3, sticky=tk.W, pady=(4, 2))
 
     _merits_label = tk.Label(_frame, text="Session merits: 0", wraplength=_MAIN_PANEL_WRAP, justify=tk.LEFT)
-    _merits_label.grid(row=7, column=0, columnspan=3, sticky=tk.W)
+    _merits_label.grid(row=8, column=0, columnspan=3, sticky=tk.W)
 
     _cp_label = tk.Label(_frame, text="Session CP: —", wraplength=_MAIN_PANEL_WRAP, justify=tk.LEFT)
-    _cp_label.grid(row=8, column=0, columnspan=3, sticky=tk.W)
+    _cp_label.grid(row=9, column=0, columnspan=3, sticky=tk.W)
 
     _credits_label = tk.Label(_frame, text="", wraplength=_MAIN_PANEL_WRAP, justify=tk.LEFT)
-    _credits_label.grid(row=9, column=0, columnspan=3, sticky=tk.W)
+    _credits_label.grid(row=10, column=0, columnspan=3, sticky=tk.W)
 
     separator3 = _separator(_frame)
-    separator3.grid(row=10, column=0, columnspan=3, sticky=tk.W, pady=(4, 2))
+    separator3.grid(row=11, column=0, columnspan=3, sticky=tk.W, pady=(4, 2))
 
     _last_event_label = tk.Label(
         _frame, text="No merit events yet this session.", wraplength=_MAIN_PANEL_WRAP, justify=tk.LEFT,
     )
-    _last_event_label.grid(row=11, column=0, columnspan=3, sticky=tk.W)
+    _last_event_label.grid(row=12, column=0, columnspan=3, sticky=tk.W)
 
     buttons_row = tk.Frame(_frame)
-    buttons_row.grid(row=12, column=0, columnspan=3, sticky=tk.E, pady=(6, 0))
+    buttons_row.grid(row=13, column=0, columnspan=3, sticky=tk.E, pady=(6, 0))
     rares_button = tk.Button(buttons_row, text="Rares", command=on_show_rares)
     rares_button.pack(side=tk.LEFT, padx=(0, 6))
     details_button = tk.Button(buttons_row, text="Sessions", command=on_show_details)
     details_button.pack(side=tk.LEFT)
 
-    # Everything but the title/status/version rows — those stay visible
-    # while collapsed (status answers "am I pledged" at a glance, and the
-    # version slot's "Updated to vX" confirmation should never be hidden by
-    # collapsing the section), even though status now has its own row
-    # rather than sharing the title's.
+    # Everything but the title/status/mode/version rows — those stay visible
+    # while collapsed (status and mode answer "am I pledged" and "which
+    # mode" at a glance, and the version slot's "Updated to vX" confirmation
+    # should never be hidden by collapsing the section), even though they
+    # now have their own rows rather than sharing the title's.
     _collapsible_widgets = [
         separator1, _system_label, _here_merits_label, _here_cp_label, separator2,
         _merits_label, _cp_label, _credits_label, separator3, _last_event_label, buttons_row,
@@ -954,6 +963,11 @@ def _format_ratio(value: float) -> str:
 def set_status(message: str) -> None:
     if _status_label is not None:
         _status_label["text"] = message
+
+
+def set_mode(message: str) -> None:
+    if _mode_label is not None:
+        _mode_label["text"] = message
 
 
 def set_last_event(message: str) -> None:

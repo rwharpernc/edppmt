@@ -9,6 +9,7 @@ when they earn them, and tracks session credit income alongside it.
 
 from __future__ import annotations
 
+import json
 import logging
 import os
 import threading
@@ -242,6 +243,47 @@ _PLEDGE_EVENT_APPLIERS = {
 }
 
 
+_LOADGAME_SCAN_LIMIT = 50  # "LoadGame" is always one of the first few lines in a journal file
+
+
+def _mode_text(game_mode: Optional[str], group: Optional[str]) -> str:
+    if game_mode == "Open":
+        return "Mode: Open"
+    if game_mode == "Solo":
+        return "Mode: Solo"
+    if game_mode == "Group":
+        return f"Mode: Private ({group})" if group else "Mode: Private"
+    return "Mode: unknown"
+
+
+def _recover_game_mode() -> None:
+    """Reads the current journal file directly for its "LoadGame" event's
+    GameMode/Group fields — needed only for the "StartUp" handler below,
+    where EDMC synthesizes the entry itself (no journal replay) rather than
+    handing us the real "LoadGame" line that would otherwise carry them.
+    Unlike _recover_pledge_state's backward scan (pledge events can recur
+    through a file), this reads forward from the start and stops as soon as
+    it finds "LoadGame", since that event is always near the top of the
+    file and never repeats within it."""
+    if not monitor.logfile:
+        return
+    try:
+        with open(monitor.logfile, "r", encoding="utf-8") as fh:
+            for _ in range(_LOADGAME_SCAN_LIMIT):
+                line = fh.readline()
+                if not line:
+                    break
+                try:
+                    entry = json.loads(line)
+                except ValueError:
+                    continue
+                if entry.get("event") == "LoadGame":
+                    ui.set_mode(_mode_text(entry.get("GameMode"), entry.get("Group")))
+                    return
+    except OSError:
+        logger.warning("Could not read %s for game-mode recovery", monitor.logfile, exc_info=True)
+
+
 def _recover_pledge_state() -> None:
     """Falls back to reading the current journal file directly for the last
     pledge-lifecycle event when _pp doesn't already know pledge status in
@@ -281,6 +323,7 @@ def _dispatch(cmdr: str, system: str, entry: Dict[str, Any]) -> Optional[str]:
         _interdiction.handle_event(entry)
 
     if event == "LoadGame":
+        ui.set_mode(_mode_text(entry.get("GameMode"), entry.get("Group")))
         credits_start = entry.get("Credits")
         continued = _sessions.sync_session(
             cmdr,
@@ -323,6 +366,7 @@ def _dispatch(cmdr: str, system: str, entry: Dict[str, Any]) -> Optional[str]:
         # _pp (freshly created this run) has no way to learn pledge status
         # on its own — recover it from the journal file directly.
         _recover_pledge_state()
+        _recover_game_mode()
         ui.set_status(f"Pledged to {_pp.pledge_summary()}" if _pp.my_power else f"CMDR {cmdr}: not a PP Pledge")
         return None
 

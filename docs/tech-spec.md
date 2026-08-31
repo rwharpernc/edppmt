@@ -86,8 +86,8 @@ Dispatched in `load._dispatch`, delegating to `PowerplayTracker` (`powerplay.py`
 
 | Event | Handling |
 |---|---|
-| `LoadGame` | Reconciles the session against the journal EDMC is now tailing (`SessionManager.sync_session`, keyed on `monitor.logfile` — see §7). Resets pledge tracking (`PowerplayTracker.apply_login_reset`) *only* if `sync_session` reports a new session, not a same-journal continuation — see §5. |
-| `StartUp` | Synthesized by EDMC when it (re)starts with the game already running (no journal replay in this case — see §5). Reconciles the session the same way `LoadGame` does. |
+| `LoadGame` | Reconciles the session against the journal EDMC is now tailing (`SessionManager.sync_session`, keyed on `monitor.logfile` — see §7). Resets pledge tracking (`PowerplayTracker.apply_login_reset`) *only* if `sync_session` reports a new session, not a same-journal continuation — see §5. Also reads `GameMode`/`Group` off this same live entry to set the main panel's Mode line (`load._mode_text`) — Open / Solo / Private (group name). |
+| `StartUp` | Synthesized by EDMC when it (re)starts with the game already running (no journal replay in this case — see §5). Reconciles the session the same way `LoadGame` does. Since the synthesized entry carries no `GameMode`/`Group` (no real `LoadGame` line was delivered), `load._recover_game_mode()` reads the journal file directly for its `LoadGame` line — a short forward scan (`GameMode` is always near the top of the file, unlike pledge events which can recur, so this doesn't need `_iter_lines_reverse`'s backward-chunk approach). |
 | `Powerplay` | Written at startup only if pledged. Sets pledged Power/Rank/merit baseline; resolves pledge status to `pledged`. |
 | `PowerplayJoin` / `PowerplayDefect` / `PowerplayLeave` | Keep pledged Power current mid-session (EDMC's own `state['Powerplay']` does not track these). |
 | `PowerplayRank` | Updates tracked rank. |
