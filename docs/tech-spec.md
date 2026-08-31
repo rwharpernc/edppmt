@@ -1,6 +1,6 @@
 # EDPPMT Technical Specification
 
-**Version:** 1.9.0
+**Version:** 1.10.0
 **Author:** R.W. Harper (CMDR Bocheaux)
 **Last updated:** 2026-08-31
 
@@ -215,7 +215,7 @@ The `updated` state doesn't stay up indefinitely: `_apply_version_state()` sched
 
 ### 10.2 Main panel collapse
 
-`ui._collapsed` (persisted as the `edppmt_main_collapsed` config bool) gates visibility of every main-panel row below the title/version row and the status row — the separators, system/here-merits/here-CP/session-merits/session-CP/credits/last-event labels, and the "Sessions" button — via `grid()`/`grid_remove()` in `ui._apply_collapsed_state()`. The title label itself (`▾ EDPPMT:` / `▸ EDPPMT:`) doubles as the toggle, bound via `<Button-1>` to `ui._toggle_collapsed`. The version label and the status label (`ui._status_label`, on its own row since v1.9.0 — see §3.1/main-panel layout) are deliberately *not* in the collapsible set: pledge status stays visible at a glance, and a just-applied "Updated to vX" confirmation stays visible regardless of collapse state (even though that label is itself hidden the rest of the time - see 10.1). `_credits_label`'s own data-dependent visibility (hidden until there's a balance to show — see `refresh()`) is layered on top: `refresh()` won't `grid()` it back in while collapsed, and expanding re-applies the cached `_last_credits_earned is None` check rather than unconditionally showing it.
+`ui._collapsed` (persisted as the `edppmt_main_collapsed` config bool) gates visibility of every main-panel row below the title/version/status/mode rows — the separators, system/here-merits/here-CP/session-merits/session-CP/credits/last-event labels, and the "Sessions" button — via `grid()`/`grid_remove()` in `ui._apply_collapsed_state()`. The title label itself (`▾ EDPPMT:` / `▸ EDPPMT:`) doubles as the toggle, bound via `<Button-1>` to `ui._toggle_collapsed`. The version label, the status label (`ui._status_label`, on its own row since v1.9.0 — see §3.1/main-panel layout), and the mode label (`ui._mode_label`, added in v1.10.0) are deliberately *not* in the collapsible set: pledge status and game mode both stay visible at a glance, and a just-applied "Updated to vX" confirmation stays visible regardless of collapse state (even though that label is itself hidden the rest of the time - see 10.1). `_credits_label`'s own data-dependent visibility (hidden until there's a balance to show — see `refresh()`) is layered on top: `refresh()` won't `grid()` it back in while collapsed, and expanding re-applies the cached `_last_credits_earned is None` check rather than unconditionally showing it.
 
 ## 11. Known Limitations
 

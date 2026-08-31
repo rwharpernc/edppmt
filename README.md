@@ -5,7 +5,7 @@
 A lightweight [Elite Dangerous Market Connector](https://github.com/EDCD/EDMarketConnector) (EDMC) plugin that tracks the PowerPlay merits you earn as you play, estimates the Control Points (CP) and credits they represent, and keeps a history of every session — live, automatically, with no setup beyond installing it. EDPPMT never touches the game itself; it only reads *Elite Dangerous*'s own journal files via EDMC, the same way EDMC does.
 
 **Author:** R.W. Harper (CMDR Bocheaux)
-**Version:** 1.9.0
+**Version:** 1.10.0
 **License:** [MIT](LICENSE)
 
 ---
