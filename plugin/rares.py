@@ -51,20 +51,3 @@ def nearest(current_coords: Tuple[float, float, float], limit: int = 10) -> List
     ]
     annotated.sort(key=lambda e: e["distance_ly"])
     return annotated[:limit]
-
-
-def legality_summary(entry: Dict[str, Any]) -> str:
-    """'Always legal' / 'Illegal: Federation, Prison Colony systems' — a
-    short human summary of an entry's illegalInSuperpowers/illegalInGovs/
-    illegalInSuperpowerGovs fields (never evaluated against a specific
-    target system — this is general "watch out for" context, not a route
-    planner's per-system legality check)."""
-    bits: List[str] = list(entry.get("illegalInSuperpowers", []))
-    bits += [f"{gov} systems" for gov in entry.get("illegalInGovs", [])]
-    bits += [
-        f"{combo['superpower']} {combo['government']} systems"
-        for combo in entry.get("illegalInSuperpowerGovs", [])
-    ]
-    if not bits:
-        return "Always legal"
-    return "Illegal: " + ", ".join(bits)

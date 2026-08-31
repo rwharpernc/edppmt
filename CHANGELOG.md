@@ -23,11 +23,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   state.
 - **Rare Goods Finder.** A new "Rares" button on the main panel opens a
   window listing the nearest rare commodities to your current system —
-  origin system/station, pad size, cost, PowerPlay eligibility, and a
-  general legality note — sorted by distance, with double-click opening the
-  system on Inara. The bundled 141-entry dataset (ported from the author's
-  sibling project ED-Rare-Router, coordinates resolved once via EDSM) ships
-  with the plugin, so this never makes a network call at runtime.
+  rare good, origin system, station, and pad size — sorted by distance,
+  with double-click looking the rare good up on Inara. The bundled
+  141-entry dataset (ported from the author's sibling project
+  ED-Rare-Router, coordinates resolved once via EDSM) ships with the
+  plugin, so this never makes a network call at runtime.
 - **Interdiction Warning.** Draws a warning on your in-game overlay the
   instant an interdiction starts (before it resolves), then updates it with
   who's interdicting — including their affiliated Power, when there is one —
@@ -43,13 +43,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Ratios / Clipboard / Updates) are now three, grouped by purpose:
   **Tracking** (CP Ratios + Clipboard), **Alerts** (Auto-Honk + Interdiction
   Warning), and **Updates**.
-
-### Fixed
-
-- **Rare Goods Finder row height.** Its table used ttk's default row
-  height, which was too tight for the font and left rows visually
-  clipping into each other — same fix the Sessions window's tables
-  already had (see `EDPPMT.Treeview` in `window.py`).
 
 Inspired by a review of [alby666/EDMC-PowerPlayProgress](https://github.com/alby666/EDMC-PowerPlayProgress) — see `docs/ATTRIBUTIONS.md`.
 

@@ -15,7 +15,7 @@ from config import appname, config
 from theme import theme
 
 from . import rares
-from .clipboard import inara_system_url
+from .clipboard import inara_commodity_url
 
 plugin_name = os.path.basename(os.path.dirname(__file__))
 logger = logging.getLogger(f"{appname}.{plugin_name}")
@@ -23,9 +23,9 @@ logger = logging.getLogger(f"{appname}.{plugin_name}")
 CONFIG_GEOMETRY = "edppmt_rares_window_geometry"
 CONFIG_LIMIT = "edppmt_rares_limit"
 
-MIN_WIDTH = 760
+MIN_WIDTH = 620
 MIN_HEIGHT = 420
-DEFAULT_GEOMETRY = "900x520"
+DEFAULT_GEOMETRY = "700x520"
 DEFAULT_LIMIT = 10
 MAX_LIMIT = 141  # size of the bundled dataset
 
@@ -121,22 +121,18 @@ class RaresWindow:
         style = ttk.Style(table)
         style.configure("EDPPMT.Rares.Treeview", rowheight=26)
 
-        columns = ("rare", "system", "distance", "station", "pad", "cost", "pp", "legality")
+        columns = ("rare", "system", "station", "pad")
         self._tree = ttk.Treeview(
             table, columns=columns, show="headings", selectmode="browse", style="EDPPMT.Rares.Treeview",
         )
         for col, text, width, anchor in (
-            ("rare", "Rare Good", 170, tk.W),
-            ("system", "Origin System", 150, tk.W),
-            ("distance", "Distance (ly)", 95, tk.E),
-            ("station", "Station", 160, tk.W),
-            ("pad", "Pad", 40, tk.CENTER),
-            ("cost", "Cost", 80, tk.E),
-            ("pp", "PP Eligible", 110, tk.W),
-            ("legality", "Legality", 220, tk.W),
+            ("rare", "Rare Good", 200, tk.W),
+            ("system", "Origin System", 190, tk.W),
+            ("station", "Station", 220, tk.W),
+            ("pad", "Pad", 60, tk.CENTER),
         ):
             self._tree.heading(col, text=text)
-            self._tree.column(col, width=width, anchor=anchor, stretch=(col == "legality"))
+            self._tree.column(col, width=width, anchor=anchor, stretch=(col == "station"))
 
         scrollbar = ttk.Scrollbar(table, orient=tk.VERTICAL, command=self._tree.yview)
         self._tree.configure(yscrollcommand=scrollbar.set)
@@ -146,11 +142,8 @@ class RaresWindow:
 
         ttk.Label(
             container,
-            text=(
-                "Double-click a row to open that system on Inara. Legality is general reference "
-                "(not evaluated against a specific destination) — always verify in-game before trading."
-            ),
-            wraplength=820,
+            text="Double-click a row to look it up on Inara. Sorted by distance from your current system.",
+            wraplength=620,
             justify=tk.LEFT,
         ).pack(fill=tk.X, pady=(8, 8))
 
@@ -204,7 +197,7 @@ class RaresWindow:
             self._header_label["text"] = "Awaiting system data…"
             self._tree.insert(
                 "", tk.END,
-                values=("(waiting for a system jump or login to know where you are)", "", "", "", "", "", "", ""),
+                values=("(waiting for a system jump or login to know where you are)", "", "", ""),
             )
             return
 
@@ -215,16 +208,11 @@ class RaresWindow:
 
     @staticmethod
     def _row_values(entry: Dict[str, Any]) -> tuple:
-        cost = entry.get("cost")
         return (
             entry["rare"],
             entry["system"],
-            f"{entry['distance_ly']:,.1f}",
             entry["station"],
             entry["pad"],
-            f"{cost:,}" if cost is not None else "—",
-            "/".join(entry.get("pp", {}).get("eligibleSystemTypes", [])) or "—",
-            rares.legality_summary(entry),
         )
 
     def _open_selected(self, _event: Optional[tk.Event] = None) -> None:
@@ -232,9 +220,9 @@ class RaresWindow:
         if not selection:
             return
         values = self._tree.item(selection[0], "values")
-        if not values or not values[1]:
+        if not values or not values[0]:
             return
-        webbrowser.open(inara_system_url(values[1]))
+        webbrowser.open(inara_commodity_url(values[0]))
 
     def close(self) -> None:
         if self.alive:

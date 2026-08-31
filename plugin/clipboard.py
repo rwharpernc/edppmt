@@ -1,7 +1,7 @@
 """Clipboard copy formatting for the Sessions window's "Copy Progress" button.
 
-Kept as pure functions (no Tk imports) so they're trivially testable and
-reusable from the Rares window too (both need an Inara system-search URL).
+Kept as pure functions (no Tk imports) so they're trivially testable, and so
+the Inara URL builders are reusable from the Rares window too.
 """
 
 from __future__ import annotations
@@ -19,6 +19,14 @@ def inara_system_url(system: str) -> str:
     system's page (Inara resolves the search itself; there's no public API
     for the numeric system ID Inara's own URLs otherwise use)."""
     return f"https://inara.cz/elite/starsystem/?search={quote(system)}"
+
+
+def inara_commodity_url(commodity: str) -> str:
+    """Inara.cz search URL for `commodity`. Unlike the system search above,
+    Inara's own /elite/commodity/?search= doesn't resolve to the specific
+    item, so this uses the site-wide search instead — it lands on a results
+    page listing the commodity rather than the commodity's page directly."""
+    return f"https://inara.cz/elite/search/?search={quote(commodity)}"
 
 
 def format_system_line(
