@@ -23,9 +23,9 @@ logger = logging.getLogger(f"{appname}.{plugin_name}")
 CONFIG_GEOMETRY = "edppmt_rares_window_geometry"
 CONFIG_LIMIT = "edppmt_rares_limit"
 
-MIN_WIDTH = 780
+MIN_WIDTH = 940
 MIN_HEIGHT = 420
-DEFAULT_GEOMETRY = "820x520"
+DEFAULT_GEOMETRY = "960x520"
 DEFAULT_LIMIT = 10
 MAX_LIMIT = 141  # size of the bundled dataset
 
@@ -127,15 +127,18 @@ class RaresWindow:
         self._tree = ttk.Treeview(
             table, columns=columns, show="headings", selectmode="browse", style="EDPPMT.Rares.Treeview",
         )
-        for col, text, width, anchor in (
-            ("rare", "Rare Good", 190, tk.W),
-            ("system", "Origin System", 160, tk.W),
-            ("station", "Station", 190, tk.W),
-            ("pad", "Pad", 50, tk.CENTER),
-            ("power", "Controlling Power", 160, tk.W),
+        # Widths sized to the bundled dataset's longest values per column
+        # (e.g. "Ultra-Compact Processor Prototypes", "Stefanyshyn-Piper
+        # Station"), not just their headings, so nothing gets clipped.
+        for col, text, width in (
+            ("rare", "Rare Good", 290),
+            ("system", "Origin System", 150),
+            ("station", "Station", 220),
+            ("pad", "Pad", 60),
+            ("power", "Controlling Power", 160),
         ):
-            self._tree.heading(col, text=text)
-            self._tree.column(col, width=width, anchor=anchor, stretch=(col == "station"))
+            self._tree.heading(col, text=text, anchor=tk.CENTER)
+            self._tree.column(col, width=width, anchor=tk.CENTER, stretch=True)
 
         scrollbar = ttk.Scrollbar(table, orient=tk.VERTICAL, command=self._tree.yview)
         self._tree.configure(yscrollcommand=scrollbar.set)
@@ -150,7 +153,7 @@ class RaresWindow:
                 "current system. Controlling Power is looked up live from Spansh — \"…\" while loading, "
                 "\"—\" if unclaimed or unreachable."
             ),
-            wraplength=780,
+            wraplength=920,
             justify=tk.LEFT,
         ).pack(fill=tk.X, pady=(8, 8))
 

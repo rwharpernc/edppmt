@@ -24,8 +24,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Rare Goods Finder.** A new "Rares" button on the main panel opens a
   window listing the nearest rare commodities to your current system —
   rare good, origin system, station, pad size, and the origin system's
-  current PowerPlay Controlling Power — sorted by distance, with
-  double-click opening the rare good's page on Inara. The bundled
+  current PowerPlay Controlling Power, columns sized to the dataset's
+  longest values and centered under their headings — sorted by distance,
+  with double-click opening the rare good's page on Inara. The bundled
   141-entry dataset (ported from the author's sibling project
   ED-Rare-Router, coordinates resolved once via EDSM) ships with the
   plugin and makes no network call; Controlling Power is looked up live
