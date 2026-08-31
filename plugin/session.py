@@ -232,6 +232,32 @@ class SessionManager:
     def record_power(self, power: Optional[str]) -> None:
         update_power(self.current, power)
 
+    def reset_session(self) -> None:
+        """Zeroes this session's merit counts — totals, events, and every
+        per-system bucket — without ending the session (cmdr/power/
+        journal_file/started_at and credit tracking are untouched). Mainly
+        useful for correcting a bad count (e.g. the donation-mission
+        duplicate-merit journal bug) without waiting for a relog."""
+        self.current["totals"] = {activity: 0 for activity in ACTIVITIES}
+        self.current["events"] = {activity: 0 for activity in ACTIVITIES}
+        self.current["by_system"] = {}
+        self.current["updated_at"] = _now_iso()
+        self._persist()
+
+    def reset_system(self, system: str) -> None:
+        """Zeroes just one system's contribution to this session — subtracts
+        its per-activity totals/events back out of the session-wide totals,
+        then drops its by_system bucket. No-op if the system has no bucket
+        (nothing recorded there yet)."""
+        bucket = self.current.get("by_system", {}).pop(system, None)
+        if bucket is None:
+            return
+        for activity in ACTIVITIES:
+            self.current["totals"][activity] -= bucket["totals"].get(activity, 0)
+            self.current["events"][activity] -= bucket["events"].get(activity, 0)
+        self.current["updated_at"] = _now_iso()
+        self._persist()
+
     def flush(self) -> None:
         self._persist()
 

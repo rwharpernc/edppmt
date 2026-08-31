@@ -2,7 +2,7 @@
 
 **Version:** 1.9.0
 **Author:** R.W. Harper (CMDR Bocheaux)
-**Last updated:** 2026-08-25
+**Last updated:** 2026-08-31
 
 ## 1. Overview
 
@@ -24,13 +24,19 @@ edppmt/
 │   ├── __init__.py         # __version__
 │   ├── load.py             # EDMC callbacks (entry point); journal event dispatch
 │   ├── autohonk.py         # AutoHonkController: binds-file lookup + Win32 key injection
+│   ├── clipboard.py        # Inara URL builder + "Copy Progress" line template substitution
 │   ├── formulas.py         # Activity constants + merits-per-CP ratio table
+│   ├── interdiction.py     # InterdictionTracker: detection state machine + overlay rendering
+│   ├── overlay.py          # OverlayClient: EDMCOverlay TCP/JSON transport (generic, reusable)
 │   ├── powerplay.py        # PowerplayTracker: pledge state, system context, classification, journal-file pledge recovery
+│   ├── rares.py             # Rare-goods dataset loader: nearest-N-by-distance + legality summary
+│   ├── rare_goods.json     # Bundled rare-goods dataset (141 entries, coords baked in — see ATTRIBUTIONS.md)
+│   ├── rares_window.py     # Rares Toplevel (nearest rare goods to the current system)
 │   ├── session.py          # Session dict helpers (incl. per-system totals) + SessionManager (live + history)
 │   ├── store.py            # sessions.json persistence
 │   ├── update.py           # UpdateManager: background self-update from GitHub Releases
-│   ├── ui.py                # Tkinter panel + settings tab (also owns ratio config access)
-│   └── window.py           # Sessions Toplevel (Current Session / History tabs)
+│   ├── ui.py                # Tkinter panel + settings tab (also owns ratio/clipboard-format config access)
+│   └── window.py           # Sessions Toplevel (Current Session / History tabs; reset + copy-progress buttons)
 ├── scripts/build.mjs       # Copies plugin/ → dist/EDPPMT/
 ├── docs/                   # Specifications and attributions
 ├── dist/EDPPMT/            # Build artefact (gitignored)
@@ -48,14 +54,14 @@ edppmt/
 | `plugin_start3(plugin_dir: str) -> str` | `load.py` | Initialisation; creates the `SessionManager`, starts the background update check (`UpdateManager.check_async`, see §11), returns `"EDPPMT"`. |
 | `plugin_stop() -> None` | `load.py` | Shutdown hook; flushes session state to disk, closes the Sessions window. |
 | `plugin_app(parent: tk.Frame) -> tk.Frame` | `load.py` | Creates the main-window summary strip. |
-| `plugin_prefs(parent, cmdr, is_beta) -> nb.Frame` | `load.py` | Creates the Settings tab: a static version link, then an `nb.Notebook` with three sub-tabs — Auto-Honk, CP Ratios, Updates (`ui.create_prefs`). |
-| `prefs_changed(cmdr, is_beta) -> None` | `load.py` | Persists ratio, Auto-Honk, and auto-update settings; reloads the live `AutoHonkController`'s config; flushes session state. |
+| `plugin_prefs(parent, cmdr, is_beta) -> nb.Frame` | `load.py` | Creates the Settings tab: a static version link, then an `nb.Notebook` with three sub-tabs grouped by purpose — **Tracking** (CP Ratios + Clipboard), **Alerts** (Auto-Honk + Interdiction Warning), **Updates** (`ui.create_prefs`, `ui._create_grouped_tab`). |
+| `prefs_changed(cmdr, is_beta) -> None` | `load.py` | Persists ratio, clipboard, Auto-Honk, Interdiction Warning/overlay, and auto-update settings; reloads the live `AutoHonkController`'s config; flushes session state. |
+| `dashboard_entry(cmdr, is_beta, entry) -> None` | `load.py` | Called on every `Status.json` change (~1/sec in flight); forwards `entry["Flags"]` to `InterdictionTracker.handle_dashboard_flags` — see §13. |
 | `journal_entry(...) -> Optional[str]` | `load.py` | Processes journal events (see §4). |
 
 ### 3.2 Not implemented
 
 - `cmdr_data` / `capi_fleetcarrier` — no CAPI integration; all data comes from the journal and the `state` dict.
-- `dashboard_entry` — `Status.json` is not read.
 - `journal_entry_cqc` — CQC/Arena sessions ignored.
 
 ### 3.3 Allowed EDMC imports
@@ -89,8 +95,9 @@ Dispatched in `load._dispatch`, delegating to `PowerplayTracker` (`powerplay.py`
 | `FSDJump`, `CarrierJump` | Also forwarded to `AutoHonkController.handle_event` — see §12. |
 | `SearchAndRescue`, `DeliverPowerMicroResources` | PowerPlay commodity/data hand-ins (`PowerplayTracker.apply_delivery_signal`) — see §6. |
 | `PowerplayMerits` | The core event. See §6. |
+| `ReceiveText`, `Interdicted`, `EscapeInterdiction` | Forwarded to `InterdictionTracker.handle_event` — see §13. |
 
-`_dispatch` forwards *every* event (not just the ones in the table above) to `AutoHonkController.handle_event` first, unconditionally — the controller itself is what filters for `FSDJump`/`CarrierJump` and whether Auto-Honk is enabled, the same way `PowerplayTracker`'s methods are only ever called for the specific events they handle. See §12.
+`_dispatch` forwards *every* event (not just the ones in the table above) to `AutoHonkController.handle_event` first, unconditionally — the controller itself is what filters for `FSDJump`/`CarrierJump` and whether Auto-Honk is enabled, the same way `PowerplayTracker`'s methods are only ever called for the specific events they handle. See §12. `InterdictionTracker.handle_event` is similarly cheap to call regardless of whether the feature is enabled — only the actual overlay draw (`_on_interdiction_change`) is gated on Settings. See §13.
 
 Every dispatch also forwards the `system` argument `journal_entry` receives — EDMC's own live-tracked current system name, not parsed from the entry — so `PowerplayTracker` always knows both which system its stored context describes and which system the commander is actually in right now (see §6).
 
@@ -242,3 +249,29 @@ One instance, created in `plugin_start3`, held in `load._autohonk`. `handle_even
 Stored as individual EDMC config values (`ui._save_autohonk_prefs`/`autohonk.load_config`/`autohonk.save_config`): `edppmt_autohonk_enabled`, `edppmt_autohonk_firebutton`, `edppmt_autohonk_holdms` (milliseconds, stored as a string, entered in the UI as seconds), `edppmt_autohonk_focus`, `edppmt_autohonk_skipvisited`. `load._prefs_changed` calls `AutoHonkController.reload_config()` right after `ui.save_prefs()`, so a toggle takes effect immediately rather than only on EDMC's next restart (unlike the ratio/auto-update settings, which only affect display-time calculations and the next update check respectively, and so don't need a live-reload path).
 
 The Settings tab's "Rescan keybind & running apps" and "Test Honk Now" buttons operate on whatever is currently selected in the dialog — including unsaved changes — independently of the live `AutoHonkController` and its saved config, so a user can verify a keybind or fire a manual test honk before committing to Save. "Rescan" also flags `COMPANION_APPS` (currently just `EDCoPilot.exe`) if running, via `tasklist` (chosen over `psutil` for the same reason as §3.3's ctypes note — no new EDMC-bundled dependency), since EDCoPilot has its own AutoHonk setting that would double-honk if both are enabled.
+
+## 13. Interdiction Warning (`interdiction.py`, `overlay.py`)
+
+Draws a warning on the in-game overlay when an interdiction starts, via a separate, optional community tool ([EDMCOverlay](https://github.com/inorton/EDMCOverlay)) that EDPPMT does not install, bundle, or launch — see `docs/ATTRIBUTIONS.md`. Off by default. Ported from the author's sibling project EDDDT's Electron-based interdiction tracker/overlay; the detection state machine is a straight port, the rendering target isn't (EDPPMT has no equivalent of EDDDT's own transparent overlay window, so it draws through EDMCOverlay's TCP protocol instead).
+
+### 13.1 Detection (`InterdictionTracker`)
+
+Three signals, earliest-available first:
+
+1. **`Status.json`'s `Flags` bit 23** (`FlagsBeingInterdicted = 1 << 23`, confirmed against `EDCD/EDMarketConnector`'s `edmc_data.py`) — flips true the instant the interdiction minigame starts, before any resolving journal event. Delivered via the new `dashboard_entry` callback (`load.py`) → `InterdictionTracker.handle_dashboard_flags(flags)`.
+2. **`ReceiveText`** — NPC chat lines matched against `CHAT_THREAT_PATTERNS` (~35 threat/taunt phrases, ported verbatim from EDDDT's `shared/interdiction.ts`, itself from the author's ED-obs-app) give an interdictor name (`From`/`From_Localised`) before the resolving event arrives — the only pre-resolution identity source.
+3. **`Interdicted`** (fields: `Submitted`, `Interdictor`, `IsPlayer`, `IsThargoid`, and `Power` when the interdictor is affiliated with one) / **`EscapeInterdiction`** — the authoritative resolution. `Power` isn't surfaced in EDDDT's own UI but is directly on the event EDPPMT is already parsing, so it's shown when present — a PowerPlay-specific addition over the ported base.
+
+`InterdictionSnapshot` (`active`, `interdictor_name`, `is_player`, `is_thargoid`, `power`, `resolution`) is emitted via an `on_change` callback (constructor-injected, same style as `UpdateManager`'s `on_ready`/`on_downloading` in `update.py`) rather than a ported EventEmitter. Two `threading.Timer`s stand in for EDDDT's `setTimeout`s: `RESOLVED_CLEAR_S = 8.0` (how long a resolved outcome stays up before auto-clearing) and `GRACE_CLEAR_S = 3.0` (safety-net clear if Status.json's flag drops with no resolving event ever arriving). Ephemeral by design — no persistence, mirrors EDDDT's "cheap to rebuild" philosophy for this kind of live-only state.
+
+### 13.2 Rendering (`interdiction.render`, `overlay.OverlayClient`)
+
+`overlay.py` is a generic EDMCOverlay transport (own module, reusable by a future overlay feature): `OverlayClient.send_message`/`send_shape` open a short-lived TCP connection per call (connect → JSON + `"\n"` → close) rather than holding one open — EDMCOverlay traffic is infrequent enough (a handful of messages per interdiction) that persistent-connection/threading complexity isn't worth it. Raises `OSError` on failure (unreachable/not running); callers decide whether to swallow it.
+
+`interdiction.render(snapshot, client)` is the one place that knows what a warning should look like (content model ported from EDDDT's `InterdictionWarningWidget.tsx`): three stacked `send_message` calls at fixed screen coordinates — title, "Interdictor: `<name>` (`<origin tag>`)[ — Power: `<power>`]", and a color-coded resolution line — or three empty/`ttl=1` sends to clear them when the snapshot goes inactive.
+
+`load._on_interdiction_change` (the `on_change` callback) is invoked synchronously from whichever EDMC callback triggered the transition (`dashboard_entry` for the flag flip, `journal_entry`/`_dispatch` for a resolving event) — since a `render()` call can involve up to three sequential socket connects, each with its own timeout if EDMCOverlay isn't reachable, the actual render is pushed onto a short-lived daemon thread rather than risking that EDMC callback stalling on it. Gated on `interdiction.load_config().enabled`; failures are logged at debug and otherwise swallowed — an unreachable EDMCOverlay must never break journal/dashboard processing. The Settings "Test Warning" button (`ui._test_interdiction`) calls `render` directly against whatever host/port is currently in the dialog (even unsaved) on its own background thread, and — unlike the live path — surfaces the real success/failure back to the dialog, so the integration can be checked without waiting for a real interdiction.
+
+### 13.3 Settings & persistence
+
+`edppmt_interdiction_enabled` (`interdiction.load_config`/`save_config`) and `edppmt_overlay_host`/`edppmt_overlay_port` (`overlay.load_config`/`save_config`, defaults `127.0.0.1`/`5010`) — same per-module dataclass + `load_config`/`save_config` pattern as `autohonk.py`. `OverlayClient` re-reads config fresh on every send rather than caching it at construction, so a host/port change in Settings takes effect immediately without a `reload_config()` call.

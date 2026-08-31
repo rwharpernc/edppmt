@@ -1,0 +1,3183 @@
+[
+  {
+    "rare": "Lavian Brandy",
+    "system": "Lave",
+    "station": "Lave Station",
+    "pad": "L",
+    "illegalInSuperpowers": [],
+    "illegalInGovs": [
+      "Prison Colony"
+    ],
+    "illegalInSuperpowerGovs": [
+      {
+        "superpower": "Federation",
+        "government": "Theocracy"
+      },
+      {
+        "superpower": "Alliance",
+        "government": "Theocracy"
+      }
+    ],
+    "cost": 3500,
+    "pp": {
+      "eligibleSystemTypes": [
+        "acquisition",
+        "exploit"
+      ]
+    },
+    "coords": {
+      "x": 75.75,
+      "y": 48.75,
+      "z": 70.75
+    }
+  },
+  {
+    "rare": "Altairian Skin",
+    "system": "Altair",
+    "station": "Solo Orbiter",
+    "pad": "M",
+    "illegalInSuperpowers": [],
+    "illegalInGovs": [],
+    "cost": 901,
+    "pp": {
+      "eligibleSystemTypes": [
+        "acquisition",
+        "exploit"
+      ]
+    },
+    "coords": {
+      "x": -12.3125,
+      "y": -2.75,
+      "z": 11
+    }
+  },
+  {
+    "rare": "Aganippe Rush",
+    "system": "Aganippe",
+    "station": "Julian Market",
+    "pad": "L",
+    "illegalInSuperpowers": [],
+    "illegalInGovs": [
+      "Anarchy"
+    ],
+    "cost": 8966,
+    "pp": {
+      "eligibleSystemTypes": [
+        "exploit"
+      ]
+    },
+    "coords": {
+      "x": -11.5625,
+      "y": 43.8125,
+      "z": 11.625
+    }
+  },
+  {
+    "rare": "Leestian Evil Juice",
+    "system": "Leesti",
+    "station": "George Lucas",
+    "pad": "L",
+    "illegalInSuperpowers": [],
+    "illegalInGovs": [],
+    "cost": 800,
+    "pp": {
+      "eligibleSystemTypes": [
+        "acquisition",
+        "exploit"
+      ]
+    },
+    "coords": {
+      "x": 72.75,
+      "y": 48.75,
+      "z": 68.25
+    }
+  },
+  {
+    "rare": "Azure Milk",
+    "system": "Leesti",
+    "station": "George Lucas",
+    "pad": "L",
+    "illegalInSuperpowers": [],
+    "illegalInGovs": [],
+    "cost": 4536,
+    "pp": {
+      "eligibleSystemTypes": [
+        "acquisition",
+        "exploit"
+      ]
+    },
+    "coords": {
+      "x": 72.75,
+      "y": 48.75,
+      "z": 68.25
+    }
+  },
+  {
+    "rare": "Diso Ma Corn",
+    "system": "Diso",
+    "station": "Shifnalport",
+    "pad": "L",
+    "illegalInSuperpowers": [],
+    "illegalInGovs": [],
+    "cost": 638,
+    "pp": {
+      "eligibleSystemTypes": [
+        "acquisition",
+        "exploit"
+      ]
+    },
+    "coords": {
+      "x": 72.15625,
+      "y": 48.75,
+      "z": 70.75
+    }
+  },
+  {
+    "rare": "Uszaian Tree Grub",
+    "system": "Uszaa",
+    "station": "Guest Installation",
+    "pad": "M",
+    "illegalInSuperpowers": [],
+    "illegalInGovs": [],
+    "cost": 1248,
+    "pp": {
+      "eligibleSystemTypes": [
+        "acquisition",
+        "exploit"
+      ]
+    },
+    "coords": {
+      "x": 68.84375,
+      "y": 48.75,
+      "z": 74.75
+    }
+  },
+  {
+    "rare": "Eranin Pearl Whisky",
+    "system": "Eranin",
+    "station": "Azeban City",
+    "pad": "M",
+    "illegalInSuperpowers": [],
+    "illegalInGovs": [
+      "Prison Colony"
+    ],
+    "illegalInSuperpowerGovs": [
+      {
+        "superpower": "Federation",
+        "government": "Theocracy"
+      },
+      {
+        "superpower": "Alliance",
+        "government": "Theocracy"
+      }
+    ],
+    "cost": 2310,
+    "pp": {
+      "eligibleSystemTypes": [
+        "acquisition",
+        "exploit"
+      ]
+    },
+    "coords": {
+      "x": -22.84375,
+      "y": 36.53125,
+      "z": -1.1875
+    }
+  },
+  {
+    "rare": "Ophiuch Exino Artefacts",
+    "system": "36 Ophiuchi",
+    "station": "Katzenstein Dock",
+    "pad": "M",
+    "illegalInSuperpowers": [],
+    "illegalInGovs": [],
+    "cost": 4356,
+    "pp": {
+      "eligibleSystemTypes": [
+        "acquisition",
+        "exploit"
+      ]
+    },
+    "coords": {
+      "x": 0.4375,
+      "y": 2.09375,
+      "z": 19.21875
+    }
+  },
+  {
+    "rare": "Kachirigin Filter Leeches",
+    "system": "Kachirigin",
+    "station": "Nowak Orbital",
+    "pad": "M",
+    "illegalInSuperpowers": [],
+    "illegalInGovs": [],
+    "cost": 467,
+    "pp": {
+      "eligibleSystemTypes": [
+        "acquisition",
+        "exploit"
+      ]
+    },
+    "coords": {
+      "x": -105.375,
+      "y": -73.34375,
+      "z": 27.75
+    }
+  },
+  {
+    "rare": "Witchhaul Kobe Beef",
+    "system": "Witchhaul",
+    "station": "Hornby Terminal",
+    "pad": "L",
+    "illegalInSuperpowers": [],
+    "illegalInGovs": [],
+    "cost": 4972,
+    "pp": {
+      "eligibleSystemTypes": [
+        "acquisition",
+        "exploit"
+      ]
+    },
+    "coords": {
+      "x": -13.25,
+      "y": -52.0625,
+      "z": -65.875
+    }
+  },
+  {
+    "rare": "Alya Body Soap",
+    "system": "Alya",
+    "station": "Malaspina Gateway",
+    "pad": "L",
+    "illegalInSuperpowers": [],
+    "illegalInGovs": [],
+    "cost": 454,
+    "pp": {
+      "eligibleSystemTypes": [
+        "acquisition",
+        "exploit"
+      ]
+    },
+    "coords": {
+      "x": -77.28125,
+      "y": -57.4375,
+      "z": 30.53125
+    }
+  },
+  {
+    "rare": "CD-75 Kitten Brand Coffee",
+    "system": "CD-75 661",
+    "station": "Kirk Dock",
+    "pad": "M",
+    "illegalInSuperpowers": [],
+    "illegalInGovs": [],
+    "cost": 2373,
+    "pp": {
+      "eligibleSystemTypes": [
+        "acquisition",
+        "exploit"
+      ]
+    },
+    "coords": {
+      "x": 67.875,
+      "y": -21.5,
+      "z": 51.15625
+    }
+  },
+  {
+    "rare": "Goman Yaupon Coffee",
+    "system": "Goman",
+    "station": "Gustav Sporer Port",
+    "pad": "M",
+    "illegalInSuperpowers": [],
+    "illegalInGovs": [],
+    "cost": 1451,
+    "pp": {
+      "eligibleSystemTypes": [
+        "acquisition",
+        "exploit"
+      ]
+    },
+    "coords": {
+      "x": 151.875,
+      "y": -173.78125,
+      "z": 25.28125
+    }
+  },
+  {
+    "rare": "Chateau De Aegaeon",
+    "system": "Aegaeon",
+    "station": "Schweickart Station",
+    "pad": "M",
+    "illegalInSuperpowers": [],
+    "illegalInGovs": [],
+    "cost": 1267,
+    "pp": {
+      "eligibleSystemTypes": [
+        "acquisition",
+        "exploit"
+      ]
+    },
+    "coords": {
+      "x": 46.90625,
+      "y": 23.625,
+      "z": -59.75
+    }
+  },
+  {
+    "rare": "HIP 10175 Bush Meat",
+    "system": "HIP 10175",
+    "station": "Stefanyshyn-Piper Station",
+    "pad": "L",
+    "illegalInSuperpowers": [],
+    "illegalInGovs": [],
+    "cost": 2463,
+    "pp": {
+      "eligibleSystemTypes": [
+        "acquisition",
+        "exploit"
+      ]
+    },
+    "coords": {
+      "x": -45.78125,
+      "y": -93.5,
+      "z": -83.90625
+    }
+  },
+  {
+    "rare": "HIP 118311 Swarm",
+    "system": "HIP 118311",
+    "station": "Lubbock Market",
+    "pad": "L",
+    "illegalInSuperpowers": [],
+    "illegalInGovs": [],
+    "cost": 6550,
+    "pp": {
+      "eligibleSystemTypes": [
+        "acquisition",
+        "exploit"
+      ]
+    },
+    "coords": {
+      "x": 9.40625,
+      "y": -123.5,
+      "z": 31.59375
+    }
+  },
+  {
+    "rare": "Kongga Ale",
+    "system": "Kongga",
+    "station": "Laplace Ring",
+    "pad": "L",
+    "illegalInSuperpowers": [],
+    "illegalInGovs": [
+      "Prison Colony"
+    ],
+    "illegalInSuperpowerGovs": [
+      {
+        "superpower": "Federation",
+        "government": "Theocracy"
+      },
+      {
+        "superpower": "Alliance",
+        "government": "Theocracy"
+      }
+    ],
+    "cost": 1089,
+    "pp": {
+      "eligibleSystemTypes": [
+        "acquisition",
+        "exploit"
+      ]
+    },
+    "coords": {
+      "x": -104.15625,
+      "y": 82.71875,
+      "z": -32.375
+    }
+  },
+  {
+    "rare": "Live Hecate Sea Worms",
+    "system": "Hecate",
+    "station": "RJH1972",
+    "pad": "M",
+    "illegalInSuperpowers": [],
+    "illegalInGovs": [],
+    "cost": 119,
+    "pp": {
+      "eligibleSystemTypes": [
+        "acquisition",
+        "exploit"
+      ]
+    },
+    "coords": {
+      "x": -56,
+      "y": -25.125,
+      "z": -44.28125
+    }
+  },
+  {
+    "rare": "Helvetitj Pearls",
+    "system": "Helvetitj",
+    "station": "Friend Orbital",
+    "pad": "M",
+    "illegalInSuperpowers": [],
+    "illegalInGovs": [],
+    "cost": 3439,
+    "pp": {
+      "eligibleSystemTypes": [
+        "acquisition",
+        "exploit"
+      ]
+    },
+    "coords": {
+      "x": -23.1875,
+      "y": 80.03125,
+      "z": 61.84375
+    }
+  },
+  {
+    "rare": "HIP Proto-Squid",
+    "system": "HIP 41181",
+    "station": "Andersson Station",
+    "pad": "L",
+    "illegalInSuperpowers": [],
+    "illegalInGovs": [],
+    "cost": 1414,
+    "pp": {
+      "eligibleSystemTypes": [
+        "acquisition",
+        "exploit"
+      ]
+    },
+    "coords": {
+      "x": -8.15625,
+      "y": 74.8125,
+      "z": -105.125
+    }
+  },
+  {
+    "rare": "Tauri Chimes",
+    "system": "39 Tauri",
+    "station": "Porta",
+    "pad": "L",
+    "illegalInSuperpowers": [],
+    "illegalInGovs": [],
+    "cost": 1285,
+    "pp": {
+      "eligibleSystemTypes": [
+        "acquisition",
+        "exploit"
+      ]
+    },
+    "coords": {
+      "x": -7.3125,
+      "y": -20.28125,
+      "z": -50.90625
+    }
+  },
+  {
+    "rare": "Wulpa Hyperbore Systems",
+    "system": "Wulpa",
+    "station": "Williams Gateway",
+    "pad": "M",
+    "illegalInSuperpowers": [],
+    "illegalInGovs": [],
+    "cost": 1692,
+    "pp": {
+      "eligibleSystemTypes": [
+        "acquisition",
+        "exploit"
+      ]
+    },
+    "coords": {
+      "x": -126.09375,
+      "y": -83.09375,
+      "z": -85.5625
+    }
+  },
+  {
+    "rare": "Wuthielo Ku Froth",
+    "system": "Wuthielo Ku",
+    "station": "Tarter Dock",
+    "pad": "M",
+    "illegalInSuperpowers": [],
+    "illegalInGovs": [],
+    "cost": 908,
+    "pp": {
+      "eligibleSystemTypes": [
+        "acquisition",
+        "exploit"
+      ]
+    },
+    "coords": {
+      "x": 68.3125,
+      "y": -190.03125,
+      "z": 12.375
+    }
+  },
+  {
+    "rare": "Aepyornis Egg",
+    "system": "47 Ceti",
+    "station": "Glushko Station",
+    "pad": "L",
+    "illegalInSuperpowers": [],
+    "illegalInGovs": [],
+    "cost": 2654,
+    "pp": {
+      "eligibleSystemTypes": [
+        "acquisition",
+        "exploit"
+      ]
+    },
+    "coords": {
+      "x": -14.125,
+      "y": -116.96875,
+      "z": -32.53125
+    }
+  },
+  {
+    "rare": "Eshu Umbrellas",
+    "system": "Eshu",
+    "station": "Shajn Terminal",
+    "pad": "M",
+    "illegalInSuperpowers": [],
+    "illegalInGovs": [],
+    "cost": 2050,
+    "pp": {
+      "eligibleSystemTypes": [
+        "acquisition",
+        "exploit"
+      ]
+    },
+    "coords": {
+      "x": 120.78125,
+      "y": -247.1875,
+      "z": -16.4375
+    }
+  },
+  {
+    "rare": "Kamitra Cigars",
+    "system": "Kamitra",
+    "station": "Hammel Terminal",
+    "pad": "L",
+    "illegalInSuperpowers": [],
+    "illegalInGovs": [
+      "Prison Colony",
+      "Theocracy",
+      "Corporate"
+    ],
+    "illegalInSuperpowerGovs": [
+      {
+        "superpower": "Federation",
+        "government": "Democracy"
+      }
+    ],
+    "cost": 6592,
+    "pp": {
+      "eligibleSystemTypes": [
+        "acquisition",
+        "exploit"
+      ]
+    },
+    "coords": {
+      "x": 5.53125,
+      "y": -183.40625,
+      "z": 63.84375
+    }
+  },
+  {
+    "rare": "Kinago Violins",
+    "system": "Kinago",
+    "station": "Fozard Ring",
+    "pad": "L",
+    "illegalInSuperpowers": [],
+    "illegalInGovs": [],
+    "cost": 7279,
+    "pp": {
+      "eligibleSystemTypes": [
+        "acquisition",
+        "exploit"
+      ]
+    },
+    "coords": {
+      "x": -67.40625,
+      "y": -7.40625,
+      "z": 150.0625
+    }
+  },
+  {
+    "rare": "Ngadandari Fire Opals",
+    "system": "Ngadandari",
+    "station": "Napier Terminal",
+    "pad": "L",
+    "illegalInSuperpowers": [],
+    "illegalInGovs": [],
+    "cost": 15905,
+    "pp": {
+      "eligibleSystemTypes": [
+        "acquisition",
+        "exploit"
+      ]
+    },
+    "coords": {
+      "x": 62.75,
+      "y": -74.1875,
+      "z": 109.5
+    }
+  },
+  {
+    "rare": "Rapa Bao Snake Skins",
+    "system": "Rapa Bao",
+    "station": "Flagg Gateway",
+    "pad": "M",
+    "illegalInSuperpowers": [],
+    "illegalInGovs": [],
+    "cost": 550,
+    "pp": {
+      "eligibleSystemTypes": [
+        "acquisition",
+        "exploit"
+      ]
+    },
+    "coords": {
+      "x": 94.15625,
+      "y": -167.375,
+      "z": -23.1875
+    }
+  },
+  {
+    "rare": "Terra Mater Blood Bores",
+    "system": "Terra Mater",
+    "station": "GR8Minds",
+    "pad": "L",
+    "illegalInSuperpowers": [],
+    "illegalInGovs": [],
+    "cost": 8137,
+    "pp": {
+      "eligibleSystemTypes": [
+        "acquisition",
+        "exploit"
+      ]
+    },
+    "coords": {
+      "x": -49.75,
+      "y": -19.03125,
+      "z": -45
+    }
+  },
+  {
+    "rare": "Vanayequi Ceratomorpha Fur",
+    "system": "Vanayequi",
+    "station": "Clauss Hub",
+    "pad": "L",
+    "illegalInSuperpowers": [],
+    "illegalInGovs": [],
+    "cost": 615,
+    "pp": {
+      "eligibleSystemTypes": [
+        "acquisition",
+        "exploit"
+      ]
+    },
+    "coords": {
+      "x": -88.5,
+      "y": -12.3125,
+      "z": 98.84375
+    }
+  },
+  {
+    "rare": "Yaso Kondi Leaf",
+    "system": "Yaso Kondi",
+    "station": "Wheeler Market",
+    "pad": "M",
+    "illegalInSuperpowers": [],
+    "illegalInGovs": [],
+    "cost": 6060,
+    "pp": {
+      "eligibleSystemTypes": [
+        "acquisition",
+        "exploit"
+      ]
+    },
+    "coords": {
+      "x": 4.9375,
+      "y": -175.90625,
+      "z": -0.90625
+    }
+  },
+  {
+    "rare": "Pantaa Prayer Sticks",
+    "system": "George Pantazis",
+    "station": "Zamka Platform",
+    "pad": "M",
+    "illegalInSuperpowers": [],
+    "illegalInGovs": [],
+    "cost": 1964,
+    "pp": {
+      "eligibleSystemTypes": [
+        "acquisition",
+        "exploit"
+      ]
+    },
+    "coords": {
+      "x": -12.09375,
+      "y": -16,
+      "z": -14.21875
+    }
+  },
+  {
+    "rare": "Gerasian Gueuze Beer",
+    "system": "Geras",
+    "station": "Yurchikhin Port",
+    "pad": "M",
+    "illegalInSuperpowers": [],
+    "illegalInGovs": [],
+    "cost": 450,
+    "pp": {
+      "eligibleSystemTypes": [
+        "acquisition",
+        "exploit"
+      ]
+    },
+    "coords": {
+      "x": -7.03125,
+      "y": -12.875,
+      "z": -56.375
+    }
+  },
+  {
+    "rare": "Centauri Mega Gin",
+    "system": "Alpha Centauri",
+    "station": "Hutton Orbital",
+    "pad": "M",
+    "illegalInSuperpowers": [],
+    "illegalInGovs": [
+      "Prison Colony"
+    ],
+    "illegalInSuperpowerGovs": [
+      {
+        "superpower": "Federation",
+        "government": "Theocracy"
+      },
+      {
+        "superpower": "Alliance",
+        "government": "Theocracy"
+      }
+    ],
+    "cost": 3447,
+    "pp": {
+      "eligibleSystemTypes": [
+        "acquisition",
+        "exploit"
+      ]
+    },
+    "coords": {
+      "x": 3.03125,
+      "y": -0.09375,
+      "z": 3.15625
+    }
+  },
+  {
+    "rare": "Buckyball Beer Mats",
+    "system": "Fullerene C60",
+    "station": "Rebuy Prospect",
+    "pad": "M",
+    "illegalInSuperpowers": [],
+    "illegalInGovs": [],
+    "cost": 85,
+    "pp": {
+      "eligibleSystemTypes": [
+        "acquisition",
+        "exploit"
+      ]
+    },
+    "coords": {
+      "x": -50.5,
+      "y": 19.28125,
+      "z": -203.875
+    }
+  },
+  {
+    "rare": "Damna Carapaces",
+    "system": "Damna",
+    "station": "Nemere Market",
+    "pad": "M",
+    "illegalInSuperpowers": [],
+    "illegalInGovs": [],
+    "cost": 315,
+    "pp": {
+      "eligibleSystemTypes": [
+        "acquisition",
+        "exploit"
+      ]
+    },
+    "coords": {
+      "x": -40.53125,
+      "y": 4.375,
+      "z": -124.25
+    }
+  },
+  {
+    "rare": "Jotun Mookah",
+    "system": "Jotun",
+    "station": "Icelock",
+    "pad": "M",
+    "illegalInSuperpowers": [],
+    "illegalInGovs": [],
+    "cost": 1252,
+    "pp": {
+      "eligibleSystemTypes": [
+        "acquisition",
+        "exploit"
+      ]
+    },
+    "coords": {
+      "x": -11.03125,
+      "y": -79.21875,
+      "z": -92.3125
+    }
+  },
+  {
+    "rare": "Classified Experimental Equipment",
+    "system": "HIP 22460",
+    "station": "Heart of Taurus",
+    "pad": "M",
+    "illegalInSuperpowers": [],
+    "illegalInGovs": [],
+    "cost": 5000,
+    "pp": {
+      "eligibleSystemTypes": [
+        "acquisition",
+        "exploit"
+      ]
+    },
+    "coords": {
+      "x": -41.3125,
+      "y": -58.96875,
+      "z": -354.78125
+    }
+  },
+  {
+    "rare": "Tiegfries Synth Silk",
+    "system": "Tiegfries",
+    "station": "Larbalestier Dock",
+    "pad": "M",
+    "illegalInSuperpowers": [],
+    "illegalInGovs": [],
+    "cost": 823,
+    "pp": {
+      "eligibleSystemTypes": [
+        "acquisition",
+        "exploit"
+      ]
+    },
+    "coords": {
+      "x": 21.96875,
+      "y": 43,
+      "z": -139
+    }
+  },
+  {
+    "rare": "Wolf Fesh",
+    "system": "Wolf 1301",
+    "station": "Saunders's Dive",
+    "pad": "M",
+    "illegalInSuperpowers": [],
+    "illegalInGovs": [],
+    "cost": 712,
+    "pp": {
+      "eligibleSystemTypes": [
+        "acquisition",
+        "exploit"
+      ]
+    },
+    "coords": {
+      "x": -15.4375,
+      "y": -34.6875,
+      "z": -79.40625
+    }
+  },
+  {
+    "rare": "Momus Bog Spaniel",
+    "system": "Momus Reach",
+    "station": "Tartarus Point",
+    "pad": "M",
+    "illegalInSuperpowers": [],
+    "illegalInGovs": [],
+    "cost": 1825,
+    "pp": {
+      "eligibleSystemTypes": [
+        "acquisition",
+        "exploit"
+      ]
+    },
+    "coords": {
+      "x": -34.9375,
+      "y": -44.15625,
+      "z": -77.34375
+    }
+  },
+  {
+    "rare": "Saxon Wine",
+    "system": "9 Aurigae",
+    "station": "Hunt Enterprise",
+    "pad": "M",
+    "illegalInSuperpowers": [],
+    "illegalInGovs": [],
+    "cost": 1540,
+    "pp": {
+      "eligibleSystemTypes": [
+        "acquisition",
+        "exploit"
+      ]
+    },
+    "coords": {
+      "x": -32.75,
+      "y": 10.5,
+      "z": -78.5625
+    }
+  },
+  {
+    "rare": "Chameleon Cloth",
+    "system": "LDS 883",
+    "station": "Smith Reserve",
+    "pad": "M",
+    "illegalInSuperpowers": [],
+    "illegalInGovs": [],
+    "cost": 1664,
+    "pp": {
+      "eligibleSystemTypes": [
+        "acquisition",
+        "exploit"
+      ]
+    },
+    "coords": {
+      "x": -28.71875,
+      "y": -35.71875,
+      "z": -61.4375
+    }
+  },
+  {
+    "rare": "Fujin Tea",
+    "system": "Fujin",
+    "station": "Futen Spaceport",
+    "pad": "M",
+    "illegalInSuperpowers": [],
+    "illegalInGovs": [],
+    "cost": 1136,
+    "pp": {
+      "eligibleSystemTypes": [
+        "acquisition",
+        "exploit"
+      ]
+    },
+    "coords": {
+      "x": -6.03125,
+      "y": -30.375,
+      "z": -59.03125
+    }
+  },
+  {
+    "rare": "Thrutis Cream",
+    "system": "Thrutis",
+    "station": "Kingsbury Dock",
+    "pad": "M",
+    "illegalInSuperpowers": [],
+    "illegalInGovs": [],
+    "cost": 925,
+    "pp": {
+      "eligibleSystemTypes": [
+        "acquisition",
+        "exploit"
+      ]
+    },
+    "coords": {
+      "x": -90.6875,
+      "y": 8.125,
+      "z": -79.53125
+    }
+  },
+  {
+    "rare": "Banki Amphibious Leather",
+    "system": "Banki",
+    "station": "Antonio de Andrade Vista",
+    "pad": "M",
+    "illegalInSuperpowers": [],
+    "illegalInGovs": [],
+    "cost": 625,
+    "pp": {
+      "eligibleSystemTypes": [
+        "acquisition",
+        "exploit"
+      ]
+    },
+    "coords": {
+      "x": 49.53125,
+      "y": 15.75,
+      "z": -91.71875
+    }
+  },
+  {
+    "rare": "Uzumoku Low-G Wings",
+    "system": "Uzumoku",
+    "station": "Sverdrup Ring",
+    "pad": "M",
+    "illegalInSuperpowers": [],
+    "illegalInGovs": [],
+    "cost": 8435,
+    "pp": {
+      "eligibleSystemTypes": [
+        "acquisition",
+        "exploit"
+      ]
+    },
+    "coords": {
+      "x": -95.21875,
+      "y": 9.875,
+      "z": -74.125
+    }
+  },
+  {
+    "rare": "Rusani Old Smokey",
+    "system": "Rusani",
+    "station": "Fernandes Market",
+    "pad": "M",
+    "illegalInSuperpowers": [],
+    "illegalInGovs": [],
+    "cost": 5810,
+    "pp": {
+      "eligibleSystemTypes": [
+        "acquisition",
+        "exploit"
+      ]
+    },
+    "coords": {
+      "x": -64.75,
+      "y": 57.21875,
+      "z": -82.625
+    }
+  },
+  {
+    "rare": "Volkhab Bee Drones",
+    "system": "Volkhab",
+    "station": "Vernadsky Dock",
+    "pad": "M",
+    "illegalInSuperpowers": [],
+    "illegalInGovs": [],
+    "cost": 3262,
+    "pp": {
+      "eligibleSystemTypes": [
+        "acquisition",
+        "exploit"
+      ]
+    },
+    "coords": {
+      "x": 36.53125,
+      "y": 100.0625,
+      "z": -135.71875
+    }
+  },
+  {
+    "rare": "Havasupai Dream Catcher",
+    "system": "Havasupai",
+    "station": "Lovelace Port",
+    "pad": "M",
+    "illegalInSuperpowers": [],
+    "illegalInGovs": [],
+    "cost": 9561,
+    "pp": {
+      "eligibleSystemTypes": [
+        "acquisition",
+        "exploit"
+      ]
+    },
+    "coords": {
+      "x": -88.75,
+      "y": -76.75,
+      "z": -39.625
+    }
+  },
+  {
+    "rare": "Lucan Onionhead",
+    "system": "Tanmark",
+    "station": "Cassie-L-Peia",
+    "pad": "M",
+    "illegalInSuperpowers": [
+      "Federation",
+      "Empire"
+    ],
+    "illegalInGovs": [],
+    "illegalInSuperpowerGovs": [
+      {
+        "superpower": "Alliance",
+        "government": "Communism"
+      },
+      {
+        "superpower": "Alliance",
+        "government": "Confederacy"
+      },
+      {
+        "superpower": "Alliance",
+        "government": "Cooperative"
+      },
+      {
+        "superpower": "Alliance",
+        "government": "Corporate"
+      },
+      {
+        "superpower": "Alliance",
+        "government": "Democracy"
+      },
+      {
+        "superpower": "Alliance",
+        "government": "Dictatorship"
+      },
+      {
+        "superpower": "Alliance",
+        "government": "Feudal"
+      },
+      {
+        "superpower": "Alliance",
+        "government": "Patronage"
+      },
+      {
+        "superpower": "Alliance",
+        "government": "Prison"
+      },
+      {
+        "superpower": "Alliance",
+        "government": "Prison Colony"
+      },
+      {
+        "superpower": "Alliance",
+        "government": "Theocracy"
+      }
+    ],
+    "cost": 815,
+    "pp": {
+      "eligibleSystemTypes": [
+        "acquisition",
+        "exploit"
+      ]
+    },
+    "coords": {
+      "x": 1.6875,
+      "y": -77.875,
+      "z": -30.09375
+    }
+  },
+  {
+    "rare": "Tanmark Tranquil Tea",
+    "system": "Tanmark",
+    "station": "Cassie-L-Peia",
+    "pad": "M",
+    "illegalInSuperpowers": [],
+    "illegalInGovs": [],
+    "cost": 1814,
+    "pp": {
+      "eligibleSystemTypes": [
+        "acquisition",
+        "exploit"
+      ]
+    },
+    "coords": {
+      "x": 1.6875,
+      "y": -77.875,
+      "z": -30.09375
+    }
+  },
+  {
+    "rare": "Ceti Rabbits",
+    "system": "47 Ceti",
+    "station": "Kaufmanis Hub",
+    "pad": "M",
+    "illegalInSuperpowers": [],
+    "illegalInGovs": [],
+    "cost": 1675,
+    "pp": {
+      "eligibleSystemTypes": [
+        "acquisition",
+        "exploit"
+      ]
+    },
+    "coords": {
+      "x": -14.125,
+      "y": -116.96875,
+      "z": -32.53125
+    }
+  },
+  {
+    "rare": "Bast Snake Gin",
+    "system": "Bast",
+    "station": "Hart Station",
+    "pad": "M",
+    "illegalInSuperpowers": [],
+    "illegalInGovs": [],
+    "cost": 1556,
+    "pp": {
+      "eligibleSystemTypes": [
+        "acquisition",
+        "exploit"
+      ]
+    },
+    "coords": {
+      "x": -36.46875,
+      "y": 16.15625,
+      "z": -34.9375
+    }
+  },
+  {
+    "rare": "Belalans Ray Leather",
+    "system": "Belalans",
+    "station": "Boscovich Ring",
+    "pad": "M",
+    "illegalInSuperpowers": [],
+    "illegalInGovs": [],
+    "cost": 1650,
+    "pp": {
+      "eligibleSystemTypes": [
+        "acquisition",
+        "exploit"
+      ]
+    },
+    "coords": {
+      "x": 81.625,
+      "y": -94.875,
+      "z": -58.5625
+    }
+  },
+  {
+    "rare": "Tarach Spice",
+    "system": "Tarach Tor",
+    "station": "Tranquillity",
+    "pad": "M",
+    "illegalInSuperpowers": [
+      "Federation",
+      "Empire"
+    ],
+    "illegalInGovs": [],
+    "illegalInSuperpowerGovs": [
+      {
+        "superpower": "Alliance",
+        "government": "Communism"
+      },
+      {
+        "superpower": "Alliance",
+        "government": "Confederacy"
+      },
+      {
+        "superpower": "Alliance",
+        "government": "Cooperative"
+      },
+      {
+        "superpower": "Alliance",
+        "government": "Corporate"
+      },
+      {
+        "superpower": "Alliance",
+        "government": "Democracy"
+      },
+      {
+        "superpower": "Alliance",
+        "government": "Dictatorship"
+      },
+      {
+        "superpower": "Alliance",
+        "government": "Feudal"
+      },
+      {
+        "superpower": "Alliance",
+        "government": "Patronage"
+      },
+      {
+        "superpower": "Alliance",
+        "government": "Prison"
+      },
+      {
+        "superpower": "Alliance",
+        "government": "Prison Colony"
+      },
+      {
+        "superpower": "Alliance",
+        "government": "Theocracy"
+      }
+    ],
+    "cost": 1056,
+    "pp": {
+      "eligibleSystemTypes": [
+        "acquisition",
+        "exploit"
+      ]
+    },
+    "coords": {
+      "x": -13.125,
+      "y": -81,
+      "z": -20.28125
+    }
+  },
+  {
+    "rare": "Onionhead",
+    "system": "Kappa Fornacis",
+    "station": "Harvestport",
+    "pad": "M",
+    "illegalInSuperpowers": [
+      "Federation",
+      "Empire"
+    ],
+    "illegalInGovs": [],
+    "illegalInSuperpowerGovs": [
+      {
+        "superpower": "Alliance",
+        "government": "Communism"
+      },
+      {
+        "superpower": "Alliance",
+        "government": "Confederacy"
+      },
+      {
+        "superpower": "Alliance",
+        "government": "Cooperative"
+      },
+      {
+        "superpower": "Alliance",
+        "government": "Corporate"
+      },
+      {
+        "superpower": "Alliance",
+        "government": "Democracy"
+      },
+      {
+        "superpower": "Alliance",
+        "government": "Dictatorship"
+      },
+      {
+        "superpower": "Alliance",
+        "government": "Feudal"
+      },
+      {
+        "superpower": "Alliance",
+        "government": "Patronage"
+      },
+      {
+        "superpower": "Alliance",
+        "government": "Prison"
+      },
+      {
+        "superpower": "Alliance",
+        "government": "Prison Colony"
+      },
+      {
+        "superpower": "Alliance",
+        "government": "Theocracy"
+      }
+    ],
+    "cost": 765,
+    "pp": {
+      "eligibleSystemTypes": [
+        "acquisition",
+        "exploit"
+      ]
+    },
+    "coords": {
+      "x": 12.46875,
+      "y": -66.71875,
+      "z": -22.90625
+    }
+  },
+  {
+    "rare": "Mechucos High Tea",
+    "system": "Mechucos",
+    "station": "Brandenstein Port",
+    "pad": "M",
+    "illegalInSuperpowers": [],
+    "illegalInGovs": [],
+    "cost": 1345,
+    "pp": {
+      "eligibleSystemTypes": [
+        "acquisition",
+        "exploit"
+      ]
+    },
+    "coords": {
+      "x": 67.03125,
+      "y": 39.59375,
+      "z": -70.09375
+    }
+  },
+  {
+    "rare": "Duradrives",
+    "system": "Anima",
+    "station": "Cowper Dock",
+    "pad": "M",
+    "illegalInSuperpowers": [],
+    "illegalInGovs": [],
+    "cost": 16250,
+    "pp": {
+      "eligibleSystemTypes": [
+        "acquisition",
+        "exploit"
+      ]
+    },
+    "coords": {
+      "x": 57.65625,
+      "y": -61.1875,
+      "z": -36.53125
+    }
+  },
+  {
+    "rare": "Albino Quechua Mammoth Meat",
+    "system": "Quechua",
+    "station": "Crown Ring",
+    "pad": "M",
+    "illegalInSuperpowers": [],
+    "illegalInGovs": [],
+    "cost": 2538,
+    "pp": {
+      "eligibleSystemTypes": [
+        "acquisition",
+        "exploit"
+      ]
+    },
+    "coords": {
+      "x": 52.09375,
+      "y": -112.09375,
+      "z": -40.78125
+    }
+  },
+  {
+    "rare": "AZ Cancri Formula 42",
+    "system": "AZ Cancri",
+    "station": "Fisher Station",
+    "pad": "M",
+    "illegalInSuperpowers": [],
+    "illegalInGovs": [],
+    "cost": 6829,
+    "pp": {
+      "eligibleSystemTypes": [
+        "acquisition",
+        "exploit"
+      ]
+    },
+    "coords": {
+      "x": 19.65625,
+      "y": 26.84375,
+      "z": -38.09375
+    }
+  },
+  {
+    "rare": "Haiden Black Brew",
+    "system": "Haiden",
+    "station": "Searfoss Enterprise",
+    "pad": "M",
+    "illegalInSuperpowers": [],
+    "illegalInGovs": [],
+    "cost": 1332,
+    "pp": {
+      "eligibleSystemTypes": [
+        "acquisition",
+        "exploit"
+      ]
+    },
+    "coords": {
+      "x": -142.03125,
+      "y": -13.34375,
+      "z": -43.90625
+    }
+  },
+  {
+    "rare": "Zeessze Ant Grub Glue",
+    "system": "Zeessze",
+    "station": "Nicollier Hangar",
+    "pad": "M",
+    "illegalInSuperpowers": [],
+    "illegalInGovs": [],
+    "cost": 991,
+    "pp": {
+      "eligibleSystemTypes": [
+        "acquisition",
+        "exploit"
+      ]
+    },
+    "coords": {
+      "x": -19.8125,
+      "y": -3.25,
+      "z": -14.28125
+    }
+  },
+  {
+    "rare": "Utgaroar Millennial Eggs",
+    "system": "Utgaroar",
+    "station": "Fort Klarix",
+    "pad": "M",
+    "illegalInSuperpowers": [],
+    "illegalInGovs": [],
+    "cost": 2503,
+    "pp": {
+      "eligibleSystemTypes": [
+        "acquisition",
+        "exploit"
+      ]
+    },
+    "coords": {
+      "x": -0.15625,
+      "y": -102.75,
+      "z": -5.5625
+    }
+  },
+  {
+    "rare": "Onionhead Alpha Strain",
+    "system": "Xelabara",
+    "station": "Navigator Market",
+    "pad": "M",
+    "illegalInSuperpowers": [
+      "Federation",
+      "Empire"
+    ],
+    "illegalInGovs": [],
+    "illegalInSuperpowerGovs": [
+      {
+        "superpower": "Alliance",
+        "government": "Communism"
+      },
+      {
+        "superpower": "Alliance",
+        "government": "Confederacy"
+      },
+      {
+        "superpower": "Alliance",
+        "government": "Cooperative"
+      },
+      {
+        "superpower": "Alliance",
+        "government": "Corporate"
+      },
+      {
+        "superpower": "Alliance",
+        "government": "Democracy"
+      },
+      {
+        "superpower": "Alliance",
+        "government": "Dictatorship"
+      },
+      {
+        "superpower": "Alliance",
+        "government": "Feudal"
+      },
+      {
+        "superpower": "Alliance",
+        "government": "Patronage"
+      },
+      {
+        "superpower": "Alliance",
+        "government": "Prison"
+      },
+      {
+        "superpower": "Alliance",
+        "government": "Prison Colony"
+      },
+      {
+        "superpower": "Alliance",
+        "government": "Theocracy"
+      }
+    ],
+    "cost": 765,
+    "pp": {
+      "eligibleSystemTypes": [
+        "acquisition",
+        "exploit"
+      ]
+    },
+    "coords": {
+      "x": -93.40625,
+      "y": 66.0625,
+      "z": -44.96875
+    }
+  },
+  {
+    "rare": "Nguna Modern Antiques",
+    "system": "Nguna",
+    "station": "Biggle Hub",
+    "pad": "M",
+    "illegalInSuperpowers": [],
+    "illegalInGovs": [],
+    "cost": 919,
+    "pp": {
+      "eligibleSystemTypes": [
+        "acquisition",
+        "exploit"
+      ]
+    },
+    "coords": {
+      "x": -122.78125,
+      "y": -102.53125,
+      "z": -22.5625
+    }
+  },
+  {
+    "rare": "Neritus Berries",
+    "system": "Neritus",
+    "station": "Toll Ring",
+    "pad": "M",
+    "illegalInSuperpowers": [],
+    "illegalInGovs": [],
+    "cost": 850,
+    "pp": {
+      "eligibleSystemTypes": [
+        "acquisition",
+        "exploit"
+      ]
+    },
+    "coords": {
+      "x": 75.4375,
+      "y": 2.625,
+      "z": -30.875
+    }
+  },
+  {
+    "rare": "Crystalline Spheres",
+    "system": "Bento",
+    "station": "Snow Moon",
+    "pad": "M",
+    "illegalInSuperpowers": [],
+    "illegalInGovs": [],
+    "cost": 6125,
+    "pp": {
+      "eligibleSystemTypes": [
+        "acquisition",
+        "exploit"
+      ]
+    },
+    "coords": {
+      "x": 16.46875,
+      "y": -31.0625,
+      "z": 1.46875
+    }
+  },
+  {
+    "rare": "Holva Duelling Blades",
+    "system": "Holva",
+    "station": "Kreutz Orbital",
+    "pad": "M",
+    "illegalInSuperpowers": [],
+    "illegalInGovs": [],
+    "cost": 6518,
+    "pp": {
+      "eligibleSystemTypes": [
+        "acquisition",
+        "exploit"
+      ]
+    },
+    "coords": {
+      "x": 58.6875,
+      "y": -170.96875,
+      "z": -41.96875
+    }
+  },
+  {
+    "rare": "Esuseku Caviar",
+    "system": "Esuseku",
+    "station": "Savinykh Orbital",
+    "pad": "M",
+    "illegalInSuperpowers": [],
+    "illegalInGovs": [],
+    "cost": 2701,
+    "pp": {
+      "eligibleSystemTypes": [
+        "acquisition",
+        "exploit"
+      ]
+    },
+    "coords": {
+      "x": -107.875,
+      "y": 29.5625,
+      "z": -20.9375
+    }
+  },
+  {
+    "rare": "Chi Eridani Marine Paste",
+    "system": "Chi Eridani",
+    "station": "Steve Masters",
+    "pad": "M",
+    "illegalInSuperpowers": [],
+    "illegalInGovs": [],
+    "cost": 784,
+    "pp": {
+      "eligibleSystemTypes": [
+        "acquisition",
+        "exploit"
+      ]
+    },
+    "coords": {
+      "x": 26.28125,
+      "y": -51.75,
+      "z": 4.625
+    }
+  },
+  {
+    "rare": "The Hutton Mug",
+    "system": "Alpha Centauri",
+    "station": "Hutton Orbital",
+    "pad": "M",
+    "illegalInSuperpowers": [],
+    "illegalInGovs": [],
+    "cost": 306,
+    "pp": {
+      "eligibleSystemTypes": [
+        "acquisition",
+        "exploit"
+      ]
+    },
+    "coords": {
+      "x": 3.03125,
+      "y": -0.09375,
+      "z": 3.15625
+    }
+  },
+  {
+    "rare": "Master Chefs",
+    "system": "Viracocha",
+    "station": "Pataarcy Corporate",
+    "pad": "M",
+    "illegalInSuperpowers": [],
+    "illegalInGovs": [],
+    "cost": 20580,
+    "pp": {
+      "eligibleSystemTypes": [
+        "acquisition",
+        "exploit"
+      ]
+    },
+    "coords": {
+      "x": 14,
+      "y": -46.4375,
+      "z": 9.65625
+    }
+  },
+  {
+    "rare": "Indi Bourbon",
+    "system": "Epsilon Indi",
+    "station": "Mansfield Orbiter",
+    "pad": "M",
+    "illegalInSuperpowers": [],
+    "illegalInGovs": [],
+    "cost": 1288,
+    "pp": {
+      "eligibleSystemTypes": [
+        "acquisition",
+        "exploit"
+      ]
+    },
+    "coords": {
+      "x": 3.125,
+      "y": -8.875,
+      "z": 7.125
+    }
+  },
+  {
+    "rare": "Ethgreze Tea Buds",
+    "system": "Ethgreze",
+    "station": "Bloch Station",
+    "pad": "M",
+    "illegalInSuperpowers": [],
+    "illegalInGovs": [],
+    "cost": 367,
+    "pp": {
+      "eligibleSystemTypes": [
+        "acquisition",
+        "exploit"
+      ]
+    },
+    "coords": {
+      "x": -30.03125,
+      "y": 72.34375,
+      "z": -23.8125
+    }
+  },
+  {
+    "rare": "Platinum Alloy",
+    "system": "Nahuatl",
+    "station": "Artzybasheff Terminal",
+    "pad": "M",
+    "illegalInSuperpowers": [],
+    "illegalInGovs": [],
+    "cost": 14830,
+    "pp": {
+      "eligibleSystemTypes": [
+        "acquisition",
+        "exploit"
+      ]
+    },
+    "coords": {
+      "x": 65.25,
+      "y": -85.75,
+      "z": -6.15625
+    }
+  },
+  {
+    "rare": "Vega Slimweed",
+    "system": "Vega",
+    "station": "Taylor City",
+    "pad": "M",
+    "illegalInSuperpowers": [],
+    "illegalInGovs": [],
+    "cost": 2398,
+    "pp": {
+      "eligibleSystemTypes": [
+        "acquisition",
+        "exploit"
+      ]
+    },
+    "coords": {
+      "x": -21.90625,
+      "y": 8.125,
+      "z": 9
+    }
+  },
+  {
+    "rare": "Honesty Pills",
+    "system": "LP 375-25",
+    "station": "King Gateway",
+    "pad": "M",
+    "illegalInSuperpowers": [],
+    "illegalInGovs": [],
+    "cost": 1365,
+    "pp": {
+      "eligibleSystemTypes": [
+        "acquisition",
+        "exploit"
+      ]
+    },
+    "coords": {
+      "x": 9.53125,
+      "y": 59.3125,
+      "z": -13.21875
+    }
+  },
+  {
+    "rare": "LTT Hyper Sweet",
+    "system": "LTT 9360",
+    "station": "Smeaton Orbital",
+    "pad": "M",
+    "illegalInSuperpowers": [],
+    "illegalInGovs": [],
+    "cost": 363,
+    "pp": {
+      "eligibleSystemTypes": [
+        "acquisition",
+        "exploit"
+      ]
+    },
+    "coords": {
+      "x": -16.59375,
+      "y": -62.6875,
+      "z": 21.40625
+    }
+  },
+  {
+    "rare": "Pavonis Ear Grubs",
+    "system": "Delta Pavonis",
+    "station": "Hooper Relay",
+    "pad": "M",
+    "illegalInSuperpowers": [],
+    "illegalInGovs": [],
+    "cost": 804,
+    "pp": {
+      "eligibleSystemTypes": [
+        "acquisition",
+        "exploit"
+      ]
+    },
+    "coords": {
+      "x": 8.375,
+      "y": -10.84375,
+      "z": 14.46875
+    }
+  },
+  {
+    "rare": "Void Extract Coffee",
+    "system": "LFT 1421",
+    "station": "Ehrlich Orbital",
+    "pad": "M",
+    "illegalInSuperpowers": [],
+    "illegalInGovs": [],
+    "cost": 2749,
+    "pp": {
+      "eligibleSystemTypes": [
+        "acquisition",
+        "exploit"
+      ]
+    },
+    "coords": {
+      "x": -45.46875,
+      "y": 18.5625,
+      "z": 12.59375
+    }
+  },
+  {
+    "rare": "Ochoeng Chillies",
+    "system": "Ochoeng",
+    "station": "Roddenberry Gateway",
+    "pad": "M",
+    "illegalInSuperpowers": [],
+    "illegalInGovs": [],
+    "cost": 1468,
+    "pp": {
+      "eligibleSystemTypes": [
+        "acquisition",
+        "exploit"
+      ]
+    },
+    "coords": {
+      "x": -139.0625,
+      "y": -2.3125,
+      "z": -6.65625
+    }
+  },
+  {
+    "rare": "Crom Silver Fesh",
+    "system": "Crom",
+    "station": "Chorel Survey",
+    "pad": "M",
+    "illegalInSuperpowers": [],
+    "illegalInGovs": [],
+    "cost": 712,
+    "pp": {
+      "eligibleSystemTypes": [
+        "acquisition",
+        "exploit"
+      ]
+    },
+    "coords": {
+      "x": 53.0625,
+      "y": -17.34375,
+      "z": 8.46875
+    }
+  },
+  {
+    "rare": "Tiolce Waste2Paste Units",
+    "system": "Tiolce",
+    "station": "Gordon Terminal",
+    "pad": "M",
+    "illegalInSuperpowers": [],
+    "illegalInGovs": [],
+    "cost": 1153,
+    "pp": {
+      "eligibleSystemTypes": [
+        "acquisition",
+        "exploit"
+      ]
+    },
+    "coords": {
+      "x": 10.5,
+      "y": -34.78125,
+      "z": 25.0625
+    }
+  },
+  {
+    "rare": "Cherbones Blood Crystals",
+    "system": "Cherbones",
+    "station": "Chalker Landing",
+    "pad": "M",
+    "illegalInSuperpowers": [],
+    "illegalInGovs": [],
+    "cost": 12504,
+    "pp": {
+      "eligibleSystemTypes": [
+        "acquisition",
+        "exploit"
+      ]
+    },
+    "coords": {
+      "x": 5.1875,
+      "y": 84.53125,
+      "z": -16.75
+    }
+  },
+  {
+    "rare": "V Herculis Body Rub",
+    "system": "V1090 Herculis",
+    "station": "Kaku Plant",
+    "pad": "M",
+    "illegalInSuperpowers": [],
+    "illegalInGovs": [],
+    "cost": 160,
+    "pp": {
+      "eligibleSystemTypes": [
+        "acquisition",
+        "exploit"
+      ]
+    },
+    "coords": {
+      "x": -44.9375,
+      "y": 36.9375,
+      "z": 13.46875
+    }
+  },
+  {
+    "rare": "Harma Silver Sea Rum",
+    "system": "Harma",
+    "station": "Gabriel Enterprise",
+    "pad": "M",
+    "illegalInSuperpowers": [],
+    "illegalInGovs": [],
+    "cost": 4480,
+    "pp": {
+      "eligibleSystemTypes": [
+        "acquisition",
+        "exploit"
+      ]
+    },
+    "coords": {
+      "x": -99.25,
+      "y": -100.96875,
+      "z": 20.40625
+    }
+  },
+  {
+    "rare": "Xihe Biomorphic Companions",
+    "system": "Xihe",
+    "station": "Zhen Dock",
+    "pad": "M",
+    "illegalInSuperpowers": [],
+    "illegalInGovs": [
+      "Prison Colony"
+    ],
+    "illegalInSuperpowerGovs": [
+      {
+        "superpower": "Federation",
+        "government": "Theocracy"
+      }
+    ],
+    "cost": 4666,
+    "pp": {
+      "eligibleSystemTypes": [
+        "acquisition",
+        "exploit"
+      ]
+    },
+    "coords": {
+      "x": -19.8125,
+      "y": -35.375,
+      "z": 34
+    }
+  },
+  {
+    "rare": "Deuringas Truffles",
+    "system": "Deuringas",
+    "station": "Shukor Hub",
+    "pad": "M",
+    "illegalInSuperpowers": [],
+    "illegalInGovs": [],
+    "cost": 1892,
+    "pp": {
+      "eligibleSystemTypes": [
+        "acquisition",
+        "exploit"
+      ]
+    },
+    "coords": {
+      "x": 137.3125,
+      "y": 3.84375,
+      "z": -35.90625
+    }
+  },
+  {
+    "rare": "Arouca Conventual Sweets",
+    "system": "Arouca",
+    "station": "Shipton Orbital",
+    "pad": "M",
+    "illegalInSuperpowers": [],
+    "illegalInGovs": [],
+    "cost": 1191,
+    "pp": {
+      "eligibleSystemTypes": [
+        "acquisition",
+        "exploit"
+      ]
+    },
+    "coords": {
+      "x": 104.96875,
+      "y": -6.53125,
+      "z": -4.40625
+    }
+  },
+  {
+    "rare": "Coquim Spongiform Victuals",
+    "system": "Coquim",
+    "station": "Hirayama Installation",
+    "pad": "M",
+    "illegalInSuperpowers": [],
+    "illegalInGovs": [],
+    "cost": 1525,
+    "pp": {
+      "eligibleSystemTypes": [
+        "acquisition",
+        "exploit"
+      ]
+    },
+    "coords": {
+      "x": 20.75,
+      "y": -82.25,
+      "z": 33.59375
+    }
+  },
+  {
+    "rare": "Nanomedicines",
+    "system": "Kuma",
+    "station": "Elion Dock",
+    "pad": "M",
+    "illegalInSuperpowers": [],
+    "illegalInGovs": [],
+    "cost": 2782,
+    "pp": {
+      "eligibleSystemTypes": [
+        "acquisition",
+        "exploit"
+      ]
+    },
+    "coords": {
+      "x": -82.15625,
+      "y": 53.71875,
+      "z": 10.0625
+    }
+  },
+  {
+    "rare": "Delta Phoenicis Palms",
+    "system": "Delta Phoenicis",
+    "station": "Trading Post",
+    "pad": "M",
+    "illegalInSuperpowers": [],
+    "illegalInGovs": [],
+    "cost": 412,
+    "pp": {
+      "eligibleSystemTypes": [
+        "acquisition",
+        "exploit"
+      ]
+    },
+    "coords": {
+      "x": 53.90625,
+      "y": -130.6875,
+      "z": 14.65625
+    }
+  },
+  {
+    "rare": "Onionhead Beta Strain",
+    "system": "HIP 112974",
+    "station": "la Cosa City",
+    "pad": "M",
+    "illegalInSuperpowers": [
+      "Federation",
+      "Empire"
+    ],
+    "illegalInGovs": [],
+    "illegalInSuperpowerGovs": [
+      {
+        "superpower": "Alliance",
+        "government": "Communism"
+      },
+      {
+        "superpower": "Alliance",
+        "government": "Confederacy"
+      },
+      {
+        "superpower": "Alliance",
+        "government": "Cooperative"
+      },
+      {
+        "superpower": "Alliance",
+        "government": "Corporate"
+      },
+      {
+        "superpower": "Alliance",
+        "government": "Democracy"
+      },
+      {
+        "superpower": "Alliance",
+        "government": "Dictatorship"
+      },
+      {
+        "superpower": "Alliance",
+        "government": "Feudal"
+      },
+      {
+        "superpower": "Alliance",
+        "government": "Patronage"
+      },
+      {
+        "superpower": "Alliance",
+        "government": "Prison"
+      },
+      {
+        "superpower": "Alliance",
+        "government": "Prison Colony"
+      },
+      {
+        "superpower": "Alliance",
+        "government": "Theocracy"
+      }
+    ],
+    "cost": 765,
+    "pp": {
+      "eligibleSystemTypes": [
+        "acquisition",
+        "exploit"
+      ]
+    },
+    "coords": {
+      "x": -59.09375,
+      "y": -107.875,
+      "z": 34.4375
+    }
+  },
+  {
+    "rare": "Mulachi Giant Fungus",
+    "system": "Mulachi",
+    "station": "Clark Terminal",
+    "pad": "M",
+    "illegalInSuperpowers": [],
+    "illegalInGovs": [],
+    "cost": 85,
+    "pp": {
+      "eligibleSystemTypes": [
+        "acquisition",
+        "exploit"
+      ]
+    },
+    "coords": {
+      "x": 6.25,
+      "y": -5.78125,
+      "z": 35.9375
+    }
+  },
+  {
+    "rare": "Personal Gifts",
+    "system": "Njambalba",
+    "station": "Frost Dock",
+    "pad": "M",
+    "illegalInSuperpowers": [],
+    "illegalInGovs": [],
+    "cost": 12250,
+    "pp": {
+      "eligibleSystemTypes": [
+        "acquisition",
+        "exploit"
+      ]
+    },
+    "coords": {
+      "x": -3.65625,
+      "y": -153.71875,
+      "z": 26.46875
+    }
+  },
+  {
+    "rare": "Eden Apples Of Aerial",
+    "system": "Aerial",
+    "station": "Andrade Legacy",
+    "pad": "M",
+    "illegalInSuperpowers": [],
+    "illegalInGovs": [],
+    "cost": 1144,
+    "pp": {
+      "eligibleSystemTypes": [
+        "acquisition",
+        "exploit"
+      ]
+    },
+    "coords": {
+      "x": 100.75,
+      "y": -102.625,
+      "z": 8.40625
+    }
+  },
+  {
+    "rare": "Borasetani Pathogenetics",
+    "system": "Borasetani",
+    "station": "Katzenstein Terminal",
+    "pad": "M",
+    "illegalInSuperpowers": [],
+    "illegalInGovs": [],
+    "cost": 8200,
+    "pp": {
+      "eligibleSystemTypes": [
+        "acquisition",
+        "exploit"
+      ]
+    },
+    "coords": {
+      "x": 0.21875,
+      "y": 117.75,
+      "z": -18.03125
+    }
+  },
+  {
+    "rare": "Gilya Signature Weapons",
+    "system": "Gilya",
+    "station": "Bell Orbital",
+    "pad": "M",
+    "illegalInSuperpowers": [],
+    "illegalInGovs": [],
+    "cost": 7582,
+    "pp": {
+      "eligibleSystemTypes": [
+        "acquisition",
+        "exploit"
+      ]
+    },
+    "coords": {
+      "x": -76.78125,
+      "y": 51.03125,
+      "z": 21.75
+    }
+  },
+  {
+    "rare": "Mokojing Beast Feast",
+    "system": "Mokojing",
+    "station": "Noli Terminal",
+    "pad": "M",
+    "illegalInSuperpowers": [],
+    "illegalInGovs": [],
+    "cost": 2930,
+    "pp": {
+      "eligibleSystemTypes": [
+        "acquisition",
+        "exploit"
+      ]
+    },
+    "coords": {
+      "x": 73.4375,
+      "y": 58.34375,
+      "z": -0.21875
+    }
+  },
+  {
+    "rare": "Medb Starlube",
+    "system": "Medb",
+    "station": "Vela Dock",
+    "pad": "M",
+    "illegalInSuperpowers": [],
+    "illegalInGovs": [],
+    "cost": 416,
+    "pp": {
+      "eligibleSystemTypes": [
+        "acquisition",
+        "exploit"
+      ]
+    },
+    "coords": {
+      "x": 12.78125,
+      "y": 4.8125,
+      "z": 39.34375
+    }
+  },
+  {
+    "rare": "The Waters Of Shintara",
+    "system": "Shinrarta Dezhra",
+    "station": "Jameson Memorial",
+    "pad": "L",
+    "illegalInSuperpowers": [],
+    "illegalInGovs": [],
+    "cost": 7421,
+    "pp": {
+      "eligibleSystemTypes": [
+        "acquisition",
+        "exploit"
+      ]
+    },
+    "coords": {
+      "x": 55.71875,
+      "y": 17.59375,
+      "z": 27.15625
+    }
+  },
+  {
+    "rare": "Non Euclidian Exotanks",
+    "system": "LTT 8517",
+    "station": "Euclid Terminal",
+    "pad": "M",
+    "illegalInSuperpowers": [],
+    "illegalInGovs": [],
+    "cost": 892,
+    "pp": {
+      "eligibleSystemTypes": [
+        "acquisition",
+        "exploit"
+      ]
+    },
+    "coords": {
+      "x": 4,
+      "y": -55.625,
+      "z": 52.65625
+    }
+  },
+  {
+    "rare": "Lyrae Weed",
+    "system": "16 Lyrae",
+    "station": "Budrys Ring",
+    "pad": "M",
+    "illegalInSuperpowers": [
+      "Federation",
+      "Empire"
+    ],
+    "illegalInGovs": [],
+    "illegalInSuperpowerGovs": [
+      {
+        "superpower": "Alliance",
+        "government": "Communism"
+      },
+      {
+        "superpower": "Alliance",
+        "government": "Confederacy"
+      },
+      {
+        "superpower": "Alliance",
+        "government": "Cooperative"
+      },
+      {
+        "superpower": "Alliance",
+        "government": "Corporate"
+      },
+      {
+        "superpower": "Alliance",
+        "government": "Democracy"
+      },
+      {
+        "superpower": "Alliance",
+        "government": "Dictatorship"
+      },
+      {
+        "superpower": "Alliance",
+        "government": "Feudal"
+      },
+      {
+        "superpower": "Alliance",
+        "government": "Patronage"
+      },
+      {
+        "superpower": "Alliance",
+        "government": "Prison"
+      },
+      {
+        "superpower": "Alliance",
+        "government": "Prison Colony"
+      },
+      {
+        "superpower": "Alliance",
+        "government": "Theocracy"
+      }
+    ],
+    "cost": 1475,
+    "pp": {
+      "eligibleSystemTypes": [
+        "acquisition",
+        "exploit"
+      ]
+    },
+    "coords": {
+      "x": -113.53125,
+      "y": 37.03125,
+      "z": 25.53125
+    }
+  },
+  {
+    "rare": "Motrona Experience Jelly",
+    "system": "Dea Motrona",
+    "station": "Pinzon Dock",
+    "pad": "M",
+    "illegalInSuperpowers": [],
+    "illegalInGovs": [],
+    "cost": 5936,
+    "pp": {
+      "eligibleSystemTypes": [
+        "acquisition",
+        "exploit"
+      ]
+    },
+    "coords": {
+      "x": -12.15625,
+      "y": 62.625,
+      "z": 29.71875
+    }
+  },
+  {
+    "rare": "Galactic Travel Guide",
+    "system": "LHS 3447",
+    "station": "Bluford Orbital",
+    "pad": "M",
+    "illegalInSuperpowers": [],
+    "illegalInGovs": [],
+    "cost": 1122,
+    "pp": {
+      "eligibleSystemTypes": [
+        "acquisition",
+        "exploit"
+      ]
+    },
+    "coords": {
+      "x": -43.1875,
+      "y": -5.28125,
+      "z": 56.15625
+    }
+  },
+  {
+    "rare": "Kamorin Historic Weapons",
+    "system": "Kamorin",
+    "station": "Godwin Vision",
+    "pad": "M",
+    "illegalInSuperpowers": [],
+    "illegalInGovs": [],
+    "cost": 3154,
+    "pp": {
+      "eligibleSystemTypes": [
+        "acquisition",
+        "exploit"
+      ]
+    },
+    "coords": {
+      "x": -123.875,
+      "y": -81.59375,
+      "z": 45.1875
+    }
+  },
+  {
+    "rare": "Alacarakmo Skin Art",
+    "system": "Alacarakmo",
+    "station": "Weyl Gateway",
+    "pad": "M",
+    "illegalInSuperpowers": [],
+    "illegalInGovs": [],
+    "cost": 1421,
+    "pp": {
+      "eligibleSystemTypes": [
+        "acquisition",
+        "exploit"
+      ]
+    },
+    "coords": {
+      "x": -32.40625,
+      "y": 169.53125,
+      "z": -49.4375
+    }
+  },
+  {
+    "rare": "Hip Organophosphates",
+    "system": "HIP 80364",
+    "station": "Stasheff Colony",
+    "pad": "M",
+    "illegalInSuperpowers": [],
+    "illegalInGovs": [],
+    "cost": 385,
+    "pp": {
+      "eligibleSystemTypes": [
+        "acquisition",
+        "exploit"
+      ]
+    },
+    "coords": {
+      "x": -101.59375,
+      "y": 93.78125,
+      "z": 9.90625
+    }
+  },
+  {
+    "rare": "Giant Verrix",
+    "system": "Phiagre",
+    "station": "Greeboski's Outpost",
+    "pad": "M",
+    "illegalInSuperpowers": [],
+    "illegalInGovs": [],
+    "cost": 6196,
+    "pp": {
+      "eligibleSystemTypes": [
+        "acquisition",
+        "exploit"
+      ]
+    },
+    "coords": {
+      "x": 44.28125,
+      "y": -82.96875,
+      "z": 52.5
+    }
+  },
+  {
+    "rare": "Baltah'sine Vacuum Krill",
+    "system": "Baltah'Sine",
+    "station": "Baltha'Sine Station",
+    "pad": "M",
+    "illegalInSuperpowers": [],
+    "illegalInGovs": [],
+    "cost": 825,
+    "pp": {
+      "eligibleSystemTypes": [
+        "acquisition",
+        "exploit"
+      ]
+    },
+    "coords": {
+      "x": 85.15625,
+      "y": -56.3125,
+      "z": 40.34375
+    }
+  },
+  {
+    "rare": "Any Na Coffee",
+    "system": "Any Na",
+    "station": "Libby Orbital",
+    "pad": "M",
+    "illegalInSuperpowers": [],
+    "illegalInGovs": [],
+    "cost": 1790,
+    "pp": {
+      "eligibleSystemTypes": [
+        "acquisition",
+        "exploit"
+      ]
+    },
+    "coords": {
+      "x": 125.65625,
+      "y": -1.71875,
+      "z": 14.09375
+    }
+  },
+  {
+    "rare": "Mukusubii Chitin-os",
+    "system": "Mukusubii",
+    "station": "Ledyard Dock",
+    "pad": "M",
+    "illegalInSuperpowers": [],
+    "illegalInGovs": [],
+    "cost": 1008,
+    "pp": {
+      "eligibleSystemTypes": [
+        "acquisition",
+        "exploit"
+      ]
+    },
+    "coords": {
+      "x": -147.46875,
+      "y": -64.125,
+      "z": 46.09375
+    }
+  },
+  {
+    "rare": "Jaradharre Puzzle Box",
+    "system": "Jaradharre",
+    "station": "Gohar Station",
+    "pad": "M",
+    "illegalInSuperpowers": [],
+    "illegalInGovs": [],
+    "cost": 12648,
+    "pp": {
+      "eligibleSystemTypes": [
+        "acquisition",
+        "exploit"
+      ]
+    },
+    "coords": {
+      "x": 39.53125,
+      "y": 21.28125,
+      "z": 56.625
+    }
+  },
+  {
+    "rare": "Koro Kung Pellets",
+    "system": "Korro Kung",
+    "station": "Lonchakov Orbital",
+    "pad": "M",
+    "illegalInSuperpowers": [],
+    "illegalInGovs": [],
+    "cost": 240,
+    "pp": {
+      "eligibleSystemTypes": [
+        "acquisition",
+        "exploit"
+      ]
+    },
+    "coords": {
+      "x": 81.03125,
+      "y": 52.84375,
+      "z": 31.5
+    }
+  },
+  {
+    "rare": "Baked Greebles",
+    "system": "38 Virginis",
+    "station": "Bamford Ring",
+    "pad": "M",
+    "illegalInSuperpowers": [],
+    "illegalInGovs": [],
+    "cost": 445,
+    "pp": {
+      "eligibleSystemTypes": [
+        "acquisition",
+        "exploit"
+      ]
+    },
+    "coords": {
+      "x": 44.96875,
+      "y": 91.53125,
+      "z": 31.53125
+    }
+  },
+  {
+    "rare": "Ultra-Compact Processor Prototypes",
+    "system": "17 Lyrae",
+    "station": "Langford Enterprise",
+    "pad": "M",
+    "illegalInSuperpowers": [],
+    "illegalInGovs": [],
+    "cost": 19350,
+    "pp": {
+      "eligibleSystemTypes": [
+        "acquisition",
+        "exploit"
+      ]
+    },
+    "coords": {
+      "x": -119.90625,
+      "y": 25.375,
+      "z": 58.0625
+    }
+  },
+  {
+    "rare": "Rajukru Multi-Stoves",
+    "system": "Rajukru",
+    "station": "Snyder Terminal",
+    "pad": "M",
+    "illegalInSuperpowers": [],
+    "illegalInGovs": [],
+    "cost": 1228,
+    "pp": {
+      "eligibleSystemTypes": [
+        "acquisition",
+        "exploit"
+      ]
+    },
+    "coords": {
+      "x": -96.9375,
+      "y": 143.4375,
+      "z": 4.625
+    }
+  },
+  {
+    "rare": "Shan's Charis Orchid",
+    "system": "Arque",
+    "station": "Baird Gateway",
+    "pad": "M",
+    "illegalInSuperpowers": [],
+    "illegalInGovs": [],
+    "cost": 2390,
+    "pp": {
+      "eligibleSystemTypes": [
+        "acquisition",
+        "exploit"
+      ]
+    },
+    "coords": {
+      "x": 66.5,
+      "y": 38.0625,
+      "z": 61.125
+    }
+  },
+  {
+    "rare": "Jaroua Rice",
+    "system": "Jaroua",
+    "station": "McCool City",
+    "pad": "M",
+    "illegalInSuperpowers": [],
+    "illegalInGovs": [],
+    "cost": 674,
+    "pp": {
+      "eligibleSystemTypes": [
+        "acquisition",
+        "exploit"
+      ]
+    },
+    "coords": {
+      "x": 157.53125,
+      "y": -110.53125,
+      "z": 28.25
+    }
+  },
+  {
+    "rare": "Ceremonial Heike Tea",
+    "system": "Heike",
+    "station": "Brunel City",
+    "pad": "M",
+    "illegalInSuperpowers": [],
+    "illegalInGovs": [],
+    "cost": 1824,
+    "pp": {
+      "eligibleSystemTypes": [
+        "acquisition",
+        "exploit"
+      ]
+    },
+    "coords": {
+      "x": -76.96875,
+      "y": 71.90625,
+      "z": 69.1875
+    }
+  },
+  {
+    "rare": "Vidavantian Lace",
+    "system": "Vidavanta",
+    "station": "Lee Mines",
+    "pad": "M",
+    "illegalInSuperpowers": [],
+    "illegalInGovs": [],
+    "cost": 7025,
+    "pp": {
+      "eligibleSystemTypes": [
+        "acquisition",
+        "exploit"
+      ]
+    },
+    "coords": {
+      "x": -50.9375,
+      "y": 90.21875,
+      "z": 65.8125
+    }
+  },
+  {
+    "rare": "Apa Vietii",
+    "system": "Upaniklis",
+    "station": "Forester's Choice",
+    "pad": "M",
+    "illegalInSuperpowers": [],
+    "illegalInGovs": [],
+    "cost": 3495,
+    "pp": {
+      "eligibleSystemTypes": [
+        "acquisition",
+        "exploit"
+      ]
+    },
+    "coords": {
+      "x": -151.21875,
+      "y": -25,
+      "z": 77.71875
+    }
+  },
+  {
+    "rare": "Njangari Saddles",
+    "system": "Njangari",
+    "station": "Lee Hub",
+    "pad": "M",
+    "illegalInSuperpowers": [],
+    "illegalInGovs": [],
+    "cost": 650,
+    "pp": {
+      "eligibleSystemTypes": [
+        "acquisition",
+        "exploit"
+      ]
+    },
+    "coords": {
+      "x": 8.875,
+      "y": -205.4375,
+      "z": 64.375
+    }
+  },
+  {
+    "rare": "HR 7221 Wheat",
+    "system": "HR 7221",
+    "station": "Veron City",
+    "pad": "M",
+    "illegalInSuperpowers": [],
+    "illegalInGovs": [],
+    "cost": 718,
+    "pp": {
+      "eligibleSystemTypes": [
+        "acquisition",
+        "exploit"
+      ]
+    },
+    "coords": {
+      "x": 58.53125,
+      "y": -55.8125,
+      "z": 91.25
+    }
+  },
+  {
+    "rare": "Leathery Eggs",
+    "system": "Zaonce",
+    "station": "Ridley Scott",
+    "pad": "M",
+    "illegalInSuperpowers": [],
+    "illegalInGovs": [],
+    "cost": 24107,
+    "pp": {
+      "eligibleSystemTypes": [
+        "acquisition",
+        "exploit"
+      ]
+    },
+    "coords": {
+      "x": 80.75,
+      "y": 48.75,
+      "z": 69.25
+    }
+  },
+  {
+    "rare": "Karetii Couture",
+    "system": "Karetii",
+    "station": "Sinclair Platform",
+    "pad": "M",
+    "illegalInSuperpowers": [],
+    "illegalInGovs": [],
+    "cost": 5225,
+    "pp": {
+      "eligibleSystemTypes": [
+        "acquisition",
+        "exploit"
+      ]
+    },
+    "coords": {
+      "x": -125.59375,
+      "y": 44.03125,
+      "z": 78.40625
+    }
+  },
+  {
+    "rare": "Orrerian Vicious Brew",
+    "system": "Orrere",
+    "station": "Sharon Lee Free Market",
+    "pad": "M",
+    "illegalInSuperpowers": [],
+    "illegalInGovs": [],
+    "cost": 630,
+    "pp": {
+      "eligibleSystemTypes": [
+        "acquisition",
+        "exploit"
+      ]
+    },
+    "coords": {
+      "x": 68.84375,
+      "y": 48.75,
+      "z": 76.75
+    }
+  },
+  {
+    "rare": "Burnham Bile Distillate",
+    "system": "HIP 59533",
+    "station": "Burnham Beacon",
+    "pad": "M",
+    "illegalInSuperpowers": [],
+    "illegalInGovs": [],
+    "cost": 806,
+    "pp": {
+      "eligibleSystemTypes": [
+        "acquisition",
+        "exploit"
+      ]
+    },
+    "coords": {
+      "x": 122.96875,
+      "y": -9.0625,
+      "z": 69
+    }
+  },
+  {
+    "rare": "Eleu Thermals",
+    "system": "Eleu",
+    "station": "Finney Dock",
+    "pad": "M",
+    "illegalInSuperpowers": [],
+    "illegalInGovs": [],
+    "cost": 864,
+    "pp": {
+      "eligibleSystemTypes": [
+        "acquisition",
+        "exploit"
+      ]
+    },
+    "coords": {
+      "x": -29.65625,
+      "y": 32.6875,
+      "z": 104.84375
+    }
+  },
+  {
+    "rare": "Giant Irukama Snails",
+    "system": "Irukama",
+    "station": "Blaauw City",
+    "pad": "M",
+    "illegalInSuperpowers": [],
+    "illegalInGovs": [],
+    "cost": 2662,
+    "pp": {
+      "eligibleSystemTypes": [
+        "acquisition",
+        "exploit"
+      ]
+    },
+    "coords": {
+      "x": 140.71875,
+      "y": -96.96875,
+      "z": 67.78125
+    }
+  },
+  {
+    "rare": "Toxandji Virocide",
+    "system": "Toxandji",
+    "station": "Tsunenaga Orbital",
+    "pad": "M",
+    "illegalInSuperpowers": [],
+    "illegalInGovs": [],
+    "cost": 535,
+    "pp": {
+      "eligibleSystemTypes": [
+        "acquisition",
+        "exploit"
+      ]
+    },
+    "coords": {
+      "x": 155.09375,
+      "y": -12.40625,
+      "z": 61.0625
+    }
+  },
+  {
+    "rare": "Karsuki Locusts",
+    "system": "Karsuki Ti",
+    "station": "West Market",
+    "pad": "M",
+    "illegalInSuperpowers": [],
+    "illegalInGovs": [],
+    "cost": 915,
+    "pp": {
+      "eligibleSystemTypes": [
+        "acquisition",
+        "exploit"
+      ]
+    },
+    "coords": {
+      "x": 134.03125,
+      "y": -163.59375,
+      "z": 71.0625
+    }
+  },
+  {
+    "rare": "Sothis Crystalline Gold",
+    "system": "Sothis",
+    "station": "Newholm Station",
+    "pad": "M",
+    "illegalInSuperpowers": [],
+    "illegalInGovs": [],
+    "cost": 15937,
+    "pp": {
+      "eligibleSystemTypes": [
+        "acquisition",
+        "exploit"
+      ]
+    },
+    "coords": {
+      "x": -352.78125,
+      "y": 10.5,
+      "z": -346.34375
+    }
+  },
+  {
+    "rare": "Soontill Relics",
+    "system": "Ngurii",
+    "station": "Cheranovsky City",
+    "pad": "M",
+    "illegalInSuperpowers": [],
+    "illegalInGovs": [],
+    "cost": 17000,
+    "pp": {
+      "eligibleSystemTypes": [
+        "acquisition",
+        "exploit"
+      ]
+    },
+    "coords": {
+      "x": 169.5,
+      "y": -42.34375,
+      "z": 87.0625
+    }
+  },
+  {
+    "rare": "Sanuma Decorative Meat",
+    "system": "Sanuma",
+    "station": "Dunyach Gateway",
+    "pad": "M",
+    "illegalInSuperpowers": [],
+    "illegalInGovs": [],
+    "cost": 860,
+    "pp": {
+      "eligibleSystemTypes": [
+        "acquisition",
+        "exploit"
+      ]
+    },
+    "coords": {
+      "x": 153.4375,
+      "y": 61.4375,
+      "z": 79.03125
+    }
+  },
+  {
+    "rare": "Wheemete Wheat Cakes",
+    "system": "Wheemete",
+    "station": "Eisinga Enterprise",
+    "pad": "M",
+    "illegalInSuperpowers": [],
+    "illegalInGovs": [],
+    "cost": 260,
+    "pp": {
+      "eligibleSystemTypes": [
+        "acquisition",
+        "exploit"
+      ]
+    },
+    "coords": {
+      "x": 145.125,
+      "y": -140.0625,
+      "z": 131.96875
+    }
+  },
+  {
+    "rare": "Geawen Dance Dust",
+    "system": "Geawen",
+    "station": "Obruchev Legacy",
+    "pad": "M",
+    "illegalInSuperpowers": [],
+    "illegalInGovs": [],
+    "cost": 1022,
+    "pp": {
+      "eligibleSystemTypes": [
+        "acquisition",
+        "exploit"
+      ]
+    },
+    "coords": {
+      "x": 22.5,
+      "y": 23.78125,
+      "z": 171.0625
+    }
+  },
+  {
+    "rare": "Jaques Quinentian Still",
+    "system": "Colonia",
+    "station": "Jaques Station",
+    "pad": "L",
+    "illegalInSuperpowers": [],
+    "illegalInGovs": [],
+    "cost": 8691,
+    "pp": {
+      "eligibleSystemTypes": [
+        "acquisition",
+        "exploit"
+      ]
+    },
+    "coords": {
+      "x": -9530.5,
+      "y": -910.28125,
+      "z": 19808.125
+    }
+  }
+]

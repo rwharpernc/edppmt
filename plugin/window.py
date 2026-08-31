@@ -6,12 +6,13 @@ import logging
 import os
 import tkinter as tk
 import tkinter.font as tkfont
-from tkinter import ttk
+from tkinter import messagebox, ttk
 from typing import Any, Dict, List, Optional, Tuple
 
 from config import appname, config
 from theme import theme
 
+from .clipboard import format_system_line
 from .formulas import ACTIVITIES, ACTIVITY_LABELS, NO_CP_ACTIVITIES, merits_to_cp
 from .powerplay import PowerplayTracker
 from .session import (
@@ -24,7 +25,7 @@ from .session import (
     total_merits,
     visited_systems,
 )
-from .ui import ratio_for
+from .ui import clipboard_template, ratio_for
 
 plugin_name = os.path.basename(os.path.dirname(__file__))
 logger = logging.getLogger(f"{appname}.{plugin_name}")
@@ -147,6 +148,12 @@ class SessionWindow:
         buttons.pack(fill=tk.X, padx=14, pady=(0, 14))
         ttk.Button(buttons, text="Refresh", command=lambda: self.refresh(self._current_system)).pack(side=tk.LEFT)
         ttk.Button(buttons, text="Close", command=self.close).pack(side=tk.RIGHT)
+        self._copy_button = ttk.Button(buttons, text="Copy Progress", command=self._copy_progress)
+        self._copy_button.pack(side=tk.RIGHT, padx=(0, 8))
+        ttk.Button(buttons, text="Reset Current System", command=self._reset_current_system).pack(
+            side=tk.RIGHT, padx=(0, 8),
+        )
+        ttk.Button(buttons, text="Reset Session", command=self._reset_session).pack(side=tk.RIGHT, padx=(0, 8))
 
         try:
             theme.update(self._toplevel)
@@ -172,6 +179,65 @@ class SessionWindow:
         self._current_system = current_system
         self._current_tab.update(self._sessions.current, self._pp, current_system)
         self._history_tab.update(self._sessions.history, self._sessions.current)
+
+    def _reset_session(self) -> None:
+        """Zeroes this session's merit counts entirely (session identity and
+        credit tracking untouched) — mainly for correcting a bad count, e.g.
+        the donation-mission duplicate-merit journal bug. Confirms first
+        since it destroys in-memory/persisted counters."""
+        if not messagebox.askyesno(
+            "Reset Session",
+            "Zero this session's merit totals (by system and by activity)?\n\n"
+            "This does not end the session or touch credit tracking, and can't be undone.",
+            parent=self._toplevel,
+        ):
+            return
+        self._sessions.reset_session()
+        self.refresh(self._current_system)
+
+    def _reset_current_system(self) -> None:
+        if not self._current_system:
+            messagebox.showinfo("Reset Current System", "No current system to reset.", parent=self._toplevel)
+            return
+        if not messagebox.askyesno(
+            "Reset Current System",
+            f"Zero merits earned in {self._current_system} this session (subtracted from the "
+            "session totals too)?\n\nThis can't be undone.",
+            parent=self._toplevel,
+        ):
+            return
+        self._sessions.reset_system(self._current_system)
+        self.refresh(self._current_system)
+
+    def _copy_progress(self) -> None:
+        """Copies one formatted line per system in the By System table to
+        the clipboard, using the user's configured template (Settings ->
+        Clipboard)."""
+        session = self._sessions.current
+        systems = visited_systems(session)
+        if self._current_system and self._current_system not in systems:
+            systems = [self._current_system] + systems
+        elif self._current_system in systems:
+            systems = [self._current_system] + [s for s in systems if s != self._current_system]
+
+        template = clipboard_template()
+        lines = []
+        for name in systems:
+            merits = system_merit_total(session, name)
+            cp = sum(
+                merits_to_cp(system_totals(session, name).get(activity, 0), ratio_for(activity))
+                for activity in ACTIVITIES
+                if activity not in NO_CP_ACTIVITIES
+            )
+            state = self._pp.system_state if name == self._current_system and self._pp.system_state else "—"
+            lines.append(format_system_line(template, system=name, merits=f"{merits:,}", cp=f"{cp:,.1f}", state=state))
+
+        self._toplevel.clipboard_clear()
+        self._toplevel.clipboard_append("\n".join(lines))
+
+        original_text = self._copy_button["text"]
+        self._copy_button["text"] = "Copied!"
+        self._copy_button.after(1500, lambda: self._copy_button.configure(text=original_text))
 
     def close(self) -> None:
         if self.alive:

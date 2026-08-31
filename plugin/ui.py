@@ -8,6 +8,7 @@ import threading
 from typing import Callable, Dict, List, Optional, Tuple
 
 import tkinter as tk
+from tkinter import ttk
 
 import myNotebook as nb
 from config import appname, config
@@ -16,6 +17,10 @@ from ttkHyperlinkLabel import HyperlinkLabel
 
 from . import __version__
 from . import autohonk
+from . import interdiction
+from . import overlay
+from .clipboard import DEFAULT_TEMPLATE as DEFAULT_CLIPBOARD_TEMPLATE
+from .clipboard import PLACEHOLDERS as CLIPBOARD_PLACEHOLDERS
 from .formulas import (
     ACQUISITION,
     ACTIVITIES,
@@ -35,6 +40,7 @@ logger = logging.getLogger(f"{appname}.{plugin_name}")
 
 CONFIG_RATIO_PREFIX = "edppmt_ratio_"
 CONFIG_COLLAPSED = "edppmt_main_collapsed"
+CONFIG_CLIPBOARD_FORMAT = "edppmt_clipboard_format"
 
 # Color for the main-panel "Updated to vX" HyperlinkLabel - the only state
 # that widget ever shows text for (see _apply_version_state).
@@ -85,6 +91,7 @@ _last_event_label: Optional[tk.Label] = None
 _version_label: Optional[HyperlinkLabel] = None
 _ratio_vars: Dict[str, tk.StringVar] = {}
 _auto_update_var: Optional[tk.BooleanVar] = None
+_clipboard_format_var: Optional[tk.StringVar] = None
 
 # Main-panel collapse: title label doubles as the toggle, everything below
 # the title/status/version rows hides when collapsed (those stay visible so
@@ -111,6 +118,17 @@ _autohonk_result_label: Optional[tk.Label] = None
 # or not Auto-Honk itself is enabled.
 _autohonk_dependent_widgets: List[tk.Widget] = []
 
+_interdiction_enabled_var: Optional[tk.BooleanVar] = None
+_overlay_host_var: Optional[tk.StringVar] = None
+_overlay_port_var: Optional[tk.StringVar] = None
+_interdiction_result_label: Optional[tk.Label] = None
+
+# Host/port fields - only meaningful once Interdiction Warning is enabled,
+# so they grey out together with it (see _update_interdiction_dependent_state).
+# Test Warning is deliberately NOT in this list - same reasoning as
+# Auto-Honk's Rescan/Test Honk Now (a standalone sanity check either way).
+_interdiction_dependent_widgets: List[tk.Widget] = []
+
 # (kind, version) — kind is one of "normal", "downloading", "downloaded", "updated".
 _version_state: tuple = ("normal", None)
 _updated_clear_scheduled: bool = False
@@ -131,6 +149,11 @@ def ratio_for(activity: str) -> float:
     return value if value > 0 else default
 
 
+def clipboard_template() -> str:
+    """Current "Copy Progress" line format, from Settings or the default."""
+    return config.get_str(CONFIG_CLIPBOARD_FORMAT) or DEFAULT_CLIPBOARD_TEMPLATE
+
+
 def _separator(parent: tk.Frame) -> tk.Label:
     """A themed dash-rule label used to break the main panel into groups
     (header / system / session stats / last event) — plain tk.Label rather
@@ -139,7 +162,9 @@ def _separator(parent: tk.Frame) -> tk.Label:
     return tk.Label(parent, text="─" * 46, anchor=tk.W)
 
 
-def create_plugin_app(parent: tk.Frame, on_show_details: Callable[[], None]) -> tk.Frame:
+def create_plugin_app(
+    parent: tk.Frame, on_show_details: Callable[[], None], on_show_rares: Callable[[], None],
+) -> tk.Frame:
     """Create the main-window frame for EDMC."""
     global _frame, _status_label, _system_label, _here_merits_label, _here_cp_label
     global _merits_label, _cp_label, _credits_label
@@ -215,8 +240,12 @@ def create_plugin_app(parent: tk.Frame, on_show_details: Callable[[], None]) -> 
     )
     _last_event_label.grid(row=11, column=0, columnspan=3, sticky=tk.W)
 
-    details_button = tk.Button(_frame, text="Sessions", command=on_show_details)
-    details_button.grid(row=12, column=0, columnspan=3, sticky=tk.E, pady=(6, 0))
+    buttons_row = tk.Frame(_frame)
+    buttons_row.grid(row=12, column=0, columnspan=3, sticky=tk.E, pady=(6, 0))
+    rares_button = tk.Button(buttons_row, text="Rares", command=on_show_rares)
+    rares_button.pack(side=tk.LEFT, padx=(0, 6))
+    details_button = tk.Button(buttons_row, text="Sessions", command=on_show_details)
+    details_button.pack(side=tk.LEFT)
 
     # Everything but the title/status/version rows — those stay visible
     # while collapsed (status answers "am I pledged" at a glance, and the
@@ -225,7 +254,7 @@ def create_plugin_app(parent: tk.Frame, on_show_details: Callable[[], None]) -> 
     # rather than sharing the title's.
     _collapsible_widgets = [
         separator1, _system_label, _here_merits_label, _here_cp_label, separator2,
-        _merits_label, _cp_label, _credits_label, separator3, _last_event_label, details_button,
+        _merits_label, _cp_label, _credits_label, separator3, _last_event_label, buttons_row,
     ]
     _apply_collapsed_state()
 
@@ -378,13 +407,46 @@ def _system_summary(pp: PowerplayTracker) -> str:
     return f"{pp.system_name} — {state} ({detail})"
 
 
+def _create_grouped_tab(
+    notebook: nb.Notebook, tab_text: str, sections: List[Tuple[str, Callable[[nb.Frame], None]]],
+) -> None:
+    """One Settings sub-tab holding several stacked, titled sections (e.g.
+    Tracking = CP Ratios + Clipboard) rather than a second level of nested
+    tabs — cheaper to scan, and each section-builder is unchanged/reused
+    as-is (it just gets its own child frame to grid into from row 0)."""
+    tab = nb.Frame(notebook)
+    tab.columnconfigure(0, weight=1)
+    notebook.add(tab, text=tab_text)
+
+    row = 0
+    for index, (title, build_section) in enumerate(sections):
+        if index > 0:
+            ttk.Separator(tab, orient=tk.HORIZONTAL).grid(
+                row=row, column=0, sticky=tk.EW, padx=10, pady=(8, 0),
+            )
+            row += 1
+        nb.Label(tab, text=title, font=("TkDefaultFont", 9, "bold")).grid(
+            row=row, column=0, sticky=tk.W, padx=10, pady=(10, 2),
+        )
+        row += 1
+        section = nb.Frame(tab)
+        section.columnconfigure(0, weight=1)
+        section.grid(row=row, column=0, sticky=tk.NSEW)
+        row += 1
+        build_section(section)
+
+
 def create_prefs(parent: nb.Notebook) -> nb.Frame:
     """Create the EDPPMT tab in EDMC's settings window.
 
-    A small tab strip (Auto-Honk / CP Ratios / Updates) rather than one long
-    scroll of unrelated settings — Auto-Honk in particular has enough moving
-    parts (five controls plus live status/test feedback) that it was getting
-    lost among the CP ratio entries stacked below it.
+    Three sub-tabs grouped by purpose rather than one-section-per-tab (which
+    stopped scaling once Interdiction Warning joined Auto-Honk as a second
+    "something that fires while playing" setting):
+    - **Tracking** — CP Ratios + Clipboard format: how merits are estimated
+      and exported.
+    - **Alerts** — Auto-Honk + Interdiction Warning: things that fire in
+      response to game events.
+    - **Updates** — unchanged.
     """
     global _ratio_vars, _auto_update_var
 
@@ -402,16 +464,15 @@ def create_prefs(parent: nb.Notebook) -> nb.Frame:
     tabs = nb.Notebook(outer)
     tabs.grid(row=1, column=0, sticky=tk.NSEW, padx=10, pady=(0, 10))
 
-    autohonk_tab = nb.Frame(tabs)
-    autohonk_tab.columnconfigure(0, weight=1)
-    tabs.add(autohonk_tab, text="Auto-Honk")
-    _create_autohonk_section(autohonk_tab)
-
-    ratios_tab = nb.Frame(tabs)
-    ratios_tab.columnconfigure(0, weight=1)
-    tabs.add(ratios_tab, text="CP Ratios")
-    _create_ratios_section(ratios_tab)
-
+    _create_grouped_tab(
+        tabs, "Tracking",
+        [("CP Ratios", _create_ratios_section), ("Clipboard", _create_clipboard_section)],
+    )
+    _create_grouped_tab(
+        tabs, "Alerts",
+        [("Auto-Honk", _create_autohonk_section), ("Interdiction Warning", _create_interdiction_section)],
+    )
+    # Single-section tab — no group title needed above just one thing.
     updates_tab = nb.Frame(tabs)
     updates_tab.columnconfigure(0, weight=1)
     tabs.add(updates_tab, text="Updates")
@@ -465,6 +526,39 @@ def _create_ratios_section(frame: nb.Frame) -> None:
             row=row, column=1, sticky=tk.W, padx=(0, 10), pady=2,
         )
         row += 1
+
+
+def _create_clipboard_section(frame: nb.Frame) -> None:
+    """Format string for the Sessions window's "Copy Progress" button."""
+    global _clipboard_format_var
+
+    nb.Label(
+        frame,
+        text="Format for each system's line when \"Copy Progress\" (Sessions window) copies to the clipboard.",
+        wraplength=440,
+        justify=tk.LEFT,
+    ).grid(row=0, column=0, columnspan=2, sticky=tk.W, padx=10, pady=(10, 6))
+
+    nb.Label(
+        frame,
+        text="Placeholders: " + "  ".join(CLIPBOARD_PLACEHOLDERS),
+        wraplength=440,
+        justify=tk.LEFT,
+        foreground=_INFO_COLOR,
+    ).grid(row=1, column=0, columnspan=2, sticky=tk.W, padx=10, pady=(0, 8))
+
+    _clipboard_format_var = tk.StringVar(value=clipboard_template())
+    nb.EntryMenu(frame, textvariable=_clipboard_format_var, width=60).grid(
+        row=2, column=0, sticky=tk.W, padx=10, pady=2,
+    )
+
+    def _reset_default() -> None:
+        if _clipboard_format_var is not None:
+            _clipboard_format_var.set(DEFAULT_CLIPBOARD_TEMPLATE)
+
+    tk.Button(frame, text="Reset to default", command=_reset_default).grid(
+        row=2, column=1, sticky=tk.W, padx=(6, 10), pady=2,
+    )
 
 
 def _create_updates_section(frame: nb.Frame) -> None:
@@ -677,6 +771,116 @@ def _test_autohonk() -> None:
     threading.Thread(target=worker, name="EDPPMT-autohonk-test", daemon=True).start()
 
 
+def _create_interdiction_section(frame: nb.Frame) -> None:
+    """Interdiction Warning: draws a warning on the in-game overlay when an
+    interdiction starts, via the separate EDMCOverlay helper app."""
+    global _interdiction_enabled_var, _overlay_host_var, _overlay_port_var
+    global _interdiction_result_label, _interdiction_dependent_widgets
+
+    interdiction_cfg = interdiction.load_config()
+    overlay_cfg = overlay.load_config()
+
+    nb.Label(
+        frame,
+        text=(
+            "Shows a warning on your in-game overlay the moment an interdiction starts — before it "
+            "resolves — via EDMCOverlay, a separate, optional helper app EDPPMT does not install or "
+            "launch itself."
+        ),
+        wraplength=440,
+        justify=tk.LEFT,
+    ).grid(row=0, column=0, columnspan=2, sticky=tk.W, padx=10, pady=(10, 4))
+
+    HyperlinkLabel(
+        frame, text="Get EDMCOverlay", background=nb.Label().cget("background"),
+        url="https://github.com/inorton/EDMCOverlay", underline=True,
+    ).grid(row=1, column=0, columnspan=2, sticky=tk.W, padx=10, pady=(0, 8))
+
+    _interdiction_enabled_var = tk.BooleanVar(value=interdiction_cfg.enabled)
+    nb.Checkbutton(
+        frame, text="Enable Interdiction Warning", variable=_interdiction_enabled_var,
+        command=_update_interdiction_dependent_state,
+    ).grid(row=2, column=0, columnspan=2, sticky=tk.W, padx=10, pady=2)
+
+    sub = nb.Frame(frame)
+    sub.grid(row=3, column=0, columnspan=2, sticky=tk.W, padx=(28, 10))
+
+    host_row = tk.Frame(sub)
+    host_row.grid(row=0, column=0, sticky=tk.W, pady=2)
+    nb.Label(host_row, text="EDMCOverlay host:").pack(side=tk.LEFT)
+    _overlay_host_var = tk.StringVar(value=overlay_cfg.host)
+    host_entry = nb.EntryMenu(host_row, textvariable=_overlay_host_var, width=12)
+    host_entry.pack(side=tk.LEFT, padx=(4, 0))
+    nb.Label(host_row, text="   Port:").pack(side=tk.LEFT)
+    _overlay_port_var = tk.StringVar(value=overlay_cfg.port)
+    port_entry = nb.EntryMenu(host_row, textvariable=_overlay_port_var, width=6)
+    port_entry.pack(side=tk.LEFT, padx=(4, 0))
+
+    _interdiction_dependent_widgets = [host_entry, port_entry]
+
+    action_row = tk.Frame(frame)
+    action_row.grid(row=4, column=0, columnspan=2, sticky=tk.W, padx=10, pady=(6, 2))
+    tk.Button(action_row, text="Test Warning", command=_test_interdiction).pack(side=tk.LEFT)
+    _interdiction_result_label = nb.Label(action_row, text="", wraplength=320, justify=tk.LEFT)
+    _interdiction_result_label.pack(side=tk.LEFT, padx=(10, 0))
+
+    nb.Label(
+        frame,
+        text="(Test Warning works even while disabled above, and reports whether EDMCOverlay was actually reachable.)",
+        wraplength=440,
+        justify=tk.LEFT,
+    ).grid(row=5, column=0, columnspan=2, sticky=tk.W, padx=10, pady=(0, 10))
+
+    _update_interdiction_dependent_state()
+
+
+def _update_interdiction_dependent_state() -> None:
+    if _interdiction_enabled_var is None:
+        return
+    state = tk.NORMAL if _interdiction_enabled_var.get() else tk.DISABLED
+    for widget in _interdiction_dependent_widgets:
+        try:
+            widget["state"] = state
+        except tk.TclError:
+            pass
+
+
+def _test_interdiction() -> None:
+    """Simulates a full interdiction lifecycle through the real detection
+    pipeline (see interdiction.InterdictionTracker.trigger_test), rendering
+    against whatever host/port is currently in the dialog (even if not yet
+    saved) so the actual overlay send can be checked — unlike the live path,
+    a failure here is reported, not silently swallowed."""
+    if _interdiction_result_label is None:
+        return
+
+    cfg = overlay.OverlayConfig(
+        host=_overlay_host_var.get() if _overlay_host_var is not None else overlay.DEFAULT_HOST,
+        port=_overlay_port_var.get() if _overlay_port_var is not None else overlay.DEFAULT_PORT,
+    )
+    client = overlay.OverlayClient(cfg)
+    frame = _interdiction_result_label
+
+    def worker() -> None:
+        try:
+            interdiction.render(
+                interdiction.InterdictionSnapshot(
+                    active=True, interdictor_name="CMDR Test Hostile", is_player=True, is_thargoid=False,
+                ),
+                client,
+            )
+            outcome, color = "Sent — check your overlay.", "#2e7d32"
+        except OSError as err:
+            outcome, color = f"Could not reach EDMCOverlay at {cfg.host}:{cfg.port} ({err}).", "#c07000"
+
+        try:
+            frame.after(0, lambda: (frame.configure(text=outcome, foreground=color)))
+        except tk.TclError:
+            pass  # Settings dialog was closed before the test finished.
+
+    threading.Thread(target=worker, name="EDPPMT-interdiction-test", daemon=True).start()
+
+
 def save_prefs() -> None:
     """Persist ratio and update-preference settings from the prefs tab."""
     for activity, var in _ratio_vars.items():
@@ -692,7 +896,25 @@ def save_prefs() -> None:
     if _auto_update_var is not None:
         config.set(CONFIG_AUTO_UPDATE, _auto_update_var.get())
 
+    if _clipboard_format_var is not None:
+        text = _clipboard_format_var.get()
+        config.set(CONFIG_CLIPBOARD_FORMAT, text if text.strip() else DEFAULT_CLIPBOARD_TEMPLATE)
+
     _save_autohonk_prefs()
+    _save_interdiction_prefs()
+
+
+def _save_interdiction_prefs() -> None:
+    if _interdiction_enabled_var is None:
+        return
+
+    interdiction.save_config(interdiction.InterdictionConfig(enabled=bool(_interdiction_enabled_var.get())))
+    overlay.save_config(
+        overlay.OverlayConfig(
+            host=(_overlay_host_var.get().strip() if _overlay_host_var is not None else "") or overlay.DEFAULT_HOST,
+            port=(_overlay_port_var.get().strip() if _overlay_port_var is not None else "") or overlay.DEFAULT_PORT,
+        )
+    )
 
 
 def _save_autohonk_prefs() -> None:

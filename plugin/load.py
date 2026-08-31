@@ -11,7 +11,8 @@ from __future__ import annotations
 
 import logging
 import os
-from typing import Any, Dict, Optional
+import threading
+from typing import Any, Dict, Optional, Tuple
 
 import tkinter as tk
 
@@ -20,11 +21,14 @@ from monitor import monitor
 
 from . import __version__
 from . import autohonk
+from . import interdiction
+from . import overlay
 from .formulas import ACTIVITY_LABELS
 from .powerplay import PLEDGE_UNKNOWN, PowerplayTracker, find_last_pledge_event
 from .session import SessionManager
 from .store import SessionStore
 from .update import UpdateManager, check_applied_update
+from . import rares_window
 from . import ui
 from . import window
 
@@ -49,6 +53,15 @@ _sessions: Optional[SessionManager] = None
 _ui_frame: Optional[tk.Frame] = None
 _updater: Optional[UpdateManager] = None
 _autohonk: Optional[autohonk.AutoHonkController] = None
+_interdiction: Optional[interdiction.InterdictionTracker] = None
+_overlay: overlay.OverlayClient = overlay.OverlayClient()
+
+# Journal events forwarded to _interdiction.handle_event unconditionally
+# (cheap to run regardless of whether the feature is enabled - only
+# _on_interdiction_change's actual draw is gated on Settings). ReceiveText
+# is already flowing through _dispatch for every event; Interdicted/
+# EscapeInterdiction are new.
+_INTERDICTION_EVENTS = ("ReceiveText", "Interdicted", "EscapeInterdiction")
 
 # EDMC's own live-tracked current-system name, refreshed on every journal
 # event regardless of whether it carries PowerPlay context - unlike
@@ -57,6 +70,19 @@ _autohonk: Optional[autohonk.AutoHonkController] = None
 # Sessions window use to show "what am I earning here" and to file merits
 # under the right system as they're earned. See ui.refresh/window.refresh.
 _current_system: Optional[str] = None
+
+# The current system's galactic coordinates, straight off the journal's
+# StarPos field (present on both FSDJump and Location, unlike PowerPlay
+# context which only appears when the system is PowerPlay-relevant) - used
+# purely for the Rares window's nearest-rare-goods distance calc, nothing
+# PowerPlay-related reads this.
+_current_system_coords: Optional[Tuple[float, float, float]] = None
+
+# Events that carry StarPos for wherever the commander currently is - Docked
+# doesn't repeat it, so it's deliberately not in this list (see the "Location"
+# comment on _SYSTEM_CONTEXT_EVENTS below for why a stale value is fine to
+# just leave in place rather than clear).
+_STARPOS_EVENTS = ("FSDJump", "Location")
 
 # Journal events that carry PowerplayState/Powers for the current system when
 # it's powerplay-relevant. "Location" is handled separately below (it also
@@ -69,10 +95,11 @@ _DELIVERY_EVENTS = ("SearchAndRescue", "DeliverPowerMicroResources")
 
 def plugin_start3(plugin_dir: str) -> str:
     """Load EDPPMT into EDMarketConnector."""
-    global _sessions, _updater, _autohonk
+    global _sessions, _updater, _autohonk, _interdiction
     logger.info("EDPPMT v%s starting from %s", __version__, plugin_dir)
     _sessions = SessionManager(SessionStore(plugin_dir))
     _autohonk = autohonk.AutoHonkController()
+    _interdiction = interdiction.InterdictionTracker(on_change=_on_interdiction_change)
 
     applied_version = check_applied_update()
     if applied_version is not None:
@@ -103,13 +130,14 @@ def plugin_stop() -> None:
     if _sessions is not None:
         _sessions.flush()
     window.close()
+    rares_window.close()
     logger.info("EDPPMT shutting down")
 
 
 def plugin_app(parent: tk.Frame) -> tk.Frame:
     """Create EDPPMT widgets on the EDMC main window."""
     global _ui_frame
-    _ui_frame = ui.create_plugin_app(parent, _show_sessions)
+    _ui_frame = ui.create_plugin_app(parent, _show_sessions, _show_rares)
     if _sessions is not None:
         # Show whatever session state was persisted from last run right
         # away, rather than leaving the panel on its placeholder text until
@@ -121,6 +149,45 @@ def plugin_app(parent: tk.Frame) -> tk.Frame:
 def _show_sessions() -> None:
     if _ui_frame is not None and _sessions is not None:
         window.show(_ui_frame, _sessions, _pp, _current_system)
+
+
+def _show_rares() -> None:
+    if _ui_frame is not None:
+        rares_window.show(_ui_frame, _current_system, _current_system_coords)
+
+
+def dashboard_entry(cmdr: str, is_beta: bool, entry: Dict[str, Any]) -> None:
+    """EDMC calls this on every Status.json change (roughly once a second in
+    flight) — entry is the parsed file directly. The only thing EDPPMT reads
+    from it is the Flags bitmask, for the "Being Interdicted" bit (the
+    earliest interdiction signal, before any resolving journal event — see
+    interdiction.py)."""
+    if _interdiction is None:
+        return
+    flags = entry.get("Flags")
+    if isinstance(flags, int):
+        _interdiction.handle_dashboard_flags(flags)
+
+
+def _on_interdiction_change(snapshot: interdiction.InterdictionSnapshot) -> None:
+    """Called synchronously from dashboard_entry (flag flip) or from
+    _dispatch/journal_entry (resolving event) — both are EDMC's own calling
+    thread, so the actual overlay send (up to 3 sequential socket connects,
+    each with its own timeout if EDMCOverlay isn't reachable) is pushed onto
+    a background thread rather than risking EDMC's callback stalling on it."""
+    if not interdiction.load_config().enabled:
+        return
+
+    def worker() -> None:
+        try:
+            interdiction.render(snapshot, _overlay)
+        except OSError:
+            # EDMCOverlay isn't running/reachable — expected and silent on
+            # the live path (unlike the Settings "Test Warning" button,
+            # which wraps its own call and surfaces this instead).
+            logger.debug("Could not reach EDMCOverlay for interdiction warning", exc_info=True)
+
+    threading.Thread(target=worker, name="EDPPMT-interdiction-render", daemon=True).start()
 
 
 def plugin_prefs(parent, cmdr: str, is_beta: bool):
@@ -164,6 +231,7 @@ def journal_entry(
     finally:
         ui.refresh(_sessions, _pp, _current_system)
         window.refresh(_current_system)
+        rares_window.refresh(_current_system, _current_system_coords)
 
 
 _PLEDGE_EVENT_APPLIERS = {
@@ -195,10 +263,22 @@ def _recover_pledge_state() -> None:
 
 def _dispatch(cmdr: str, system: str, entry: Dict[str, Any]) -> Optional[str]:
     assert _sessions is not None
+    global _current_system_coords
     event = entry.get("event", "")
+
+    if event in _STARPOS_EVENTS:
+        star_pos = entry.get("StarPos")
+        if isinstance(star_pos, list) and len(star_pos) == 3:
+            try:
+                _current_system_coords = (float(star_pos[0]), float(star_pos[1]), float(star_pos[2]))
+            except (TypeError, ValueError):
+                pass
 
     if _autohonk is not None:
         _autohonk.handle_event(entry, system)
+
+    if _interdiction is not None and event in _INTERDICTION_EVENTS:
+        _interdiction.handle_event(entry)
 
     if event == "LoadGame":
         credits_start = entry.get("Credits")

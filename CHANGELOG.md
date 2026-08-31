@@ -5,6 +5,47 @@ All notable changes to EDPPMT are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- **Manual reset controls.** The Sessions window gains **Reset Session**
+  (zeroes this session's merit totals — by system and by activity — without
+  ending the session or touching credit tracking) and **Reset Current
+  System** (zeroes just the current system's contribution, subtracted back
+  out of the session totals too) buttons, both confirmed before running.
+  Mainly useful for correcting a bad count, such as the well-known
+  donation-mission duplicate-merit journal bug.
+- **Copy Progress to clipboard.** A new button in the Sessions window copies
+  one formatted line per system in the By System table to the clipboard,
+  using a user-editable template (Settings → Clipboard) with placeholders
+  for the system name, an Inara link, merits, estimated CP, and PowerPlay
+  state.
+- **Rare Goods Finder.** A new "Rares" button on the main panel opens a
+  window listing the nearest rare commodities to your current system —
+  origin system/station, pad size, cost, PowerPlay eligibility, and a
+  general legality note — sorted by distance, with double-click opening the
+  system on Inara. The bundled 141-entry dataset (ported from the author's
+  sibling project ED-Rare-Router, coordinates resolved once via EDSM) ships
+  with the plugin, so this never makes a network call at runtime.
+- **Interdiction Warning.** Draws a warning on your in-game overlay the
+  instant an interdiction starts (before it resolves), then updates it with
+  who's interdicting — including their affiliated Power, when there is one —
+  and the outcome (escaped / pulled from supercruise / submitted). Off by
+  default; draws through [EDMCOverlay](https://github.com/inorton/EDMCOverlay),
+  a separate, optional community tool EDPPMT does not install or launch
+  itself. New Settings → Alerts → Interdiction Warning section with a "Test
+  Warning" button. Ported from the author's sibling project EDDDT.
+
+### Changed
+
+- **Settings tab reorganized.** The four flat sub-tabs (Auto-Honk / CP
+  Ratios / Clipboard / Updates) are now three, grouped by purpose:
+  **Tracking** (CP Ratios + Clipboard), **Alerts** (Auto-Honk + Interdiction
+  Warning), and **Updates**.
+
+Inspired by a review of [alby666/EDMC-PowerPlayProgress](https://github.com/alby666/EDMC-PowerPlayProgress) — see `docs/ATTRIBUTIONS.md`.
+
 ## [1.9.0] - 2026-08-25
 
 ### Added
