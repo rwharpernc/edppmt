@@ -1,8 +1,8 @@
 # EDPPMT Technical Specification
 
-**Version:** 1.10.0
+**Version:** 1.10.1
 **Author:** R.W. Harper (CMDR Bocheaux)
-**Last updated:** 2026-08-31
+**Last updated:** 2026-09-01
 
 ## 1. Overview
 
@@ -55,7 +55,7 @@ edppmt/
 | `plugin_start3(plugin_dir: str) -> str` | `load.py` | Initialisation; creates the `SessionManager`, starts the background update check (`UpdateManager.check_async`, see §11), returns `"EDPPMT"`. |
 | `plugin_stop() -> None` | `load.py` | Shutdown hook; flushes session state to disk, closes the Sessions window. |
 | `plugin_app(parent: tk.Frame) -> tk.Frame` | `load.py` | Creates the main-window summary strip. |
-| `plugin_prefs(parent, cmdr, is_beta) -> nb.Frame` | `load.py` | Creates the Settings tab: a static version link, then an `nb.Notebook` with three sub-tabs grouped by purpose — **Tracking** (CP Ratios + Clipboard), **Alerts** (Auto-Honk + Interdiction Warning), **Updates** (`ui.create_prefs`, `ui._create_grouped_tab`). |
+| `plugin_prefs(parent, cmdr, is_beta) -> nb.Frame` | `load.py` | Creates the Settings tab: a static version link, then a bordered `nb.Notebook` with four sub-tabs, one per feature — **Tracking** (CP Ratios + Clipboard, grouped), **Auto-Honk**, **Interdiction Warning**, **Updates** (`ui.create_prefs`, `ui._create_grouped_tab`, `ui._create_single_tab`). |
 | `prefs_changed(cmdr, is_beta) -> None` | `load.py` | Persists ratio, clipboard, Auto-Honk, Interdiction Warning/overlay, and auto-update settings; reloads the live `AutoHonkController`'s config; flushes session state. |
 | `dashboard_entry(cmdr, is_beta, entry) -> None` | `load.py` | Called on every `Status.json` change (~1/sec in flight); forwards `entry["Flags"]` to `InterdictionTracker.handle_dashboard_flags` — see §13. |
 | `journal_entry(...) -> Optional[str]` | `load.py` | Processes journal events (see §4). |

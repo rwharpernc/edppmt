@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.10.1] - 2026-09-01
+
+### Changed
+
+- **Settings tab restructured.** Auto-Honk and Interdiction Warning each get
+  their own top-level tab instead of being grouped under a generic "Alerts"
+  tab (Auto-Honk isn't itself a warning). The Settings notebook also gets a
+  visible border around the tab strip, since the default styling rendered
+  it almost flush with the page background.
+
 ## [1.10.0] - 2026-08-31
 
 ### Added

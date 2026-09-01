@@ -445,16 +445,40 @@ def _create_grouped_tab(
         build_section(section)
 
 
+_SETTINGS_NOTEBOOK_STYLE = "EDPPMT.TNotebook"
+
+
+def _style_settings_notebook() -> None:
+    """The active ttk theme's default Notebook styling renders tabs with
+    little to no visible border against the page background, so the tab
+    strip doesn't read as a set of clickable tabs. Scoped to our own style
+    name (rather than the bare "TNotebook"/"TNotebook.Tab" ttk uses
+    everywhere else) so this doesn't bleed into EDMC's own outer
+    plugin-tabs notebook or any other plugin's notebook."""
+    style = ttk.Style()
+    style.configure(f"{_SETTINGS_NOTEBOOK_STYLE}.Tab", padding=(10, 4), borderwidth=1, relief=tk.RAISED)
+    style.map(f"{_SETTINGS_NOTEBOOK_STYLE}.Tab", relief=[("selected", tk.SUNKEN)])
+
+
+def _create_single_tab(notebook: nb.Notebook, tab_text: str, build_section: Callable[[nb.Frame], None]) -> None:
+    """One Settings sub-tab holding exactly one section — no group title
+    needed above it since the tab's own label already says what it is."""
+    tab = nb.Frame(notebook)
+    tab.columnconfigure(0, weight=1)
+    notebook.add(tab, text=tab_text)
+    build_section(tab)
+
+
 def create_prefs(parent: nb.Notebook) -> nb.Frame:
     """Create the EDPPMT tab in EDMC's settings window.
 
-    Three sub-tabs grouped by purpose rather than one-section-per-tab (which
-    stopped scaling once Interdiction Warning joined Auto-Honk as a second
-    "something that fires while playing" setting):
+    One tab per feature rather than grouping unrelated ones under a
+    generic "Alerts" tab (Auto-Honk isn't itself a warning/alert, it's an
+    automation, so it gets top billing of its own):
     - **Tracking** — CP Ratios + Clipboard format: how merits are estimated
       and exported.
-    - **Alerts** — Auto-Honk + Interdiction Warning: things that fire in
-      response to game events.
+    - **Auto-Honk** — fires the Discovery Scanner on system entry.
+    - **Interdiction Warning** — overlay warning when interdicted.
     - **Updates** — unchanged.
     """
     global _ratio_vars, _auto_update_var
@@ -470,22 +494,27 @@ def create_prefs(parent: nb.Notebook) -> nb.Frame:
         outer, text=f"EDPPMT v{__version__}", background=nb.Label().cget("background"), url=RELEASES_PAGE_URL, underline=True,
     ).grid(row=0, column=0, sticky=tk.W, padx=10, pady=(10, 6))
 
-    tabs = nb.Notebook(outer)
-    tabs.grid(row=1, column=0, sticky=tk.NSEW, padx=10, pady=(0, 10))
+    # A visibly-bordered frame around the notebook — without it, the tab
+    # strip sits flush against the page background and doesn't read as
+    # tabs at all (see _style_settings_notebook for the tab-level styling,
+    # which some ttk themes ignore; this border is the part every
+    # platform/theme actually renders).
+    notebook_border = tk.Frame(outer, relief=tk.GROOVE, borderwidth=2)
+    notebook_border.grid(row=1, column=0, sticky=tk.NSEW, padx=10, pady=(0, 10))
+    notebook_border.columnconfigure(0, weight=1)
+    notebook_border.rowconfigure(0, weight=1)
+
+    _style_settings_notebook()
+    tabs = nb.Notebook(notebook_border, style=_SETTINGS_NOTEBOOK_STYLE)
+    tabs.grid(row=0, column=0, sticky=tk.NSEW, padx=4, pady=4)
 
     _create_grouped_tab(
         tabs, "Tracking",
         [("CP Ratios", _create_ratios_section), ("Clipboard", _create_clipboard_section)],
     )
-    _create_grouped_tab(
-        tabs, "Alerts",
-        [("Auto-Honk", _create_autohonk_section), ("Interdiction Warning", _create_interdiction_section)],
-    )
-    # Single-section tab — no group title needed above just one thing.
-    updates_tab = nb.Frame(tabs)
-    updates_tab.columnconfigure(0, weight=1)
-    tabs.add(updates_tab, text="Updates")
-    _create_updates_section(updates_tab)
+    _create_single_tab(tabs, "Auto-Honk", _create_autohonk_section)
+    _create_single_tab(tabs, "Interdiction Warning", _create_interdiction_section)
+    _create_single_tab(tabs, "Updates", _create_updates_section)
 
     _apply_version_state()
     return outer
