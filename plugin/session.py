@@ -59,6 +59,11 @@ def new_session(
         # EDMC restart mid-game (same file, no replay) as a continuation of
         # this session rather than a new one. See SessionManager.sync_session.
         "journal_file": journal_file,
+        # "timestamp" of the last PowerplayMerits event actually recorded
+        # into this session — the high-water mark load._rescan_journal uses
+        # to tell an already-counted merit gain apart from one that fell into
+        # an EDMC-restart gap (see there). None until the first merit gain.
+        "last_merit_ts": None,
     }
 
 
@@ -78,10 +83,18 @@ def _system_bucket(session: Dict[str, Any], system: str) -> Dict[str, Any]:
     return bucket
 
 
-def add_merits(session: Dict[str, Any], activity: str, merits: int, system: Optional[str] = None) -> None:
+def add_merits(
+    session: Dict[str, Any],
+    activity: str,
+    merits: int,
+    system: Optional[str] = None,
+    event_ts: Optional[str] = None,
+) -> None:
     session["totals"][activity] = session["totals"].get(activity, 0) + merits
     session["events"][activity] = session["events"].get(activity, 0) + 1
     session["updated_at"] = _now_iso()
+    if event_ts:
+        session["last_merit_ts"] = event_ts
 
     if system:
         bucket = _system_bucket(session, system)
@@ -156,6 +169,16 @@ class SessionManager:
         self.current: Dict[str, Any] = (
             current if current is not None else new_session(cmdr="", power=None, credits_start=None)
         )
+        if self.current.get("last_merit_ts") is None and total_merits(self.current) > 0:
+            # Loaded a session that already has recorded merits but predates
+            # last_merit_ts (upgraded from an older EDPPMT version mid-session,
+            # or the field was never set for some other reason). There's no
+            # way to know in hindsight how much of the journal file's merit
+            # history those totals already reflect, so treat "now" as the
+            # earliest point a rescan can safely recover from, rather than
+            # risk re-counting everything already tallied under the old
+            # version. See load._rescan_journal.
+            self.current["last_merit_ts"] = _now_iso()
 
     @property
     def history(self) -> List[Dict[str, Any]]:
@@ -219,8 +242,10 @@ class SessionManager:
         self.start_session(cmdr, power, credits_start, journal_file)
         return False
 
-    def record_merits(self, activity: str, merits: int, system: Optional[str] = None) -> None:
-        add_merits(self.current, activity, merits, system)
+    def record_merits(
+        self, activity: str, merits: int, system: Optional[str] = None, event_ts: Optional[str] = None
+    ) -> None:
+        add_merits(self.current, activity, merits, system, event_ts)
         self._persist()
 
     def record_credits(self, credits_now: Optional[int]) -> None:

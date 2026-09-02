@@ -1,8 +1,8 @@
 # EDPPMT Technical Specification
 
-**Version:** 1.10.1
+**Version:** 1.11.0
 **Author:** R.W. Harper (CMDR Bocheaux)
-**Last updated:** 2026-09-01
+**Last updated:** 2026-09-02
 
 ## 1. Overview
 
@@ -152,10 +152,13 @@ Persisted next to the installed plugin by `store.SessionStore`, capped at the 20
     "credits_now": 1010000,
     "totals": { "acquisition": 80, "reinforcement": 40, "undermining": 80, "unknown": 0 },
     "events": { "acquisition": 1, "reinforcement": 1, "undermining": 2, "unknown": 0 },
-    "journal_file": "C:\\...\\Journal.2026-08-20T184433.01.log"
+    "journal_file": "C:\\...\\Journal.2026-08-20T184433.01.log",
+    "last_merit_ts": "2026-08-20T19:12:01Z"
   }
 }
 ```
+
+`last_merit_ts` is the journal `"timestamp"` of the last `PowerplayMerits` event actually recorded into `totals` — see "Recovering a missed gap" below.
 
 `SessionStore.load()` accepts the legacy pre-1.2.0 flat-array format too (the whole array is treated as `history`, with no `current` to resume — there's no way to tell in hindsight which entry was still live at last save).
 
@@ -169,6 +172,16 @@ A session is tied to the journal file it started on (`journal_file`, from `monit
 Because EDMC does not replay old journal lines to plugins (§5), resuming an existing `current` across an EDMC restart is possible precisely *because* `SessionStore` now persists `current` and `history` as separate fields — the totals already on disk are the totals, not something to be rebuilt from a replay.
 
 `SessionStore.save()` always writes `history` and `current` together, so the file on disk reflects the live session too — a plugin/EDMC crash loses at most whatever wasn't yet flushed (see §8).
+
+### Recovering a missed gap (`load._rescan_journal`, the main panel's "Rescan" button)
+
+Resuming `current` across an EDMC restart (above) only carries forward the totals already recorded — it does nothing for merits earned *during* the restart itself. EDMC does not replay journal backlog to plugins when it (re)attaches to an already-running game (§5): only genuinely new events reach `journal_entry` from the `StartUp` event onward. Anything the old EDMC process didn't get to see live before it died — a PowerPlay merit gain in particular — never arrives any other way and is lost from the session total unless recovered directly from the journal file.
+
+The "Rescan" button (next to "Sessions" on the main panel) does that: `load._rescan_journal()` re-reads `monitor.logfile` from the start (only if it matches `current["journal_file"]` — otherwise there's no session to recover into) and replays every line through the same tracker methods `_dispatch` uses live — `_PLEDGE_EVENT_APPLIERS`, `PowerplayTracker.apply_rank`/`apply_system_context`/`apply_delivery_signal` — to keep pledge/system-context/delivery state accurate for whatever turns out to be new. These are all safe to replay unconditionally: they just overwrite tracker state rather than accumulating, so re-applying an already-seen one changes nothing.
+
+`PowerplayMerits` events are different — `SessionManager.record_merits` accumulates, so replaying an already-counted gain would double it. Each one is only actually recorded if its `"timestamp"` is newer than `current["last_merit_ts"]`, the timestamp of the last merit gain already recorded this session (updated by both the live path, `load._handle_merits`, and the rescan itself) — the same high-water-mark approach used elsewhere in this codebase in preference to more fragile bookkeeping (deliberately *not* `TotalMerits`-based dedup, since `apply_merits` prefers the event's own `MeritsGained` field, which carries no positional information to tell an already-applied event apart from a new one). A genuinely new merit event sharing the exact same whole-second-precision timestamp as the last recorded one is the one edge case this can still miss — under-counting is the safer failure mode to risk here than a double count.
+
+`SessionManager.__init__` seeds `last_merit_ts` to the current wall-clock time if it's missing on load *and* the session already has recorded totals — a session upgraded from a version that predates this field has no reliable way to know how much of the journal file its existing totals already reflect, so Rescan treats "now" as the earliest safe recovery point rather than risk re-importing the whole file's merit history on the first click after an upgrade.
 
 ## 8. Persistence Timing
 

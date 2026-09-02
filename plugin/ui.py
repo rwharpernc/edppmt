@@ -187,7 +187,10 @@ def _separator(parent: tk.Frame) -> tk.Label:
 
 
 def create_plugin_app(
-    parent: tk.Frame, on_show_details: Callable[[], None], on_show_rares: Callable[[], None],
+    parent: tk.Frame,
+    on_show_details: Callable[[], None],
+    on_show_rares: Callable[[], None],
+    on_rescan: Callable[[], None],
 ) -> tk.Frame:
     """Create the main-window frame for EDMC."""
     global _frame, _status_label, _mode_label, _system_label, _here_merits_label, _here_cp_label
@@ -272,7 +275,9 @@ def create_plugin_app(
     rares_button = tk.Button(buttons_row, text="Rares", command=on_show_rares)
     rares_button.pack(side=tk.LEFT, padx=(0, 6))
     details_button = tk.Button(buttons_row, text="Sessions", command=on_show_details)
-    details_button.pack(side=tk.LEFT)
+    details_button.pack(side=tk.LEFT, padx=(0, 6))
+    rescan_button = tk.Button(buttons_row, text="Rescan", command=on_rescan)
+    rescan_button.pack(side=tk.LEFT)
 
     # Everything but the title/status/mode/version rows — those stay visible
     # while collapsed (status and mode answer "am I pledged" and "which

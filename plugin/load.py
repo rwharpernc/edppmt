@@ -138,7 +138,7 @@ def plugin_stop() -> None:
 def plugin_app(parent: tk.Frame) -> tk.Frame:
     """Create EDPPMT widgets on the EDMC main window."""
     global _ui_frame
-    _ui_frame = ui.create_plugin_app(parent, _show_sessions, _show_rares)
+    _ui_frame = ui.create_plugin_app(parent, _show_sessions, _show_rares, _rescan_journal)
     if _sessions is not None:
         # Show whatever session state was persisted from last run right
         # away, rather than leaving the panel on its placeholder text until
@@ -155,6 +155,90 @@ def _show_sessions() -> None:
 def _show_rares() -> None:
     if _ui_frame is not None:
         rares_window.show(_ui_frame, _current_system, _current_system_coords)
+
+
+def _rescan_journal() -> None:
+    """"Rescan" button handler: re-reads the current journal file from the
+    start and replays its PowerPlay-relevant events, to recover merits
+    earned in the gap between an EDMC restart (while the game keeps running)
+    and the synthesized "StartUp" event that follows it. EDMC does not
+    replay journal backlog to plugins on its own restart (see
+    docs/tech-spec.md §5/§7) — only genuinely new events reach
+    journal_entry() from then on — so anything earned while the old EDMC
+    process wasn't running to see it live never arrives here any other way.
+
+    Pledge/system-context/delivery events are replayed unconditionally
+    (they just overwrite tracker state, so replaying an already-seen one is
+    harmless) to keep classification accurate for whatever turns out to be
+    new. PowerplayMerits events are only actually recorded if their
+    "timestamp" is newer than the last one already recorded this session
+    (current["last_merit_ts"]) — re-adding an already-counted gain would
+    double it, since merit totals (unlike tracker state) accumulate. A
+    genuinely new merit event sharing the exact same (whole-second-precision)
+    timestamp as the last recorded one is the one edge case this can still
+    miss — silently under-counting is the safer failure mode here than
+    risking a double count.
+    """
+    if _sessions is None or _ui_frame is None:
+        return
+    journal_file = monitor.logfile
+    if not journal_file or _sessions.current.get("journal_file") != journal_file:
+        ui.set_last_event("Rescan: no active session for the current journal file")
+        return
+
+    baseline_ts = _sessions.current.get("last_merit_ts")
+    replay_system: Optional[str] = None
+    recovered_events = 0
+    recovered_merits = 0
+
+    try:
+        with open(journal_file, "r", encoding="utf-8") as fh:
+            for line in fh:
+                try:
+                    entry = json.loads(line)
+                except ValueError:
+                    continue
+                event = entry.get("event", "")
+                star_system = entry.get("StarSystem")
+                if star_system:
+                    replay_system = star_system
+
+                applier = _PLEDGE_EVENT_APPLIERS.get(event)
+                if applier is not None:
+                    applier(_pp, entry)
+                elif event == "PowerplayRank":
+                    _pp.apply_rank(entry)
+                elif event == "Location" or event in _SYSTEM_CONTEXT_EVENTS:
+                    _pp.apply_system_context(replay_system, entry)
+                elif event in _DELIVERY_EVENTS:
+                    _pp.apply_delivery_signal(event, entry)
+                elif event == "PowerplayMerits":
+                    gained = _pp.apply_merits(entry)
+                    activity = _pp.classify_current_activity(replay_system)
+                    ts = entry.get("timestamp")
+                    is_new = (
+                        gained is not None
+                        and isinstance(ts, str)
+                        and (baseline_ts is None or ts > baseline_ts)
+                    )
+                    if is_new:
+                        _sessions.record_merits(activity, gained, replay_system, ts)
+                        baseline_ts = ts
+                        recovered_events += 1
+                        recovered_merits += gained
+    except OSError:
+        logger.warning("Could not read %s for rescan", journal_file, exc_info=True)
+        ui.set_last_event("Rescan failed: could not read journal file")
+        return
+
+    _sessions.record_power(_pp.my_power)
+    logger.info("Rescanned journal: recovered %d merits across %d events", recovered_merits, recovered_events)
+    if recovered_events:
+        ui.set_last_event(f"Rescan: recovered {recovered_merits} merits ({recovered_events} events)")
+    else:
+        ui.set_last_event("Rescan: no missed merits found")
+    ui.refresh(_sessions, _pp, _current_system)
+    window.refresh(_current_system)
 
 
 def dashboard_entry(cmdr: str, is_beta: bool, entry: Dict[str, Any]) -> None:
@@ -434,7 +518,8 @@ def _handle_merits(system: str, entry: Dict[str, Any]) -> Optional[str]:
         return None
 
     activity = _pp.classify_current_activity(system)
-    _sessions.record_merits(activity, gained, system)
+    ts = entry.get("timestamp")
+    _sessions.record_merits(activity, gained, system, ts if isinstance(ts, str) else None)
 
     ratio = ui.ratio_for(activity)
     cp = 0.0 if not ratio else gained / ratio

@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.11.0] - 2026-09-02
+
+### Added
+
+- **"Rescan" button on the main panel**, next to "Sessions". EDMC does not
+  replay journal backlog to plugins when it (re)starts with the game already
+  running - only genuinely new events reach the plugin from that point on -
+  so merits earned in the gap between an EDMC restart and the "StartUp"
+  event it synthesizes afterward were previously lost from the session
+  totals for good. Rescan re-reads the current journal file directly and
+  recovers anything missed that way, without double-counting merits already
+  tallied (tracked via the timestamp of the last-recorded merit gain, so
+  clicking it again after it's already caught up is a safe no-op).
+
 ### Fixed
 
 - **Main panel stretching EDMC's main window wider than it needs to be.**
