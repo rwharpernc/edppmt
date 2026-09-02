@@ -65,19 +65,42 @@ _SHORT_ACTIVITY_LABELS: Dict[str, str] = {
 
 # Every main-panel row whose text is built from live, unbounded data (a
 # system/Power name, a merit count, a Power's name in the pledge status,
-# ...) gets this wraplength - a safety net for a pathologically long value,
-# not a target to design around. EDMC's window already grows to fit
-# whatever's widest among every plugin it's running (this one included), so
-# there generally isn't a fixed "default width" narrower than that to hold
-# this plugin's own rows to - a previous, much tighter value (380px, chosen
-# to approximate EDMC's own width with no other plugins at all) wrapped
-# ordinary content under real-world conditions (a longer Power name in the
-# pledge line, for instance) well before anything resembling "full width".
-# Any single line here is still short and bounded by construction (see
-# _here_merits_label/_here_cp_label below for the one row that used to
-# combine two things onto one line instead), so this is generous headroom
-# rather than an expectation that lines will actually get this long.
-_MAIN_PANEL_WRAP = 640
+# ...) gets its wraplength kept in sync with the frame's own current width
+# (see _on_frame_configure) rather than a single fixed guess. A fixed guess
+# can only ever be wrong in one of two directions - too tight (380px, tried
+# first) wrapped ordinary content, like a longer Power name in the pledge
+# line, well before the panel's real available width; too loose (640px,
+# tried next) let those same long lines render unwrapped and stretch the
+# whole EDMC main window wider than it needs to be, since EDMC sizes its
+# window to whatever's widest among every plugin it's running, this one
+# included. Neither number can be "right" across installs anyway - font
+# size/DPI scaling and how many other plugins are stacked above/below this
+# one both change what width is actually available. Starting tight and
+# growing to match the frame's real, already-established width means this
+# plugin's own long lines are never themselves the reason the window grows.
+_MAIN_PANEL_MIN_WRAP = 300
+
+# Every label whose wraplength should track the frame's width - populated
+# as each is created below, consumed by _on_frame_configure.
+_wrap_labels: List[tk.Label] = []
+
+
+def _wrap_label(parent: tk.Frame, **kwargs) -> tk.Label:
+    """A tk.Label that starts at the tight end of _MAIN_PANEL_MIN_WRAP and
+    registers itself to be widened by _on_frame_configure once the frame's
+    real width is known."""
+    label = tk.Label(parent, wraplength=_MAIN_PANEL_MIN_WRAP, justify=tk.LEFT, **kwargs)
+    _wrap_labels.append(label)
+    return label
+
+
+def _on_frame_configure(event: tk.Event) -> None:
+    """Widen every main-panel label's wraplength to match the frame's own
+    current width - never wider, so this plugin can't feed its own growth
+    back into the next layout pass (see _MAIN_PANEL_MIN_WRAP)."""
+    wrap = max(_MAIN_PANEL_MIN_WRAP, event.width)
+    for label in _wrap_labels:
+        label.configure(wraplength=wrap)
 
 _frame: Optional[tk.Frame] = None
 _status_label: Optional[tk.Label] = None
@@ -173,6 +196,7 @@ def create_plugin_app(
 
     _frame = tk.Frame(parent)
     _frame.columnconfigure(1, weight=1)
+    _frame.bind("<Configure>", _on_frame_configure)
 
     _collapsed = config.get_bool(CONFIG_COLLAPSED, default=False)
 
@@ -194,23 +218,19 @@ def create_plugin_app(
     # title - "Pledged to <a long Power name> (Rank N)" competing for space
     # with the title and (briefly) the version label was wrapping well
     # short of the panel's actual available width.
-    _status_label = tk.Label(
-        _frame, text="Awaiting PowerPlay activity…", wraplength=_MAIN_PANEL_WRAP, justify=tk.LEFT,
-    )
+    _status_label = _wrap_label(_frame, text="Awaiting PowerPlay activity…")
     _status_label.grid(row=1, column=0, columnspan=3, sticky=tk.W)
 
     # Same visibility exemption as _status_label - which mode you're in is
     # identity info worth seeing at a glance even collapsed, same reasoning
     # as pledge status.
-    _mode_label = tk.Label(
-        _frame, text="Mode: awaiting login…", wraplength=_MAIN_PANEL_WRAP, justify=tk.LEFT,
-    )
+    _mode_label = _wrap_label(_frame, text="Mode: awaiting login…")
     _mode_label.grid(row=2, column=0, columnspan=3, sticky=tk.W)
 
     separator1 = _separator(_frame)
     separator1.grid(row=3, column=0, columnspan=3, sticky=tk.W, pady=(4, 2))
 
-    _system_label = tk.Label(_frame, text="Awaiting system data…", wraplength=_MAIN_PANEL_WRAP, justify=tk.LEFT)
+    _system_label = _wrap_label(_frame, text="Awaiting system data…")
     _system_label.grid(row=4, column=0, columnspan=3, sticky=tk.W)
 
     # What you're earning in *this* system specifically - the main reason
@@ -223,30 +243,28 @@ def create_plugin_app(
     # then the full three-activity CP breakdown) rather than one long line
     # left to wrap on its own - it always has two distinct things to say,
     # so it says them on two dedicated lines instead of gambling on width.
-    _here_merits_label = tk.Label(_frame, text="Here: awaiting system data…", wraplength=_MAIN_PANEL_WRAP, justify=tk.LEFT)
+    _here_merits_label = _wrap_label(_frame, text="Here: awaiting system data…")
     _here_merits_label.grid(row=5, column=0, columnspan=3, sticky=tk.W)
 
-    _here_cp_label = tk.Label(_frame, text="", wraplength=_MAIN_PANEL_WRAP, justify=tk.LEFT)
+    _here_cp_label = _wrap_label(_frame, text="")
     _here_cp_label.grid(row=6, column=0, columnspan=3, sticky=tk.W)
 
     separator2 = _separator(_frame)
     separator2.grid(row=7, column=0, columnspan=3, sticky=tk.W, pady=(4, 2))
 
-    _merits_label = tk.Label(_frame, text="Session merits: 0", wraplength=_MAIN_PANEL_WRAP, justify=tk.LEFT)
+    _merits_label = _wrap_label(_frame, text="Session merits: 0")
     _merits_label.grid(row=8, column=0, columnspan=3, sticky=tk.W)
 
-    _cp_label = tk.Label(_frame, text="Session CP: —", wraplength=_MAIN_PANEL_WRAP, justify=tk.LEFT)
+    _cp_label = _wrap_label(_frame, text="Session CP: —")
     _cp_label.grid(row=9, column=0, columnspan=3, sticky=tk.W)
 
-    _credits_label = tk.Label(_frame, text="", wraplength=_MAIN_PANEL_WRAP, justify=tk.LEFT)
+    _credits_label = _wrap_label(_frame, text="")
     _credits_label.grid(row=10, column=0, columnspan=3, sticky=tk.W)
 
     separator3 = _separator(_frame)
     separator3.grid(row=11, column=0, columnspan=3, sticky=tk.W, pady=(4, 2))
 
-    _last_event_label = tk.Label(
-        _frame, text="No merit events yet this session.", wraplength=_MAIN_PANEL_WRAP, justify=tk.LEFT,
-    )
+    _last_event_label = _wrap_label(_frame, text="No merit events yet this session.")
     _last_event_label.grid(row=12, column=0, columnspan=3, sticky=tk.W)
 
     buttons_row = tk.Frame(_frame)

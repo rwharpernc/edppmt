@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Main panel stretching EDMC's main window wider than it needs to be.**
+  1.9.0 fixed lines wrapping too early by widening the fixed wrap guess
+  from 380px to 640px, but a single guessed pixel width can't actually
+  match "the panel's real available width" - that varies with font
+  size/DPI scaling and how many other plugins are stacked in the same
+  window, so 640px just moved the same bug (a guess that's wrong for some
+  installs) in the other direction. Main-panel labels now track the
+  frame's own current width instead of guessing at a fixed number, so this
+  plugin's long lines can no longer be what forces the window wider in the
+  first place.
+
 ## [1.10.1] - 2026-09-01
 
 ### Changed
