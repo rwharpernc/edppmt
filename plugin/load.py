@@ -135,6 +135,7 @@ def plugin_stop() -> None:
         _sessions.flush()
     window.close()
     rares_window.close()
+    _overlay.close()
     logger.info("EDPPMT shutting down")
 
 
@@ -187,7 +188,7 @@ def _toggle_interdiction() -> bool:
 
 
 def _toggle_landing() -> bool:
-    """Main-panel Landing Pad button - same reasoning as _toggle_interdiction."""
+    """Main-panel Landing button - same reasoning as _toggle_interdiction."""
     cfg = landing.load_config()
     cfg.enabled = not cfg.enabled
     landing.save_config(cfg)

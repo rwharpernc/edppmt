@@ -9,6 +9,21 @@ client): connect, send one JSON object + "\n", e.g.
 `{"id": "x", "text": "hi", "color": "red", "x": 200, "y": 100, "ttl": 4}`.
 No response is read back — sends are fire-and-forget.
 
+IMPORTANT — the connection must stay open for as long as its graphics
+should stay visible. Confirmed against EDMCOverlay's own server source
+(`OverlayJsonServer.ServerThread`): each TCP connection gets a `clientId`,
+and every graphic sent over it is tagged with that id; the `ttl` field
+*does* control expiry independently (`InternalGraphic.Update` sets
+`expires = DateTime.Now.AddSeconds(g.TTL)` on every resend), but the
+server's `finally` block additionally wipes *all* graphics owned by a
+`clientId` the instant that connection disconnects — regardless of their
+ttl. A connect-send-immediately-close-per-message client (this module's
+original design) therefore has every single graphic deleted moments after
+it arrives, independent of the ttl passed. `OverlayClient` now holds one
+persistent connection open for its whole lifetime instead (reconnecting
+lazily if it drops), matching how bgol/LandingPad's own working client
+(`lpads/overlay.py`) does it.
+
 Kept generic (not interdiction-specific) so other overlay features can
 reuse it without touching this module — see interdiction.py and landing.py
 for the current consumers.
@@ -20,6 +35,7 @@ import json
 import logging
 import os
 import socket
+import threading
 from dataclasses import dataclass
 from typing import Optional
 
@@ -59,26 +75,70 @@ def save_config(cfg: OverlayConfig) -> None:
 
 
 class OverlayClient:
-    """Opens a short-lived connection per send rather than holding one open
-    — EDMCOverlay messages are infrequent (interdiction warnings, at most a
-    few per encounter), so there's no persistent-connection/threading
-    complexity worth taking on for it. Config is re-read fresh on every send
-    (host/port are rarely-set-and-forget, but this way Settings changes take
-    effect immediately without a reload_config() call, and the same instance
-    can be created once at plugin-start time)."""
+    """Holds one persistent connection open for the client's whole lifetime
+    (see the module docstring for why this is required, not just an
+    optimization) rather than one per send. Config is only actually
+    re-read when a (re)connect is needed — normally just once, on the
+    first send — since re-reading it on every already-connected send would
+    have no effect anyway (a live host/port change can't migrate an
+    already-open socket); a Settings change to host/port takes effect on
+    this client's *next* reconnect, e.g. after EDMCOverlay itself restarts,
+    or via a fresh `OverlayClient` instance (the Settings "Test Overlay"/
+    "Test Warning" buttons always construct one of those against whatever
+    is currently in the dialog).
+
+    Sends are serialized with a lock: `load.py` shares one `OverlayClient`
+    instance across interdiction.py and landing.py, and each fires its
+    render from its own background thread, so concurrent sends on the same
+    socket are a real possibility, not just a theoretical one."""
 
     def __init__(self, cfg: Optional[OverlayConfig] = None) -> None:
         self._cfg = cfg
+        self._sock: Optional[socket.socket] = None
+        self._lock = threading.Lock()
 
-    def _send(self, payload: dict) -> None:
+    def _connect_locked(self) -> socket.socket:
         cfg = self._cfg or load_config()
         try:
             port = int(cfg.port)
         except ValueError:
             port = int(DEFAULT_PORT)
+        sock = socket.create_connection((cfg.host, port), timeout=CONNECT_TIMEOUT_S)
+        self._sock = sock
+        return sock
 
-        with socket.create_connection((cfg.host, port), timeout=CONNECT_TIMEOUT_S) as sock:
-            sock.sendall(json.dumps(payload).encode("utf-8") + b"\n")
+    def _send(self, payload: dict) -> None:
+        """Raises OSError (e.g. EDMCOverlay isn't running, or the socket
+        was reset) after trying once to reconnect - a single reconnect
+        attempt covers "EDMCOverlay wasn't running yet" and "EDMCOverlay
+        was restarted since our last send" without silently retrying
+        forever on a send that's genuinely never going to land."""
+        data = json.dumps(payload).encode("utf-8") + b"\n"
+        with self._lock:
+            sock = self._sock
+            if sock is None:
+                sock = self._connect_locked()
+            try:
+                sock.sendall(data)
+                return
+            except OSError:
+                self._close_locked()
+            sock = self._connect_locked()
+            sock.sendall(data)
+
+    def _close_locked(self) -> None:
+        if self._sock is not None:
+            try:
+                self._sock.close()
+            except OSError:
+                pass
+            self._sock = None
+
+    def close(self) -> None:
+        """Drops the connection (if any) so the next send reconnects fresh.
+        Safe to call whether or not a connection is currently open."""
+        with self._lock:
+            self._close_locked()
 
     def send_message(
         self, msg_id: str, text: str, color: str, x: int, y: int, ttl: int = 8, size: str = "normal",

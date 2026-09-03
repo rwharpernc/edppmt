@@ -1,9 +1,22 @@
-"""Landing Pad: docking status + pad-layout diagram, drawn via overlay.py.
-Ported from the author's sibling project EDDDT (`src/shared/docking.ts` +
-`src/renderer/src/overlay-widgets/LandingOverlayWidget.tsx` +
-`src/renderer/src/components/PadDiagram.tsx`), whose diagram geometry itself
-cites the EDMC LandingPad plugin (bgol/LandingPad `load.py`) as its original
-source.
+"""Landing: docking status + pad-layout diagram, drawn via overlay.py.
+
+Ported from the author's own sibling project EDDDT (`src/shared/docking.ts`
++ `src/renderer/src/overlay-widgets/LandingOverlayWidget.tsx` +
+`src/renderer/src/components/PadDiagram.tsx`) - EDDDT is this module's
+actual, direct source, not the third-party EDMC LandingPad plugin
+(bgol/LandingPad, GPL-2.0). EDDDT's own diagram geometry cites
+bgol/LandingPad as the original reference for the pad-index numbering (the
+15-entry shell/sector table every implementation needs is dictated by the
+real game's station layout, not an author's creative choice - any
+correct implementation reproduces the same numbers), and this module's
+`_PAD_LIST`/`_PAD_SECTORS`/`_DODECAGON` constants inherit that lineage
+unchanged for the same reason. Everything else here - the docking state
+machine, the status text (title/station/pad number/denied reason, always
+shown even when no diagram renders - see `render()`), the auto-hide timer,
+and the overlay rendering itself (EDMCOverlay `"vect"`/`"rect"` messages,
+via `overlay.py` - written independently against that protocol, not ported
+from bgol/LandingPad's own EDMCOverlay client) - is this project's/EDDDT's
+own code, not bgol/LandingPad's.
 
 Purely journal-driven (DockingRequested/Granted/Denied/Timeout/Cancelled,
 Docked/Undocked, plus FSDJump/CarrierJump/SupercruiseEntry to reset a
@@ -33,9 +46,10 @@ _CFG_ENABLED = "edppmt_landing_enabled"
 DEFAULT_ENABLED = False
 
 # How long the overlay keeps showing "Docking Approved" info after touchdown
-# before auto-hiding - mirrors EDDDT's LandingOverlayWidget
-# HIDE_AFTER_LANDING_MS.
-HIDE_AFTER_LANDING_S = 15.0
+# before auto-hiding. EDDDT's own LandingOverlayWidget uses 15s
+# (HIDE_AFTER_LANDING_MS = 15000) - shortened here per the plugin author's
+# own preference for this port.
+HIDE_AFTER_LANDING_S = 10.0
 
 
 @dataclass
@@ -472,7 +486,7 @@ _MAX_FLEETCARRIER_PADS = 32  # SquadronCarrier's doubled cluster - the widest ca
 
 
 # --- Rendering (overlay.py's OverlayClient is generic; this is the one
-# place that knows what the Landing Pad widget should look like) ---------
+# place that knows what the Landing widget should look like) -------------
 
 _STROKE = "#fb923c"  # orange-400, matches PadDiagram.tsx
 _ACTIVE = "#fbbf24"  # amber-400, matches PadDiagram.tsx
@@ -520,7 +534,7 @@ _STATUS_TEXT_IDS = (
 
 
 def render(info: LandingDisplayInfo, carrier_type: CarrierType, client: OverlayClient) -> None:
-    """Draws (or clears) the Landing Pad widget. Raises on an OverlayClient
+    """Draws (or clears) the Landing widget. Raises on an OverlayClient
     failure - load.py's live listener wraps this call and decides that's an
     expected, silent-fail state; the Settings "Test Overlay" button wraps
     its own call and surfaces it instead."""
@@ -533,6 +547,10 @@ def render(info: LandingDisplayInfo, carrier_type: CarrierType, client: OverlayC
     client.send_message("edppmt_landing_title", "Landing", "white", _TEXT_X, _Y_TITLE, ttl=_TTL, size="large")
     client.send_message("edppmt_landing_status", info.status_label, status_color, _TEXT_X, _Y_STATUS, ttl=_TTL)
     _send_or_clear(client, "edppmt_landing_station", info.station, "white", _TEXT_X, _Y_STATION)
+    # This "Pad N" text line is unconditional - sent whenever a pad is known,
+    # regardless of whether a diagram renders below it (see the fallback_text
+    # branch further down for stations with no diagram family at all, e.g.
+    # outposts) - the pad number itself must never depend on the diagram.
     _send_or_clear(client, "edppmt_landing_pad", f"Pad {info.pad}" if info.pad is not None else "", "white", _TEXT_X, _Y_PAD)
 
     denied_label = (info.denied_reason or "Unknown") if info.status_label == "Docking Denied" else ""

@@ -128,12 +128,12 @@ _collapsible_widgets: List[tk.Widget] = []
 _last_credits_earned: Optional[int] = None
 
 # Main-panel quick-toggle buttons - flip Auto-Honk/Interdiction Warning/
-# Landing Pad on or off without opening Settings, colored green when on. The
+# Landing on or off without opening Settings, colored green when on. The
 # click handlers below call straight into load.py (via the on_toggle_*
 # callables passed to create_plugin_app) rather than touching config here
 # directly, since load.py owns the live tracker instances that need a
 # reload_config() nudge (Auto-Honk) or just a fresh load_config() read on
-# their next event (Interdiction/Landing Pad).
+# their next event (Interdiction/Landing).
 _autohonk_toggle_btn: Optional[tk.Button] = None
 _interdiction_toggle_btn: Optional[tk.Button] = None
 _landing_toggle_btn: Optional[tk.Button] = None
@@ -326,7 +326,7 @@ def create_plugin_app(
     _autohonk_toggle_btn.pack(side=tk.LEFT, padx=(0, 6))
     _interdiction_toggle_btn = tk.Button(buttons_row, text="Interdiction", command=_on_interdiction_toggle_click)
     _interdiction_toggle_btn.pack(side=tk.LEFT, padx=(0, 6))
-    _landing_toggle_btn = tk.Button(buttons_row, text="Landing Pad", command=_on_landing_toggle_click)
+    _landing_toggle_btn = tk.Button(buttons_row, text="Landing", command=_on_landing_toggle_click)
     _landing_toggle_btn.pack(side=tk.LEFT)
     # Plain tk.Label, not ttk.Separator - same reasoning as _separator()
     # above (its own docstring: ttk.Separator picks up its own styling path
@@ -627,7 +627,7 @@ def create_prefs(parent: nb.Notebook) -> nb.Frame:
       and exported.
     - **Auto-Honk** — fires the Discovery Scanner on system entry.
     - **Interdiction Warning** — overlay warning when interdicted.
-    - **Landing Pad** — overlay docking status + pad-layout diagram.
+    - **Landing** — overlay docking status + pad-layout diagram.
     - **Updates** — unchanged.
     """
     global _ratio_vars, _auto_update_var
@@ -663,7 +663,7 @@ def create_prefs(parent: nb.Notebook) -> nb.Frame:
     )
     _create_single_tab(tabs, "Auto-Honk", _create_autohonk_section)
     _create_single_tab(tabs, "Interdiction Warning", _create_interdiction_section)
-    _create_single_tab(tabs, "Landing Pad", _create_landing_section)
+    _create_single_tab(tabs, "Landing", _create_landing_section)
     _create_single_tab(tabs, "Updates", _create_updates_section)
 
     _apply_version_state()
@@ -1070,7 +1070,7 @@ def _test_interdiction() -> None:
 
 
 def _create_landing_section(frame: nb.Frame) -> None:
-    """Landing Pad: draws docking status (requested/approved/denied) and a
+    """Landing: draws docking status (requested/approved/denied) and a
     pad-layout diagram on the in-game overlay, via the same EDMCOverlay
     helper app as Interdiction Warning."""
     global _landing_enabled_var, _overlay_host_var, _overlay_port_var
@@ -1097,7 +1097,7 @@ def _create_landing_section(frame: nb.Frame) -> None:
 
     _landing_enabled_var = tk.BooleanVar(value=landing_cfg.enabled)
     nb.Checkbutton(
-        frame, text="Enable Landing Pad overlay", variable=_landing_enabled_var,
+        frame, text="Enable Landing overlay", variable=_landing_enabled_var,
         command=_update_landing_dependent_state,
     ).grid(row=2, column=0, columnspan=2, sticky=tk.W, padx=10, pady=2)
 

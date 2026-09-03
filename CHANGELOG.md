@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Overlay graphics (Interdiction Warning, Landing) not reliably staying
+  on screen, and Landing's pad diagram rendering as broken/incomplete
+  pieces.** `overlay.py` was opening a new TCP connection per message and
+  closing it immediately after sending. EDMCOverlay deletes a connection's
+  graphics the instant that connection disconnects, independent of `ttl` —
+  so every graphic was being removed moments after it arrived, before the
+  next one (for a multi-piece diagram) even sent, and well before its
+  intended lifetime. `OverlayClient` now holds one persistent connection
+  open instead, reconnecting only if it actually drops.
+
+### Changed
+
+- **"Landing Pad" renamed to "Landing"** throughout the Settings tab, main
+  panel button, and overlay — same feature, shorter name.
+- **Landing's post-touchdown auto-hide shortened from 15 to 10 seconds.**
+
 ## [1.12.0] - 2026-09-03
 
 ### Added
