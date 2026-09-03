@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.12.0] - 2026-09-03
+
 ### Added
 
 - **Landing Pad.** Draws docking status on your in-game overlay from the
