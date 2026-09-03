@@ -9,9 +9,9 @@ client): connect, send one JSON object + "\n", e.g.
 `{"id": "x", "text": "hi", "color": "red", "x": 200, "y": 100, "ttl": 4}`.
 No response is read back — sends are fire-and-forget.
 
-Kept generic (not interdiction-specific) so a later overlay feature can
-reuse it without touching this module — see interdiction.py for the first
-(and currently only) consumer.
+Kept generic (not interdiction-specific) so other overlay features can
+reuse it without touching this module — see interdiction.py and landing.py
+for the current consumers.
 """
 
 from __future__ import annotations
@@ -90,7 +90,39 @@ class OverlayClient:
 
     def send_shape(
         self, shape_id: str, shape: str, color: str, fill: str, x: int, y: int, w: int, h: int, ttl: int = 8,
+        thickness: Optional[int] = None,
     ) -> None:
-        self._send(
-            {"id": shape_id, "shape": shape, "color": color, "fill": fill, "x": x, "y": y, "w": w, "h": h, "ttl": ttl},
-        )
+        """`fill`/`color` accept "#AARRGGBB" (alpha channel first) on both
+        classic EDMCOverlay and EDMCModernOverlay - the translucent card
+        backgrounds in interdiction.py/landing.py lean on this. `thickness`
+        (border width) is an EDMCModernOverlay-only extension - included
+        only when given, and harmless on classic EDMCOverlay (an unknown
+        JSON field, silently ignored by its Newtonsoft.Json deserializer)."""
+        payload = {
+            "id": shape_id, "shape": shape, "color": color, "fill": fill, "x": x, "y": y, "w": w, "h": h, "ttl": ttl,
+        }
+        if thickness is not None:
+            payload["thickness"] = thickness
+        self._send(payload)
+
+    def send_vector(
+        self, shape_id: str, points: list, color: str, ttl: int = 8,
+    ) -> None:
+        """A "vect" shape: connected line segments through `points` (each a
+        dict with "x"/"y", and optionally "color"/"marker"/"text" for a
+        per-point decoration - "marker" is "cross" or "circle"). A single-
+        point list draws just that point's marker/text with no line, which
+        landing.py uses for the pad-diagram's active-pad indicator. An empty
+        list draws nothing (used to clear a previously-sent id before its
+        ttl naturally expires - see landing.py's diagram clear helpers)."""
+        vector = [
+            {
+                "x": int(round(p["x"])),
+                "y": int(round(p["y"])),
+                **({"color": p["color"]} if p.get("color") else {}),
+                **({"marker": p["marker"]} if p.get("marker") else {}),
+                **({"text": p["text"]} if p.get("text") else {}),
+            }
+            for p in points
+        ]
+        self._send({"id": shape_id, "shape": "vect", "color": color, "vector": vector, "ttl": ttl})

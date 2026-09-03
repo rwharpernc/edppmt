@@ -7,6 +7,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Landing Pad.** Draws docking status on your in-game overlay from the
+  moment you request docking (Docking Requested → Approved/Denied), plus a
+  pad-layout diagram highlighting the specific pad you're assigned — a
+  dodecagon layout for starports/outposts/planetary ports, or a
+  Large/Medium/Small grid for fleet carriers, squadron carriers, and
+  colonisation ships. Stays up for ~15 seconds after touchdown, then
+  auto-hides. Off by default; draws through
+  [EDMCOverlay](https://github.com/inorton/EDMCOverlay) (same connection as
+  Interdiction Warning). New Settings → Landing Pad section with a "Test
+  Overlay" button. Ported from the author's sibling project EDDDT, whose
+  pad-diagram geometry itself cites the EDMC LandingPad plugin
+  (bgol/LandingPad) as its original source.
+- **Main-panel quick toggles.** Three new buttons at the bottom of the main
+  panel — **Auto-Honk**, **Interdiction**, **Landing Pad** — flip each
+  feature on or off without opening Settings, turning green while enabled.
+  Any change here shows up in the Settings tab's own checkbox immediately if
+  it's open, and vice versa.
+
+### Changed
+
+- **Interdiction Warning and Landing Pad now draw a colored card behind
+  their text** (and, for Landing Pad, the diagram too) instead of bare
+  floating text on the overlay — a translucent dark background with a
+  border colored to match the current state (red for a denial/bad outcome,
+  green otherwise), closer to the boxed look of the author's EDDDT overlay
+  widgets. Renders on both the original
+  [EDMCOverlay](https://github.com/inorton/EDMCOverlay) and
+  [EDMCModernOverlay](https://github.com/SweetJonnySauce/EDMCModernOverlay);
+  the newer EDMCModernOverlay additionally gets a crisper, explicit border
+  thickness where supported.
+
 ## [1.11.0] - 2026-09-02
 
 ### Added

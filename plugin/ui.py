@@ -18,6 +18,7 @@ from ttkHyperlinkLabel import HyperlinkLabel
 from . import __version__
 from . import autohonk
 from . import interdiction
+from . import landing
 from . import overlay
 from .clipboard import DEFAULT_TEMPLATE as DEFAULT_CLIPBOARD_TEMPLATE
 from .clipboard import PLACEHOLDERS as CLIPBOARD_PLACEHOLDERS
@@ -126,6 +127,27 @@ _collapsed: bool = False
 _collapsible_widgets: List[tk.Widget] = []
 _last_credits_earned: Optional[int] = None
 
+# Main-panel quick-toggle buttons - flip Auto-Honk/Interdiction Warning/
+# Landing Pad on or off without opening Settings, colored green when on. The
+# click handlers below call straight into load.py (via the on_toggle_*
+# callables passed to create_plugin_app) rather than touching config here
+# directly, since load.py owns the live tracker instances that need a
+# reload_config() nudge (Auto-Honk) or just a fresh load_config() read on
+# their next event (Interdiction/Landing Pad).
+_autohonk_toggle_btn: Optional[tk.Button] = None
+_interdiction_toggle_btn: Optional[tk.Button] = None
+_landing_toggle_btn: Optional[tk.Button] = None
+_on_toggle_autohonk: Optional[Callable[[], bool]] = None
+_on_toggle_interdiction: Optional[Callable[[], bool]] = None
+_on_toggle_landing: Optional[Callable[[], bool]] = None
+
+# Captured from the first toggle button's own defaults right after creation
+# (before any color override) rather than hardcoded, so "off" always matches
+# whatever EDMC's current theme actually renders a plain button as.
+_toggle_off_colors: Tuple[str, str] = ("", "")
+_TOGGLE_ON_BG = "#2e7d32"
+_TOGGLE_ON_FG = "#ffffff"
+
 _autohonk_frame: Optional[nb.Frame] = None
 _autohonk_enabled_var: Optional[tk.BooleanVar] = None
 _autohonk_firebutton_var: Optional[tk.StringVar] = None
@@ -152,6 +174,16 @@ _interdiction_result_label: Optional[tk.Label] = None
 # Test Warning is deliberately NOT in this list - same reasoning as
 # Auto-Honk's Rescan/Test Honk Now (a standalone sanity check either way).
 _interdiction_dependent_widgets: List[tk.Widget] = []
+
+_landing_enabled_var: Optional[tk.BooleanVar] = None
+_landing_result_label: Optional[tk.Label] = None
+
+# Host/port fields here are the SAME _overlay_host_var/_overlay_port_var
+# used by the Interdiction Warning tab (one shared EDMCOverlay connection,
+# edited from either tab - see _create_landing_section). Test Overlay is
+# deliberately NOT in this list, same reasoning as Interdiction's Test
+# Warning.
+_landing_dependent_widgets: List[tk.Widget] = []
 
 # (kind, version) — kind is one of "normal", "downloading", "downloaded", "updated".
 _version_state: tuple = ("normal", None)
@@ -191,11 +223,20 @@ def create_plugin_app(
     on_show_details: Callable[[], None],
     on_show_rares: Callable[[], None],
     on_rescan: Callable[[], None],
+    on_toggle_autohonk: Callable[[], bool],
+    on_toggle_interdiction: Callable[[], bool],
+    on_toggle_landing: Callable[[], bool],
 ) -> tk.Frame:
     """Create the main-window frame for EDMC."""
     global _frame, _status_label, _mode_label, _system_label, _here_merits_label, _here_cp_label
     global _merits_label, _cp_label, _credits_label
     global _last_event_label, _version_label, _title_label, _collapsed, _collapsible_widgets
+    global _autohonk_toggle_btn, _interdiction_toggle_btn, _landing_toggle_btn
+    global _on_toggle_autohonk, _on_toggle_interdiction, _on_toggle_landing, _toggle_off_colors
+
+    _on_toggle_autohonk = on_toggle_autohonk
+    _on_toggle_interdiction = on_toggle_interdiction
+    _on_toggle_landing = on_toggle_landing
 
     _frame = tk.Frame(parent)
     _frame.columnconfigure(1, weight=1)
@@ -279,6 +320,21 @@ def create_plugin_app(
     rescan_button = tk.Button(buttons_row, text="Rescan", command=on_rescan)
     rescan_button.pack(side=tk.LEFT)
 
+    # Quick on/off toggles for the three overlay/automation features, so
+    # they can be flipped without opening Settings. Colored below, AFTER
+    # theme.update() runs (see the sync_toggle_buttons() call at the bottom
+    # of this function) - EDMC's theme engine repaints plain tk widgets'
+    # colors when it walks the frame, which would otherwise stomp an
+    # explicit color set here before that walk happens.
+    toggle_row = tk.Frame(_frame)
+    toggle_row.grid(row=14, column=0, columnspan=3, sticky=tk.W, pady=(4, 0))
+    _autohonk_toggle_btn = tk.Button(toggle_row, text="Auto-Honk", command=_on_autohonk_toggle_click)
+    _autohonk_toggle_btn.pack(side=tk.LEFT, padx=(0, 6))
+    _interdiction_toggle_btn = tk.Button(toggle_row, text="Interdiction", command=_on_interdiction_toggle_click)
+    _interdiction_toggle_btn.pack(side=tk.LEFT, padx=(0, 6))
+    _landing_toggle_btn = tk.Button(toggle_row, text="Landing Pad", command=_on_landing_toggle_click)
+    _landing_toggle_btn.pack(side=tk.LEFT)
+
     # Everything but the title/status/mode/version rows — those stay visible
     # while collapsed (status and mode answer "am I pledged" and "which
     # mode" at a glance, and the version slot's "Updated to vX" confirmation
@@ -286,12 +342,20 @@ def create_plugin_app(
     # now have their own rows rather than sharing the title's.
     _collapsible_widgets = [
         separator1, _system_label, _here_merits_label, _here_cp_label, separator2,
-        _merits_label, _cp_label, _credits_label, separator3, _last_event_label, buttons_row,
+        _merits_label, _cp_label, _credits_label, separator3, _last_event_label, buttons_row, toggle_row,
     ]
     _apply_collapsed_state()
 
     _apply_version_state()
     theme.update(_frame)
+
+    # Captured only now (plain tk.Button defaults are the same across all
+    # three) rather than hardcoded, so the "off" color always matches
+    # whatever EDMC's theme.update() above actually rendered a plain button
+    # as - and applied after theme.update() for the same reason.
+    _toggle_off_colors = (_autohonk_toggle_btn.cget("background"), _autohonk_toggle_btn.cget("foreground"))
+    sync_toggle_buttons()
+
     return _frame
 
 
@@ -319,6 +383,60 @@ def _apply_collapsed_state() -> None:
     # above rather than always forcing it visible on expand.
     if not _collapsed and _credits_label is not None and _last_credits_earned is None:
         _credits_label.grid_remove()
+
+
+def _apply_toggle_button_state(button: tk.Button, enabled: bool) -> None:
+    if enabled:
+        bg, fg = _TOGGLE_ON_BG, _TOGGLE_ON_FG
+    else:
+        bg, fg = _toggle_off_colors
+    try:
+        button.configure(background=bg, foreground=fg, activebackground=bg, activeforeground=fg)
+    except tk.TclError:
+        pass  # Main window was closed mid-update.
+
+
+def sync_toggle_buttons() -> None:
+    """Re-colors the three main-panel toggle buttons from current config.
+    Called right after Settings saves (load.prefs_changed) so a checkbox
+    change there is reflected on the panel immediately, and once at panel
+    creation for the initial state."""
+    if _autohonk_toggle_btn is not None:
+        _apply_toggle_button_state(_autohonk_toggle_btn, autohonk.load_config().enabled)
+    if _interdiction_toggle_btn is not None:
+        _apply_toggle_button_state(_interdiction_toggle_btn, interdiction.load_config().enabled)
+    if _landing_toggle_btn is not None:
+        _apply_toggle_button_state(_landing_toggle_btn, landing.load_config().enabled)
+
+
+def _on_autohonk_toggle_click() -> None:
+    if _on_toggle_autohonk is None or _autohonk_toggle_btn is None:
+        return
+    enabled = _on_toggle_autohonk()
+    _apply_toggle_button_state(_autohonk_toggle_btn, enabled)
+    if _autohonk_enabled_var is not None:
+        _autohonk_enabled_var.set(enabled)
+        _update_autohonk_dependent_state()
+
+
+def _on_interdiction_toggle_click() -> None:
+    if _on_toggle_interdiction is None or _interdiction_toggle_btn is None:
+        return
+    enabled = _on_toggle_interdiction()
+    _apply_toggle_button_state(_interdiction_toggle_btn, enabled)
+    if _interdiction_enabled_var is not None:
+        _interdiction_enabled_var.set(enabled)
+        _update_interdiction_dependent_state()
+
+
+def _on_landing_toggle_click() -> None:
+    if _on_toggle_landing is None or _landing_toggle_btn is None:
+        return
+    enabled = _on_toggle_landing()
+    _apply_toggle_button_state(_landing_toggle_btn, enabled)
+    if _landing_enabled_var is not None:
+        _landing_enabled_var.set(enabled)
+        _update_landing_dependent_state()
 
 
 def _cp_by_activity(totals: Dict[str, int]) -> Dict[str, float]:
@@ -502,6 +620,7 @@ def create_prefs(parent: nb.Notebook) -> nb.Frame:
       and exported.
     - **Auto-Honk** — fires the Discovery Scanner on system entry.
     - **Interdiction Warning** — overlay warning when interdicted.
+    - **Landing Pad** — overlay docking status + pad-layout diagram.
     - **Updates** — unchanged.
     """
     global _ratio_vars, _auto_update_var
@@ -537,6 +656,7 @@ def create_prefs(parent: nb.Notebook) -> nb.Frame:
     )
     _create_single_tab(tabs, "Auto-Honk", _create_autohonk_section)
     _create_single_tab(tabs, "Interdiction Warning", _create_interdiction_section)
+    _create_single_tab(tabs, "Landing Pad", _create_landing_section)
     _create_single_tab(tabs, "Updates", _create_updates_section)
 
     _apply_version_state()
@@ -942,6 +1062,122 @@ def _test_interdiction() -> None:
     threading.Thread(target=worker, name="EDPPMT-interdiction-test", daemon=True).start()
 
 
+def _create_landing_section(frame: nb.Frame) -> None:
+    """Landing Pad: draws docking status (requested/approved/denied) and a
+    pad-layout diagram on the in-game overlay, via the same EDMCOverlay
+    helper app as Interdiction Warning."""
+    global _landing_enabled_var, _overlay_host_var, _overlay_port_var
+    global _landing_result_label, _landing_dependent_widgets
+
+    landing_cfg = landing.load_config()
+    overlay_cfg = overlay.load_config()
+
+    nb.Label(
+        frame,
+        text=(
+            "Shows docking status and a pad-layout diagram (which pad you're assigned) on your "
+            "in-game overlay while requesting/approaching a dock, via EDMCOverlay, a separate, "
+            "optional helper app EDPPMT does not install or launch itself."
+        ),
+        wraplength=440,
+        justify=tk.LEFT,
+    ).grid(row=0, column=0, columnspan=2, sticky=tk.W, padx=10, pady=(10, 4))
+
+    HyperlinkLabel(
+        frame, text="Get EDMCOverlay", background=nb.Label().cget("background"),
+        url="https://github.com/inorton/EDMCOverlay", underline=True,
+    ).grid(row=1, column=0, columnspan=2, sticky=tk.W, padx=10, pady=(0, 8))
+
+    _landing_enabled_var = tk.BooleanVar(value=landing_cfg.enabled)
+    nb.Checkbutton(
+        frame, text="Enable Landing Pad overlay", variable=_landing_enabled_var,
+        command=_update_landing_dependent_state,
+    ).grid(row=2, column=0, columnspan=2, sticky=tk.W, padx=10, pady=2)
+
+    sub = nb.Frame(frame)
+    sub.grid(row=3, column=0, columnspan=2, sticky=tk.W, padx=(28, 10))
+
+    host_row = tk.Frame(sub)
+    host_row.grid(row=0, column=0, sticky=tk.W, pady=2)
+    nb.Label(host_row, text="EDMCOverlay host:").pack(side=tk.LEFT)
+    # Same connection as Interdiction Warning — _overlay_host_var/_overlay_port_var
+    # are reused here rather than duplicated, so there's exactly one set of
+    # values in memory regardless of which tab was opened last.
+    if _overlay_host_var is None:
+        _overlay_host_var = tk.StringVar(value=overlay_cfg.host)
+    host_entry = nb.EntryMenu(host_row, textvariable=_overlay_host_var, width=12)
+    host_entry.pack(side=tk.LEFT, padx=(4, 0))
+    nb.Label(host_row, text="   Port:").pack(side=tk.LEFT)
+    if _overlay_port_var is None:
+        _overlay_port_var = tk.StringVar(value=overlay_cfg.port)
+    port_entry = nb.EntryMenu(host_row, textvariable=_overlay_port_var, width=6)
+    port_entry.pack(side=tk.LEFT, padx=(4, 0))
+
+    _landing_dependent_widgets = [host_entry, port_entry]
+
+    action_row = tk.Frame(frame)
+    action_row.grid(row=4, column=0, columnspan=2, sticky=tk.W, padx=10, pady=(6, 2))
+    tk.Button(action_row, text="Test Overlay", command=_test_landing).pack(side=tk.LEFT)
+    _landing_result_label = nb.Label(action_row, text="", wraplength=320, justify=tk.LEFT)
+    _landing_result_label.pack(side=tk.LEFT, padx=(10, 0))
+
+    nb.Label(
+        frame,
+        text="(Test Overlay works even while disabled above, and reports whether EDMCOverlay was actually reachable.)",
+        wraplength=440,
+        justify=tk.LEFT,
+    ).grid(row=5, column=0, columnspan=2, sticky=tk.W, padx=10, pady=(0, 10))
+
+    _update_landing_dependent_state()
+
+
+def _update_landing_dependent_state() -> None:
+    if _landing_enabled_var is None:
+        return
+    state = tk.NORMAL if _landing_enabled_var.get() else tk.DISABLED
+    for widget in _landing_dependent_widgets:
+        try:
+            widget["state"] = state
+        except tk.TclError:
+            pass
+
+
+def _test_landing() -> None:
+    """Simulates a "Docking Approved" state (a starport, Pad 24) through the
+    real render() path, against whatever host/port is currently in the
+    dialog (even if not yet saved) - same reasoning as _test_interdiction."""
+    if _landing_result_label is None:
+        return
+
+    cfg = overlay.OverlayConfig(
+        host=_overlay_host_var.get() if _overlay_host_var is not None else overlay.DEFAULT_HOST,
+        port=_overlay_port_var.get() if _overlay_port_var is not None else overlay.DEFAULT_PORT,
+    )
+    client = overlay.OverlayClient(cfg)
+    frame = _landing_result_label
+
+    def worker() -> None:
+        try:
+            landing.render(
+                landing.LandingDisplayInfo(
+                    status_label="Docking Approved", station="Preview Station", pad=24,
+                    diagram_type="starport", show_diagram=True,
+                ),
+                None,
+                client,
+            )
+            outcome, color = "Sent — check your overlay.", "#2e7d32"
+        except OSError as err:
+            outcome, color = f"Could not reach EDMCOverlay at {cfg.host}:{cfg.port} ({err}).", "#c07000"
+
+        try:
+            frame.after(0, lambda: (frame.configure(text=outcome, foreground=color)))
+        except tk.TclError:
+            pass  # Settings dialog was closed before the test finished.
+
+    threading.Thread(target=worker, name="EDPPMT-landing-test", daemon=True).start()
+
+
 def save_prefs() -> None:
     """Persist ratio and update-preference settings from the prefs tab."""
     for activity, var in _ratio_vars.items():
@@ -963,6 +1199,7 @@ def save_prefs() -> None:
 
     _save_autohonk_prefs()
     _save_interdiction_prefs()
+    _save_landing_prefs()
 
 
 def _save_interdiction_prefs() -> None:
@@ -970,6 +1207,22 @@ def _save_interdiction_prefs() -> None:
         return
 
     interdiction.save_config(interdiction.InterdictionConfig(enabled=bool(_interdiction_enabled_var.get())))
+    _save_overlay_connection_prefs()
+
+
+def _save_landing_prefs() -> None:
+    if _landing_enabled_var is None:
+        return
+
+    landing.save_config(landing.LandingConfig(enabled=bool(_landing_enabled_var.get())))
+    # Reaches the same config keys as _save_interdiction_prefs — harmless to
+    # write twice from one _overlay_host_var/_overlay_port_var pair, and
+    # keeps this function self-contained if the Interdiction tab is ever
+    # made optional/removed.
+    _save_overlay_connection_prefs()
+
+
+def _save_overlay_connection_prefs() -> None:
     overlay.save_config(
         overlay.OverlayConfig(
             host=(_overlay_host_var.get().strip() if _overlay_host_var is not None else "") or overlay.DEFAULT_HOST,

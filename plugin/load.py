@@ -23,6 +23,7 @@ from monitor import monitor
 from . import __version__
 from . import autohonk
 from . import interdiction
+from . import landing
 from . import overlay
 from .formulas import ACTIVITY_LABELS
 from .powerplay import PLEDGE_UNKNOWN, PowerplayTracker, find_last_pledge_event
@@ -55,6 +56,7 @@ _ui_frame: Optional[tk.Frame] = None
 _updater: Optional[UpdateManager] = None
 _autohonk: Optional[autohonk.AutoHonkController] = None
 _interdiction: Optional[interdiction.InterdictionTracker] = None
+_landing: Optional[landing.LandingTracker] = None
 _overlay: overlay.OverlayClient = overlay.OverlayClient()
 
 # Journal events forwarded to _interdiction.handle_event unconditionally
@@ -96,11 +98,12 @@ _DELIVERY_EVENTS = ("SearchAndRescue", "DeliverPowerMicroResources")
 
 def plugin_start3(plugin_dir: str) -> str:
     """Load EDPPMT into EDMarketConnector."""
-    global _sessions, _updater, _autohonk, _interdiction
+    global _sessions, _updater, _autohonk, _interdiction, _landing
     logger.info("EDPPMT v%s starting from %s", __version__, plugin_dir)
     _sessions = SessionManager(SessionStore(plugin_dir))
     _autohonk = autohonk.AutoHonkController()
     _interdiction = interdiction.InterdictionTracker(on_change=_on_interdiction_change)
+    _landing = landing.LandingTracker(on_change=_on_landing_change)
 
     applied_version = check_applied_update()
     if applied_version is not None:
@@ -138,7 +141,10 @@ def plugin_stop() -> None:
 def plugin_app(parent: tk.Frame) -> tk.Frame:
     """Create EDPPMT widgets on the EDMC main window."""
     global _ui_frame
-    _ui_frame = ui.create_plugin_app(parent, _show_sessions, _show_rares, _rescan_journal)
+    _ui_frame = ui.create_plugin_app(
+        parent, _show_sessions, _show_rares, _rescan_journal,
+        _toggle_autohonk, _toggle_interdiction, _toggle_landing,
+    )
     if _sessions is not None:
         # Show whatever session state was persisted from last run right
         # away, rather than leaving the panel on its placeholder text until
@@ -155,6 +161,37 @@ def _show_sessions() -> None:
 def _show_rares() -> None:
     if _ui_frame is not None:
         rares_window.show(_ui_frame, _current_system, _current_system_coords)
+
+
+def _toggle_autohonk() -> bool:
+    """Main-panel Auto-Honk button: flips just the enabled flag, preserving
+    fire-button/hold-duration/focus/skip-visited as already configured.
+    Returns the new state so ui.py can recolor the button immediately."""
+    cfg = autohonk.load_config()
+    cfg.enabled = not cfg.enabled
+    autohonk.save_config(cfg)
+    if _autohonk is not None:
+        _autohonk.reload_config()
+    return cfg.enabled
+
+
+def _toggle_interdiction() -> bool:
+    """Main-panel Interdiction button. No reload_config() needed here -
+    InterdictionTracker checks load_config().enabled fresh on every change
+    (see _on_interdiction_change), unlike AutoHonkController which caches
+    its config on the instance."""
+    cfg = interdiction.load_config()
+    cfg.enabled = not cfg.enabled
+    interdiction.save_config(cfg)
+    return cfg.enabled
+
+
+def _toggle_landing() -> bool:
+    """Main-panel Landing Pad button - same reasoning as _toggle_interdiction."""
+    cfg = landing.load_config()
+    cfg.enabled = not cfg.enabled
+    landing.save_config(cfg)
+    return cfg.enabled
 
 
 def _rescan_journal() -> None:
@@ -275,6 +312,39 @@ def _on_interdiction_change(snapshot: interdiction.InterdictionSnapshot) -> None
     threading.Thread(target=worker, name="EDPPMT-interdiction-render", daemon=True).start()
 
 
+def _on_landing_change(snapshot: landing.LandingSnapshot) -> None:
+    """Called synchronously from _dispatch/journal_entry (EDMC's own calling
+    thread) on every docking-state change - see _on_interdiction_change for
+    why the actual overlay send is pushed onto a background thread."""
+    if not landing.load_config().enabled:
+        return
+
+    if snapshot.docked and snapshot.hidden_after_landing:
+        def clear_worker() -> None:
+            try:
+                landing.clear(_overlay)
+            except OSError:
+                logger.debug("Could not reach EDMCOverlay to clear landing pad overlay", exc_info=True)
+
+        threading.Thread(target=clear_worker, name="EDPPMT-landing-clear", daemon=True).start()
+        return
+
+    info = landing.build_landing_display_info(
+        snapshot.docking, snapshot.docked, snapshot.last_assigned_pad,
+        snapshot.last_station_type, snapshot.last_carrier_type,
+    )
+
+    def worker() -> None:
+        try:
+            landing.render(info, snapshot.last_carrier_type, _overlay)
+        except OSError:
+            # EDMCOverlay isn't running/reachable - expected and silent on
+            # the live path, same as _on_interdiction_change.
+            logger.debug("Could not reach EDMCOverlay for landing pad overlay", exc_info=True)
+
+    threading.Thread(target=worker, name="EDPPMT-landing-render", daemon=True).start()
+
+
 def plugin_prefs(parent, cmdr: str, is_beta: bool):
     """Create the EDPPMT settings tab."""
     return ui.create_prefs(parent)
@@ -287,6 +357,7 @@ def prefs_changed(cmdr: str, is_beta: bool) -> None:
         # Picks up enabled/fire-button/hold-duration changes immediately,
         # rather than only on EDMC's next restart.
         _autohonk.reload_config()
+    ui.sync_toggle_buttons()  # main-panel buttons reflect whatever Settings just saved
     if _sessions is not None:
         _sessions.flush()
 
@@ -405,6 +476,9 @@ def _dispatch(cmdr: str, system: str, entry: Dict[str, Any]) -> Optional[str]:
 
     if _interdiction is not None and event in _INTERDICTION_EVENTS:
         _interdiction.handle_event(entry)
+
+    if _landing is not None and event in landing.DOCKING_EVENTS:
+        _landing.handle_event(entry)
 
     if event == "LoadGame":
         ui.set_mode(_mode_text(entry.get("GameMode"), entry.get("Group")))

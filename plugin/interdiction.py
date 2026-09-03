@@ -251,6 +251,7 @@ class InterdictionTracker:
 # --- Rendering (overlay.py's OverlayClient is generic; this is the one
 # place that knows what an interdiction warning should look like) ---------
 
+_CARD_ID = "edppmt_interdiction_card"
 _TITLE_ID = "edppmt_interdiction_title"
 _WHO_ID = "edppmt_interdiction_who"
 _RESOLUTION_ID = "edppmt_interdiction_resolution"
@@ -263,6 +264,16 @@ _X = 650
 _Y_TITLE = 100
 _Y_WHO = 130
 _Y_RESOLUTION = 160
+
+# A translucent card behind the three text lines - same "#AARRGGBB" alpha
+# fill EDMCModernOverlay's own docs use as an example, and equally valid on
+# classic EDMCOverlay (both parse the alpha channel the same way). Gives the
+# warning a boxed, EDDDT-widget-like look instead of bare floating text.
+_CARD_X = _X - 20
+_CARD_Y = _Y_TITLE - 26
+_CARD_W = 600
+_CARD_H = (_Y_RESOLUTION + 30) - _CARD_Y
+_CARD_FILL = "#1a1a1acc"
 
 _RESOLUTION_TEXT = {
     "escaped": ("Escaped!", "green"),
@@ -288,16 +299,23 @@ def render(snapshot: InterdictionSnapshot, client: OverlayClient) -> None:
     if snapshot.power:
         who += f" — Power: {snapshot.power}"
 
+    if snapshot.resolution:
+        text, resolution_color = _RESOLUTION_TEXT.get(snapshot.resolution, (snapshot.resolution, "white"))
+        card_border = resolution_color
+    else:
+        text, resolution_color, card_border = "", "white", "red"
+
+    client.send_shape(_CARD_ID, "rect", card_border, _CARD_FILL, _CARD_X, _CARD_Y, _CARD_W, _CARD_H, ttl=30, thickness=2)
     client.send_message(_TITLE_ID, "⚠ INTERDICTION WARNING ⚠", "red", _X, _Y_TITLE, ttl=30, size="large")
     client.send_message(_WHO_ID, who, "red", _X, _Y_WHO, ttl=30)
 
     if snapshot.resolution:
-        text, color = _RESOLUTION_TEXT.get(snapshot.resolution, (snapshot.resolution, "white"))
-        client.send_message(_RESOLUTION_ID, text, color, _X, _Y_RESOLUTION, ttl=int(RESOLVED_CLEAR_S) + 1)
+        client.send_message(_RESOLUTION_ID, text, resolution_color, _X, _Y_RESOLUTION, ttl=int(RESOLVED_CLEAR_S) + 1)
     else:
         client.send_message(_RESOLUTION_ID, "", "white", _X, _Y_RESOLUTION, ttl=1)
 
 
 def _clear(client: OverlayClient) -> None:
+    client.send_shape(_CARD_ID, "rect", "", "", 0, 0, 0, 0, ttl=1)
     for msg_id, y in ((_TITLE_ID, _Y_TITLE), (_WHO_ID, _Y_WHO), (_RESOLUTION_ID, _Y_RESOLUTION)):
         client.send_message(msg_id, "", "white", _X, y, ttl=1)
