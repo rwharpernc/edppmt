@@ -311,29 +311,27 @@ def create_plugin_app(
     _last_event_label = _wrap_label(_frame, text="No merit events yet this session.")
     _last_event_label.grid(row=12, column=0, columnspan=3, sticky=tk.W)
 
+    # One row: quick on/off toggles on the left (colored below, AFTER
+    # theme.update() runs - see the sync_toggle_buttons() call at the bottom
+    # of this function; EDMC's theme engine repaints plain tk widgets'
+    # colors when it walks the frame, which would otherwise stomp an
+    # explicit color set here before that walk happens), a vertical
+    # separator, then the window-opening buttons on the right.
     buttons_row = tk.Frame(_frame)
     buttons_row.grid(row=13, column=0, columnspan=3, sticky=tk.E, pady=(6, 0))
+    _autohonk_toggle_btn = tk.Button(buttons_row, text="Auto-Honk", command=_on_autohonk_toggle_click)
+    _autohonk_toggle_btn.pack(side=tk.LEFT, padx=(0, 6))
+    _interdiction_toggle_btn = tk.Button(buttons_row, text="Interdiction", command=_on_interdiction_toggle_click)
+    _interdiction_toggle_btn.pack(side=tk.LEFT, padx=(0, 6))
+    _landing_toggle_btn = tk.Button(buttons_row, text="Landing Pad", command=_on_landing_toggle_click)
+    _landing_toggle_btn.pack(side=tk.LEFT, padx=(0, 8))
+    ttk.Separator(buttons_row, orient=tk.VERTICAL).pack(side=tk.LEFT, fill=tk.Y, padx=6)
     rares_button = tk.Button(buttons_row, text="Rares", command=on_show_rares)
     rares_button.pack(side=tk.LEFT, padx=(0, 6))
     details_button = tk.Button(buttons_row, text="Sessions", command=on_show_details)
     details_button.pack(side=tk.LEFT, padx=(0, 6))
     rescan_button = tk.Button(buttons_row, text="Rescan", command=on_rescan)
     rescan_button.pack(side=tk.LEFT)
-
-    # Quick on/off toggles for the three overlay/automation features, so
-    # they can be flipped without opening Settings. Colored below, AFTER
-    # theme.update() runs (see the sync_toggle_buttons() call at the bottom
-    # of this function) - EDMC's theme engine repaints plain tk widgets'
-    # colors when it walks the frame, which would otherwise stomp an
-    # explicit color set here before that walk happens.
-    toggle_row = tk.Frame(_frame)
-    toggle_row.grid(row=14, column=0, columnspan=3, sticky=tk.W, pady=(4, 0))
-    _autohonk_toggle_btn = tk.Button(toggle_row, text="Auto-Honk", command=_on_autohonk_toggle_click)
-    _autohonk_toggle_btn.pack(side=tk.LEFT, padx=(0, 6))
-    _interdiction_toggle_btn = tk.Button(toggle_row, text="Interdiction", command=_on_interdiction_toggle_click)
-    _interdiction_toggle_btn.pack(side=tk.LEFT, padx=(0, 6))
-    _landing_toggle_btn = tk.Button(toggle_row, text="Landing Pad", command=_on_landing_toggle_click)
-    _landing_toggle_btn.pack(side=tk.LEFT)
 
     # Everything but the title/status/mode/version rows — those stay visible
     # while collapsed (status and mode answer "am I pledged" and "which
@@ -342,7 +340,7 @@ def create_plugin_app(
     # now have their own rows rather than sharing the title's.
     _collapsible_widgets = [
         separator1, _system_label, _here_merits_label, _here_cp_label, separator2,
-        _merits_label, _cp_label, _credits_label, separator3, _last_event_label, buttons_row, toggle_row,
+        _merits_label, _cp_label, _credits_label, separator3, _last_event_label, buttons_row,
     ]
     _apply_collapsed_state()
 

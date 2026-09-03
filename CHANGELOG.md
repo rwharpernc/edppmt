@@ -21,11 +21,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Overlay" button. Ported from the author's sibling project EDDDT, whose
   pad-diagram geometry itself cites the EDMC LandingPad plugin
   (bgol/LandingPad) as its original source.
-- **Main-panel quick toggles.** Three new buttons at the bottom of the main
-  panel — **Auto-Honk**, **Interdiction**, **Landing Pad** — flip each
-  feature on or off without opening Settings, turning green while enabled.
-  Any change here shows up in the Settings tab's own checkbox immediately if
-  it's open, and vice versa.
+- **Main-panel quick toggles.** Three new buttons — **Auto-Honk**,
+  **Interdiction**, **Landing Pad** — flip each feature on or off without
+  opening Settings, turning green while enabled. They share the main
+  panel's existing bottom button row with **Rares**/**Sessions**/**Rescan**,
+  split from them by a vertical divider. Any change here shows up in the
+  Settings tab's own checkbox immediately if it's open, and vice versa.
 
 ### Changed
 
