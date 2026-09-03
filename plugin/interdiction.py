@@ -4,12 +4,22 @@ draws it via overlay.py. Ported from the author's sibling project EDDDT
 detection state machine, re-implemented in Python with no Tk import (pure
 detection/rendering logic, like formulas.py/session.py).
 
-Detection combines three signals, earliest-available first:
+Detection combines three signals - whichever actually arrives first wins,
+since dashboard_entry (Status.json) and journal_entry (ReceiveText) are two
+independent EDMC callbacks with no ordering guarantee between them for the
+same real-world instant:
 1. Status.json's "Being Interdicted" flag (Flags bit 23) - flips true the
-   instant the interdiction minigame starts, well before it resolves.
-   Delivered via EDMC's dashboard_entry callback - see load.py.
-2. "ReceiveText" NPC chat taunts during the encounter - the only
-   pre-resolution identity source (Status.json's flag carries no identity).
+   instant the interdiction minigame starts, well before it resolves, but
+   only reaches this plugin on EDMC's next dashboard_entry call (Status.json
+   is written roughly once a second, so this can lag the instant itself by
+   up to ~1s). Delivered via EDMC's dashboard_entry callback - see load.py.
+2. "ReceiveText" NPC chat taunts during the encounter - an independent
+   trigger in its own right (not just identity enrichment for signal 1),
+   since a taunt line can arrive before the flag does. The only
+   pre-resolution identity source either way (Status.json's flag carries no
+   identity) - whichever of the two arrives second fills in whatever the
+   first one didn't already have (see handle_dashboard_flags/handle_event's
+   "don't stomp already-known identity" guards).
 3. The authoritative "Interdicted"/"EscapeInterdiction" journal events once
    it resolves - these also carry a "Power" field when the interdictor is
    affiliated with one, which EDDDT's UI doesn't surface but is natural,
@@ -163,12 +173,17 @@ class InterdictionTracker:
         if not was_being_interdicted and being_interdicted:
             self._clear_test_timer()
             self._clear_scheduled_clear()
-            self._active = True
-            self._interdictor_name = None
-            self._is_player = None
-            self._is_thargoid = None
-            self._power = None
-            self._resolution = None
+            # Don't stomp identity already learned from a ReceiveText taunt
+            # that arrived first - dashboard_entry only fires on the next
+            # Status.json write (up to ~1s later), so a chat-triggered
+            # activation can easily beat the flag here.
+            if not self._active:
+                self._active = True
+                self._interdictor_name = None
+                self._is_player = None
+                self._is_thargoid = None
+                self._power = None
+                self._resolution = None
             self._emit_changed()
             return
 
@@ -179,11 +194,23 @@ class InterdictionTracker:
         event = entry.get("event")
 
         if event == "ReceiveText":
-            if self._active and not self._interdictor_name:
+            if not self._interdictor_name:
                 message = entry.get("Message_Localised") or entry.get("Message")
                 if is_interdiction_message(message):
                     sender = entry.get("From_Localised") or entry.get("From")
                     if sender:
+                        # A matching taunt is itself a trigger, not just
+                        # enrichment - it can arrive before Status.json's
+                        # flag does (dashboard_entry only fires on the
+                        # next Status.json write, up to ~1s later), so
+                        # waiting for `self._active` first meant a
+                        # same-tick taunt was silently dropped and the
+                        # warning didn't appear until the flag caught up
+                        # (or, worst case, not until the resolving event).
+                        if not self._active:
+                            self._clear_test_timer()
+                            self._clear_scheduled_clear()
+                            self._active = True
                         self._interdictor_name = str(sender)
                         self._emit_changed()
             return
@@ -265,20 +292,29 @@ _Y_TITLE = 100
 _Y_WHO = 130
 _Y_RESOLUTION = 160
 
-# A translucent card behind the three text lines - same "#AARRGGBB" alpha
-# fill EDMCModernOverlay's own docs use as an example, and equally valid on
-# classic EDMCOverlay (both parse the alpha channel the same way). Gives the
-# warning a boxed, EDDDT-widget-like look instead of bare floating text.
+# Colors ported straight from EDDDT's InterdictionWarningWidget.tsx, which
+# deliberately does NOT use its switchable overlay-chrome palette here -
+# its own comment: "its red-alert styling is a safety signal, not chrome,
+# and stays fixed regardless of theme." So unlike landing.py's card (which
+# does follow the Elite Orange chrome palette), this card's border/fill
+# never change with docking/resolution state - only the resolution line's
+# own text color is semantic.
+_CARD_BORDER = "#ef4444"  # red-500
+_CARD_FILL = "#f2450a0a"  # red-950 at ~95% alpha
+_TITLE_COLOR = "#f87171"  # red-400
+_WHO_COLOR = "white"  # EDDDT: text-slate-100 (near-white, not red) - the
+# alert color is reserved for the title/resolution, so the identity line
+# reads as plain information rather than more alarm text.
+
 _CARD_X = _X - 20
 _CARD_Y = _Y_TITLE - 26
 _CARD_W = 600
 _CARD_H = (_Y_RESOLUTION + 30) - _CARD_Y
-_CARD_FILL = "#1a1a1acc"
 
 _RESOLUTION_TEXT = {
-    "escaped": ("Escaped!", "green"),
-    "pulled-out": ("Pulled from supercruise", "red"),
-    "submitted": ("Submitted to interdiction", "yellow"),
+    "escaped": ("Escaped!", "#34d399"),  # emerald-400
+    "pulled-out": ("Pulled from supercruise", "#fca5a5"),  # red-300
+    "submitted": ("Submitted to interdiction", "#fcd34d"),  # amber-300
 }
 
 
@@ -299,17 +335,12 @@ def render(snapshot: InterdictionSnapshot, client: OverlayClient) -> None:
     if snapshot.power:
         who += f" — Power: {snapshot.power}"
 
+    client.send_shape(_CARD_ID, "rect", _CARD_BORDER, _CARD_FILL, _CARD_X, _CARD_Y, _CARD_W, _CARD_H, ttl=30, thickness=2)
+    client.send_message(_TITLE_ID, "INTERDICTION WARNING", _TITLE_COLOR, _X, _Y_TITLE, ttl=30, size="large")
+    client.send_message(_WHO_ID, who, _WHO_COLOR, _X, _Y_WHO, ttl=30)
+
     if snapshot.resolution:
         text, resolution_color = _RESOLUTION_TEXT.get(snapshot.resolution, (snapshot.resolution, "white"))
-        card_border = resolution_color
-    else:
-        text, resolution_color, card_border = "", "white", "red"
-
-    client.send_shape(_CARD_ID, "rect", card_border, _CARD_FILL, _CARD_X, _CARD_Y, _CARD_W, _CARD_H, ttl=30, thickness=2)
-    client.send_message(_TITLE_ID, "⚠ INTERDICTION WARNING ⚠", "red", _X, _Y_TITLE, ttl=30, size="large")
-    client.send_message(_WHO_ID, who, "red", _X, _Y_WHO, ttl=30)
-
-    if snapshot.resolution:
         client.send_message(_RESOLUTION_ID, text, resolution_color, _X, _Y_RESOLUTION, ttl=int(RESOLVED_CLEAR_S) + 1)
     else:
         client.send_message(_RESOLUTION_ID, "", "white", _X, _Y_RESOLUTION, ttl=1)

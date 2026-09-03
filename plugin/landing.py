@@ -488,8 +488,25 @@ _MAX_FLEETCARRIER_PADS = 32  # SquadronCarrier's doubled cluster - the widest ca
 # --- Rendering (overlay.py's OverlayClient is generic; this is the one
 # place that knows what the Landing widget should look like) -------------
 
-_STROKE = "#fb923c"  # orange-400, matches PadDiagram.tsx
+_STROKE = "#fb923c"  # orange-400, matches PadDiagram.tsx (theme-independent there - see below)
 _ACTIVE = "#fbbf24"  # amber-400, matches PadDiagram.tsx
+_LABEL_ON_ACTIVE = "#0f172a"  # slate-900, matches PadDiagram.tsx's LABEL_FILL (dark text on the amber fill)
+
+# "Elite Orange" chrome, ported from EDDDT's overlay-widgets/theme.ts
+# OVERLAY_THEMES['elite-orange'] - unlike interdiction.py's card (which
+# stays hardcoded red as a safety signal, per EDDDT's own design), this
+# widget's chrome follows EDDDT's switchable palette; "elite-orange" is
+# the one being ported here. Text hierarchy per EDDDT's actual JSX
+# (LandingOverlayWidget.tsx): title -> textPrimary, station/pad/fallback
+# -> textMuted (the dimmest tier - deliberately not textSecondary), and
+# statusLabel/deniedLabel stay semantic (red/emerald) regardless of theme,
+# same principle as interdiction.py's resolution colors.
+_CHROME_BORDER = "#80f97316"  # orange-500 at 50% alpha
+_CHROME_FILL = "#d9000000"  # black at 85% alpha
+_TEXT_PRIMARY = "#fdba74"  # orange-300
+_TEXT_MUTED = "#c2410c"  # orange-700
+_STATUS_OK = "#34d399"  # emerald-400
+_STATUS_DENIED = "#f87171"  # red-400
 
 # Fixed placement (not user-configurable - same reasoning as
 # interdiction.py). Lower-left of the virtual 1280x1024-ish HUD, clear of
@@ -506,15 +523,16 @@ _DIAGRAM_CX = 110
 _DIAGRAM_CY = 860
 _DIAGRAM_SIZE = 160
 
-# A translucent card behind the whole widget (status text + diagram) - same
-# "#AARRGGBB" alpha-fill approach as interdiction.py's card, sized to
-# comfortably enclose both the text column and the diagram box below it.
+# A translucent card behind the whole widget (status text + diagram),
+# sized to comfortably enclose both the text column and the diagram box
+# below it. Chrome (_CHROME_BORDER/_CHROME_FILL above) is constant - it
+# does not track docking status, matching EDDDT's actual widget (only the
+# statusLabel/deniedLabel text itself is status-colored, not the card).
 _CARD_ID = "edppmt_landing_card"
 _CARD_X = 20
 _CARD_Y = _Y_TITLE - 14
 _CARD_W = 420
 _CARD_H = int(_DIAGRAM_CY + _DIAGRAM_SIZE / 2 + 20 - _CARD_Y)
-_CARD_FILL = "#1a1a1acc"
 
 # Render is event-driven (docking-state changes), not per-frame, so a
 # generous ttl means the drawing survives comfortably between updates.
@@ -542,19 +560,19 @@ def render(info: LandingDisplayInfo, carrier_type: CarrierType, client: OverlayC
         clear(client)
         return
 
-    status_color = "red" if info.status_label == "Docking Denied" else "green"
-    client.send_shape(_CARD_ID, "rect", status_color, _CARD_FILL, _CARD_X, _CARD_Y, _CARD_W, _CARD_H, ttl=_TTL, thickness=2)
-    client.send_message("edppmt_landing_title", "Landing", "white", _TEXT_X, _Y_TITLE, ttl=_TTL, size="large")
+    status_color = _STATUS_DENIED if info.status_label == "Docking Denied" else _STATUS_OK
+    client.send_shape(_CARD_ID, "rect", _CHROME_BORDER, _CHROME_FILL, _CARD_X, _CARD_Y, _CARD_W, _CARD_H, ttl=_TTL, thickness=2)
+    client.send_message("edppmt_landing_title", "Landing", _TEXT_PRIMARY, _TEXT_X, _Y_TITLE, ttl=_TTL, size="large")
     client.send_message("edppmt_landing_status", info.status_label, status_color, _TEXT_X, _Y_STATUS, ttl=_TTL)
-    _send_or_clear(client, "edppmt_landing_station", info.station, "white", _TEXT_X, _Y_STATION)
+    _send_or_clear(client, "edppmt_landing_station", info.station, _TEXT_MUTED, _TEXT_X, _Y_STATION)
     # This "Pad N" text line is unconditional - sent whenever a pad is known,
     # regardless of whether a diagram renders below it (see the fallback_text
     # branch further down for stations with no diagram family at all, e.g.
     # outposts) - the pad number itself must never depend on the diagram.
-    _send_or_clear(client, "edppmt_landing_pad", f"Pad {info.pad}" if info.pad is not None else "", "white", _TEXT_X, _Y_PAD)
+    _send_or_clear(client, "edppmt_landing_pad", f"Pad {info.pad}" if info.pad is not None else "", _TEXT_MUTED, _TEXT_X, _Y_PAD)
 
     denied_label = (info.denied_reason or "Unknown") if info.status_label == "Docking Denied" else ""
-    _send_or_clear(client, "edppmt_landing_denied", denied_label, "red", _TEXT_X, _Y_DENIED)
+    _send_or_clear(client, "edppmt_landing_denied", denied_label, _STATUS_DENIED, _TEXT_X, _Y_DENIED)
 
     fallback_text = ""
     if info.show_diagram and info.diagram_type == "starport":
@@ -569,7 +587,7 @@ def render(info: LandingDisplayInfo, carrier_type: CarrierType, client: OverlayC
         if info.pad is not None and info.status_label == "Docking Approved":
             fallback_text = f"No pad layout diagram for this station type. It's the one with the {info.pad} above it."
 
-    _send_or_clear(client, "edppmt_landing_fallback", fallback_text, "white", _TEXT_X, _Y_FALLBACK)
+    _send_or_clear(client, "edppmt_landing_fallback", fallback_text, _TEXT_MUTED, _TEXT_X, _Y_FALLBACK)
 
 
 def clear(client: OverlayClient) -> None:
@@ -640,7 +658,13 @@ def _render_fleetcarrier_diagram(client: OverlayClient, pad: Optional[int], carr
     if active_rect is not None and pad is not None:
         rx, ry, rx2, ry2 = active_rect
         client.send_message(
-            _FLEETCARRIER_LABEL_ID, str(pad), _ACTIVE,
+            # Dark text (matches PadDiagram.tsx's LABEL_FILL) - it sits
+            # directly on top of the rect's own amber (_ACTIVE) fill, so
+            # amber-on-amber here would be illegible. The starport pad
+            # marker doesn't have this problem: its "circle" vect marker is
+            # stroke-only (EDMCOverlay never fills a vect marker), so its
+            # amber label text sits on the game background, not a fill.
+            _FLEETCARRIER_LABEL_ID, str(pad), _LABEL_ON_ACTIVE,
             int(round((rx + rx2) / 2)) - 4, int(round((ry + ry2) / 2)) - 6, ttl=_TTL,
         )
     else:

@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **`scripts/test_overlay.py`** (`npm run test:overlay`), a standalone
+  developer CLI that exercises every Interdiction Warning/Landing overlay
+  scenario against a real EDMCOverlay/EDMCModernOverlay instance without
+  EDMC or the game running — see README's "For Developers" section.
+
 ### Fixed
 
 - **Overlay graphics (Interdiction Warning, Landing) not reliably staying
@@ -18,12 +25,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   next one (for a multi-piece diagram) even sent, and well before its
   intended lifetime. `OverlayClient` now holds one persistent connection
   open instead, reconnecting only if it actually drops.
+- **Interdiction Warning appearing very late, or not until it was already
+  resolving.** NPC chat taunts (`ReceiveText`) could only *enrich* an
+  already-active warning, never trigger one on their own — so if
+  Status.json's flag (the primary signal) was ever slow to reach the
+  plugin, or momentarily missed, the warning waited for the interdiction
+  to actually resolve before showing anything at all. A matching taunt is
+  now an independent trigger in its own right, and whichever of the two
+  signals arrives first no longer gets its identity data overwritten by
+  the other arriving second.
+- **Fleet carrier pad-diagram's active-pad number being unreadable** — its
+  label was drawn in the same amber color as the fill it sits on top of.
+  Now dark text, matching the reference diagram it's ported from.
 
 ### Changed
 
 - **"Landing Pad" renamed to "Landing"** throughout the Settings tab, main
   panel button, and overlay — same feature, shorter name.
 - **Landing's post-touchdown auto-hide shortened from 15 to 10 seconds.**
+- **Interdiction Warning and Landing overlay colors now match the author's
+  EDDDT project precisely**, rather than approximating it: Interdiction
+  Warning's card and title stay a constant red regardless of state (a
+  fixed safety-signal color, not themed) with only the resolution line
+  itself color-coded (green/red/amber); Landing's card and title now use
+  EDDDT's "Elite Orange" chrome palette (dark, orange-bordered card;
+  orange-toned text hierarchy), with only the status/denied-reason text
+  staying semantically red/green. Interdiction Warning's title also lost
+  its ⚠ emoji, which the overlay's bundled font likely couldn't render.
 
 ## [1.12.0] - 2026-09-03
 

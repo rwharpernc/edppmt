@@ -5,6 +5,7 @@
   "description": "Elite Dangerous PowerPlay Merit Tracker — EDMC plugin",
   "scripts": {
     "build": "node scripts/build.mjs",
-    "package": "node scripts/build.mjs && node scripts/package.mjs"
+    "package": "node scripts/build.mjs && node scripts/package.mjs",
+    "test:overlay": "python scripts/test_overlay.py"
   }
 }
