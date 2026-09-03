@@ -327,15 +327,16 @@ def create_plugin_app(
     _interdiction_toggle_btn = tk.Button(buttons_row, text="Interdiction", command=_on_interdiction_toggle_click)
     _interdiction_toggle_btn.pack(side=tk.LEFT, padx=(0, 6))
     _landing_toggle_btn = tk.Button(buttons_row, text="Landing Pad", command=_on_landing_toggle_click)
-    _landing_toggle_btn.pack(side=tk.LEFT, padx=(0, 8))
-    # The separator itself carries no padx of its own - EDMC's live ttk
-    # theme can style TSeparator with baked-in asymmetric margins, which
-    # made the two sides uneven despite equal padx values here. Putting
-    # the entire gap on the flanking buttons instead (both 8px) keeps it
-    # under this code's control regardless of ttk theming.
-    ttk.Separator(buttons_row, orient=tk.VERTICAL).pack(side=tk.LEFT, fill=tk.Y)
+    _landing_toggle_btn.pack(side=tk.LEFT)
+    # Plain tk.Label, not ttk.Separator - same reasoning as _separator()
+    # above (its own docstring: ttk.Separator picks up its own styling path
+    # that EDMC's theme.update() doesn't touch the same way it does plain tk
+    # widgets, which is what was making the two sides of a padx'd
+    # ttk.Separator render unequal here). A plain Label's padx isn't subject
+    # to that, so this is what actually made the two sides come out equal.
+    tk.Label(buttons_row, text="│").pack(side=tk.LEFT, padx=8)
     rares_button = tk.Button(buttons_row, text="Rares", command=on_show_rares)
-    rares_button.pack(side=tk.LEFT, padx=(8, 6))
+    rares_button.pack(side=tk.LEFT, padx=(0, 6))
     details_button = tk.Button(buttons_row, text="Sessions", command=on_show_details)
     details_button.pack(side=tk.LEFT, padx=(0, 6))
     rescan_button = tk.Button(buttons_row, text="Rescan", command=on_rescan)
