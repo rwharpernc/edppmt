@@ -5,7 +5,34 @@ All notable changes to EDPPMT are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [1.13.1] - 2026-09-03
+
+### Added
+
+- **Landing's in-app display (Settings → Landing → "Show in EDMC app")
+  now includes the pad-layout diagram**, not just the status/pad/
+  denied-reason text line added in 1.13.0 — the same dodecagon (starport)
+  or Large/Medium/Small grid (fleet carrier/squadron carrier/colonisation
+  ship) diagram the overlay draws, at a small fixed size that fits the
+  main panel. Both diagrams are now built from the same shared geometry
+  code, so the overlay and in-app pictures always match. Settings →
+  Landing's "Test Overlay" button now previews the in-app line and diagram
+  too, alongside its existing overlay send.
+
+### Fixed
+
+- **In-app Landing diagram not blending into the panel** — it showed as a
+  visibly mismatched box instead of matching your EDMC theme. Root cause:
+  the canvas was given an explicit `background=` at creation, which made
+  EDMC's theme engine treat it as user-overridden and permanently skip
+  re-theming it, leaving it stuck on Tk's plain default background instead
+  of the live Dark/Light/Transparent theme color every other widget on the
+  panel tracks. The explicit background is gone; the canvas now themes
+  itself the same way the rest of the panel does.
+- **In-app Landing diagram too small to read at a glance** — bumped from a
+  120px to a 200px fixed square (still a hard-coded cap on both axes, per
+  the EDMC-plugin rule that a main-panel widget can never let its size
+  float with content), with bolder lines and a larger pad marker.
 
 ## [1.13.0] - 2026-09-03
 

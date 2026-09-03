@@ -203,6 +203,15 @@ def _toggle_landing() -> bool:
     return cfg.enabled
 
 
+def _update_landing_widgets(text: str, info: Optional[landing.LandingDisplayInfo], carrier_type: landing.CarrierType) -> None:
+    """Runs on the Tk main thread (always called via _ui_frame.after) -
+    updates the in-app text line and pad diagram together, since they're
+    always driven off the same LandingDisplayInfo and should never show
+    two different docking states at once."""
+    ui.set_landing_info(text)
+    ui.set_landing_diagram(info, carrier_type)
+
+
 def _clear_landing_display() -> None:
     """Clears whichever of the Landing overlay/in-app widgets is currently
     turned off, per the live config - called right after a config change
@@ -213,7 +222,7 @@ def _clear_landing_display() -> None:
     in _on_landing_change."""
     cfg = landing.load_config()
     if not (cfg.enabled and cfg.in_app_enabled):
-        ui.set_landing_info("")
+        _update_landing_widgets("", None, None)
     if not (cfg.enabled and cfg.overlay_enabled):
         def worker() -> None:
             try:
@@ -364,7 +373,7 @@ def _on_landing_change(snapshot: landing.LandingSnapshot) -> None:
 
             threading.Thread(target=clear_worker, name="EDPPMT-landing-clear", daemon=True).start()
         if cfg.in_app_enabled and _ui_frame is not None:
-            _ui_frame.after(0, lambda: ui.set_landing_info(""))
+            _ui_frame.after(0, lambda: _update_landing_widgets("", None, None))
         return
 
     info = landing.build_landing_display_info(
@@ -385,7 +394,8 @@ def _on_landing_change(snapshot: landing.LandingSnapshot) -> None:
 
     if cfg.in_app_enabled and _ui_frame is not None:
         text = landing.format_in_app_text(info)
-        _ui_frame.after(0, lambda t=text: ui.set_landing_info(t))
+        carrier_type = snapshot.last_carrier_type
+        _ui_frame.after(0, lambda t=text, i=info, c=carrier_type: _update_landing_widgets(t, i, c))
 
 
 def plugin_prefs(parent, cmdr: str, is_beta: bool):

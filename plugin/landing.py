@@ -561,8 +561,11 @@ _MAX_FLEETCARRIER_PADS = 32  # SquadronCarrier's doubled cluster - the widest ca
 # --- Rendering (overlay.py's OverlayClient is generic; this is the one
 # place that knows what the Landing widget should look like) -------------
 
-_STROKE = "#fb923c"  # orange-400, theme-independent - see below
-_ACTIVE = "#fbbf24"  # amber-400
+# Public (no leading underscore) since ui.py's in-app Canvas diagram (see
+# starport_diagram_geometry/fleetcarrier_diagram_geometry below) draws with
+# these same colors, to look like the same widget as the overlay's.
+STROKE_COLOR = "#fb923c"  # orange-400, theme-independent - see below
+ACTIVE_COLOR = "#fbbf24"  # amber-400
 
 # "Elite Orange" chrome - unlike interdiction.py's card (which stays
 # hardcoded red as a safety signal by design), this widget's chrome
@@ -690,41 +693,80 @@ def _send_or_clear(client: OverlayClient, msg_id: str, text: str, color: str, x:
         client.send_message(msg_id, "", "white", x, y, ttl=1)
 
 
-def _render_starport_diagram(client: OverlayClient, pad: Optional[int]) -> None:
-    r = _DIAGRAM_SIZE / 2 - 8
-    shells = [_starport_shell_points(_DIAGRAM_CX, _DIAGRAM_CY, r, scale) for scale in _SHELL_SCALE]
+# --- Shared diagram geometry (target-agnostic - consumed by both
+# _render_starport_diagram/_render_fleetcarrier_diagram below, which turn
+# it into EDMCOverlay wire messages, and ui.py's in-app Canvas diagram,
+# which turns the exact same numbers into Canvas create_line/create_oval/
+# create_rectangle calls) -------------------------------------------------
 
-    for shape_id, points in zip(_STARPORT_SHELL_IDS, shells):
+_FLEETCARRIER_BOX = (48, 76)  # box_w, box_h - the carrier layout's own unscaled bounding box
+
+
+def starport_diagram_geometry(cx: float, cy: float, diagram_size: float, pad: Optional[int]) -> dict:
+    """Pure pixel-space geometry for the starport pad-layout diagram at the
+    given center/size: {"shells": [4 point-lists], "spokes": [12
+    (outer, inner) point pairs], "marker": (x, y) or None}. No drawing here
+    - so the overlay's EDMCOverlay-specific "vect" messages and ui.py's
+    Tkinter Canvas calls can both build on identical numbers instead of two
+    copies of this math drifting apart."""
+    r = diagram_size / 2 - 8
+    shells = [_starport_shell_points(cx, cy, r, scale) for scale in _SHELL_SCALE]
+    spokes = [(shells[0][i], shells[3][i]) for i in range(12)]
+    marker = _starport_pad_pos(pad, cx, cy, r) if pad is not None else None
+    return {"shells": shells, "spokes": spokes, "marker": marker}
+
+
+def fleetcarrier_diagram_geometry(
+    cx: float, cy: float, diagram_size: float, carrier_type: CarrierType, pad: Optional[int],
+) -> List[Tuple[Tuple[float, float, float, float], bool]]:
+    """Pure pixel-space geometry for the fleet-carrier pad grid: a list of
+    (rect(x1, y1, x2, y2), is_active) - same sharing reasoning as
+    starport_diagram_geometry."""
+    box_w, box_h = _FLEETCARRIER_BOX
+    pad_list = _fleetcarrier_pad_rects(carrier_type)
+    pad_count = len(pad_list)
+    scale = min((diagram_size - 16) / box_w, (diagram_size - 16) / box_h, 4)
+    active_index = ((pad - 1) % pad_count + pad_count) % pad_count if pad is not None and pad_count else -1
+
+    rects: List[Tuple[Tuple[float, float, float, float], bool]] = []
+    for i, (x1, y1, x2, y2) in enumerate(pad_list):
+        sx1, sy1 = cx + x1 * scale, cy - y1 * scale
+        sx2, sy2 = cx + x2 * scale, cy - y2 * scale
+        rects.append(((min(sx1, sx2), min(sy1, sy2), max(sx1, sx2), max(sy1, sy2)), i == active_index))
+    return rects
+
+
+def _render_starport_diagram(client: OverlayClient, pad: Optional[int]) -> None:
+    geometry = starport_diagram_geometry(_DIAGRAM_CX, _DIAGRAM_CY, _DIAGRAM_SIZE, pad)
+
+    for shape_id, points in zip(_STARPORT_SHELL_IDS, geometry["shells"]):
         closed = list(points) + [points[0]]
-        client.send_vector(shape_id, [{"x": x, "y": y} for x, y in closed], _STROKE, ttl=_TTL)
+        client.send_vector(shape_id, [{"x": x, "y": y} for x, y in closed], STROKE_COLOR, ttl=_TTL)
 
     for i, shape_id in enumerate(_STARPORT_SPOKE_IDS):
-        outer, inner = shells[0][i], shells[3][i]
+        outer, inner = geometry["spokes"][i]
         client.send_vector(
-            shape_id, [{"x": outer[0], "y": outer[1]}, {"x": inner[0], "y": inner[1]}], _STROKE, ttl=_TTL,
+            shape_id, [{"x": outer[0], "y": outer[1]}, {"x": inner[0], "y": inner[1]}], STROKE_COLOR, ttl=_TTL,
         )
 
-    if pad is not None:
-        px, py = _starport_pad_pos(pad, _DIAGRAM_CX, _DIAGRAM_CY, r)
+    if geometry["marker"] is not None:
+        px, py = geometry["marker"]
         # No "text" key - the marker itself (an amber circle) is enough to
         # show where the pad is on the diagram; the pad number is already
         # said once, unconditionally, by the "Pad N" status line above (see
         # render()) rather than repeated on the graphic itself.
         client.send_vector(
             _STARPORT_PADMARK_ID,
-            [{"x": px, "y": py, "color": _ACTIVE, "marker": "circle"}],
-            _ACTIVE, ttl=_TTL,
+            [{"x": px, "y": py, "color": ACTIVE_COLOR, "marker": "circle"}],
+            ACTIVE_COLOR, ttl=_TTL,
         )
     else:
         client.send_vector(_STARPORT_PADMARK_ID, [], "", ttl=1)
 
 
 def _render_fleetcarrier_diagram(client: OverlayClient, pad: Optional[int], carrier_type: CarrierType) -> None:
-    box_w, box_h = 48, 76
-    pad_list = _fleetcarrier_pad_rects(carrier_type)
-    pad_count = len(pad_list)
-    scale = min((_DIAGRAM_SIZE - 16) / box_w, (_DIAGRAM_SIZE - 16) / box_h, 4)
-    active_index = ((pad - 1) % pad_count + pad_count) % pad_count if pad is not None and pad_count else -1
+    rects = fleetcarrier_diagram_geometry(_DIAGRAM_CX, _DIAGRAM_CY, _DIAGRAM_SIZE, carrier_type, pad)
+    pad_count = len(rects)
 
     for i, shape_id in enumerate(_FLEETCARRIER_PAD_IDS):
         if i >= pad_count:
@@ -732,15 +774,10 @@ def _render_fleetcarrier_diagram(client: OverlayClient, pad: Optional[int], carr
             # _clear_fleetcarrier_diagram's comment for why.
             client.send_shape(shape_id, "rect", "", "", _DIAGRAM_CX, _DIAGRAM_CY, 0, 0, ttl=1)
             continue
-        x1, y1, x2, y2 = pad_list[i]
-        sx1, sy1 = _DIAGRAM_CX + x1 * scale, _DIAGRAM_CY - y1 * scale
-        sx2, sy2 = _DIAGRAM_CX + x2 * scale, _DIAGRAM_CY - y2 * scale
-        rx, ry = min(sx1, sx2), min(sy1, sy2)
-        w, h = max(int(round(abs(sx2 - sx1))), 1), max(int(round(abs(sy2 - sy1))), 1)
-        is_active = i == active_index
+        (x1, y1, x2, y2), is_active = rects[i]
         client.send_shape(
-            shape_id, "rect", _STROKE, _ACTIVE if is_active else "",
-            int(round(rx)), int(round(ry)), w, h, ttl=_TTL,
+            shape_id, "rect", STROKE_COLOR, ACTIVE_COLOR if is_active else "",
+            int(round(x1)), int(round(y1)), max(int(round(x2 - x1)), 1), max(int(round(y2 - y1)), 1), ttl=_TTL,
         )
 
     # No pad-number label on the graphic itself anymore - the highlighted

@@ -115,6 +115,22 @@ _credits_label: Optional[tk.Label] = None
 _last_event_label: Optional[tk.Label] = None
 _landing_info_label: Optional[tk.Label] = None
 _landing_info_text: str = ""
+_landing_diagram_canvas: Optional[tk.Canvas] = None
+_landing_diagram_visible: bool = False
+
+# Fixed on both axes regardless of diagram family/pad count/game window
+# resolution - the in-app counterpart to landing.py's own _DIAGRAM_SIZE
+# (which is fixed for the same reason on the overlay side). Must never be
+# derived from anything variable, per the EDMC-plugin rule that a
+# plugin_app widget can't let unbounded content dictate its own size -
+# doing so would widen EDMC's main window for every plugin, not just this
+# one, since EDMC sizes the window to the widest row across all of them.
+# The third-party LandingPad plugin this feature is inspired by instead
+# resizes its own canvas to the EDMC panel's full current width with no
+# upper bound at all - exactly the pattern that rule exists to prevent, so
+# it's deliberately not replicated here even though this constant is sized
+# up from an earlier, harder-to-read 120px.
+_LANDING_DIAGRAM_SIZE = 200
 _version_label: Optional[HyperlinkLabel] = None
 _ratio_vars: Dict[str, tk.StringVar] = {}
 _auto_update_var: Optional[tk.BooleanVar] = None
@@ -234,7 +250,8 @@ def create_plugin_app(
     """Create the main-window frame for EDMC."""
     global _frame, _status_label, _mode_label, _system_label, _here_merits_label, _here_cp_label
     global _merits_label, _cp_label, _credits_label
-    global _last_event_label, _landing_info_label, _version_label, _title_label, _collapsed, _collapsible_widgets
+    global _last_event_label, _landing_info_label, _landing_diagram_canvas
+    global _version_label, _title_label, _collapsed, _collapsible_widgets
     global _autohonk_toggle_btn, _interdiction_toggle_btn, _landing_toggle_btn
     global _on_toggle_autohonk, _on_toggle_interdiction, _on_toggle_landing, _toggle_off_colors
 
@@ -357,6 +374,29 @@ def create_plugin_app(
     _landing_info_label.grid(row=14, column=0, columnspan=3, sticky=tk.W, pady=(4, 0))
     _landing_info_label.grid_remove()
 
+    # Landing's in-app pad-layout diagram, drawn straight onto a Canvas
+    # rather than an image — same shared geometry (landing.
+    # starport_diagram_geometry/fleetcarrier_diagram_geometry) the overlay
+    # draws from, so the two widgets show the same picture, just through
+    # very different drawing APIs. Fixed width AND height (_LANDING_DIAGRAM_SIZE)
+    # regardless of diagram family/pad count — see that constant's own
+    # comment for why this can't be allowed to float with content.
+    # No explicit background= here (unlike _version_label's HyperlinkLabel
+    # trick above) — theme.update() below DOES recolor plain tk.Canvas
+    # widgets on its own (it special-cases `isinstance(widget, tk.Canvas)`),
+    # but only when the widget hasn't already been given an explicit,
+    # non-default background at construction; passing one here previously
+    # made EDMC's theme engine treat it as user-overridden and permanently
+    # skip re-theming it, leaving the canvas stuck showing Tk's plain
+    # default background (visibly mismatched against a dark/transparent
+    # theme) instead of tracking the live theme like every other widget on
+    # this panel.
+    _landing_diagram_canvas = tk.Canvas(
+        _frame, width=_LANDING_DIAGRAM_SIZE, height=_LANDING_DIAGRAM_SIZE, highlightthickness=0,
+    )
+    _landing_diagram_canvas.grid(row=15, column=0, columnspan=3, pady=(4, 0))
+    _landing_diagram_canvas.grid_remove()
+
     # Everything but the title/status/mode/version rows — those stay visible
     # while collapsed (status and mode answer "am I pledged" and "which
     # mode" at a glance, and the version slot's "Updated to vX" confirmation
@@ -365,7 +405,7 @@ def create_plugin_app(
     _collapsible_widgets = [
         separator1, _system_label, _here_merits_label, _here_cp_label, separator2,
         _merits_label, _cp_label, _credits_label, separator3, _last_event_label, buttons_row,
-        _landing_info_label,
+        _landing_info_label, _landing_diagram_canvas,
     ]
     _apply_collapsed_state()
 
@@ -403,12 +443,15 @@ def _apply_collapsed_state() -> None:
             widget.grid()
     # credits_label's own visibility also depends on whether there's balance
     # data yet (see refresh()) — re-apply that on top of the blanket show
-    # above rather than always forcing it visible on expand. landing_info_label
-    # is the same pattern, gated on set_landing_info's own text instead.
+    # above rather than always forcing it visible on expand. landing_info_label/
+    # landing_diagram_canvas are the same pattern, gated on set_landing_info/
+    # set_landing_diagram's own state instead.
     if not _collapsed and _credits_label is not None and _last_credits_earned is None:
         _credits_label.grid_remove()
     if not _collapsed and _landing_info_label is not None and not _landing_info_text:
         _landing_info_label.grid_remove()
+    if not _collapsed and _landing_diagram_canvas is not None and not _landing_diagram_visible:
+        _landing_diagram_canvas.grid_remove()
 
 
 def _apply_toggle_button_state(button: tk.Button, enabled: bool) -> None:
@@ -1169,7 +1212,11 @@ def _create_landing_section(frame: nb.Frame) -> None:
 
     nb.Label(
         frame,
-        text="(Test Overlay works even while disabled above, and reports whether EDMCOverlay was actually reachable.)",
+        text=(
+            "(Test Overlay works even while disabled above, and reports whether EDMCOverlay was actually "
+            "reachable. It also previews the same scenario on the main panel below the buttons, regardless "
+            "of the checkboxes above, so you can check the in-app diagram too.)"
+        ),
         wraplength=440,
         justify=tk.LEFT,
     ).grid(row=5, column=0, columnspan=2, sticky=tk.W, padx=10, pady=(0, 10))
@@ -1191,9 +1238,22 @@ def _update_landing_dependent_state() -> None:
 def _test_landing() -> None:
     """Simulates a "Docking Approved" state (a starport, Pad 24) through the
     real render() path, against whatever host/port is currently in the
-    dialog (even if not yet saved) - same reasoning as _test_interdiction."""
+    dialog (even if not yet saved) - same reasoning as _test_interdiction.
+    Also previews the same scenario on the in-app text/diagram (set_landing_info/
+    set_landing_diagram, both synchronous - this runs on the Tk main thread
+    already, being a button click handler), regardless of the "Show in EDMC
+    app"/"Show on Overlay" checkboxes' current state - same "works even
+    while disabled" reasoning the note below already gives for the overlay
+    half, so clicking Test Overlay is one button that previews both."""
     if _landing_result_label is None:
         return
+
+    preview_info = landing.LandingDisplayInfo(
+        status_label="Docking Approved", station="Preview Station", pad=24,
+        diagram_type="starport", show_diagram=True,
+    )
+    set_landing_info(landing.format_in_app_text(preview_info))
+    set_landing_diagram(preview_info, None)
 
     cfg = overlay.OverlayConfig(
         host=_overlay_host_var.get() if _overlay_host_var is not None else overlay.DEFAULT_HOST,
@@ -1204,15 +1264,8 @@ def _test_landing() -> None:
 
     def worker() -> None:
         try:
-            landing.render(
-                landing.LandingDisplayInfo(
-                    status_label="Docking Approved", station="Preview Station", pad=24,
-                    diagram_type="starport", show_diagram=True,
-                ),
-                None,
-                client,
-            )
-            outcome, color = "Sent — check your overlay.", "#2e7d32"
+            landing.render(preview_info, None, client)
+            outcome, color = "Sent — check your overlay (and the main panel below the buttons).", "#2e7d32"
         except OSError as err:
             outcome, color = f"Could not reach EDMCOverlay at {cfg.host}:{cfg.port} ({err}).", "#c07000"
 
@@ -1348,6 +1401,56 @@ def set_landing_info(text: str) -> None:
     else:
         _landing_info_label["text"] = ""
         _landing_info_label.grid_remove()
+
+
+def set_landing_diagram(info: Optional[landing.LandingDisplayInfo], carrier_type: landing.CarrierType) -> None:
+    """Landing's in-app pad-layout diagram — the Canvas counterpart to
+    landing.render()'s overlay diagram, built from the exact same shared,
+    target-agnostic geometry (landing.starport_diagram_geometry/
+    fleetcarrier_diagram_geometry) so the two widgets show the same
+    picture through very different drawing APIs. info=None, or
+    info.show_diagram False, or diagram_type None (denial with no
+    station-type context yet, an outpost with no diagram family, docking
+    idle, ...) hides the canvas entirely — same show/hide pattern as
+    set_landing_info, and always called alongside it from load.py."""
+    global _landing_diagram_visible
+    canvas = _landing_diagram_canvas
+    if canvas is None:
+        return
+
+    canvas.delete("all")
+    show = info is not None and info.show_diagram and info.diagram_type is not None
+    _landing_diagram_visible = show
+    if not show:
+        canvas.grid_remove()
+        return
+
+    cx = cy = _LANDING_DIAGRAM_SIZE / 2
+    if info.diagram_type == "starport":
+        geometry = landing.starport_diagram_geometry(cx, cy, _LANDING_DIAGRAM_SIZE, info.pad)
+        for shell in geometry["shells"]:
+            closed = list(shell) + [shell[0]]
+            canvas.create_line(*[c for point in closed for c in point], fill=landing.STROKE_COLOR, width=2)
+        for outer, inner in geometry["spokes"]:
+            canvas.create_line(outer[0], outer[1], inner[0], inner[1], fill=landing.STROKE_COLOR, width=2)
+        if geometry["marker"] is not None:
+            mx, my = geometry["marker"]
+            radius = 6  # fixed - just enough to read as a marker at this widget's own compact size
+            canvas.create_oval(
+                mx - radius, my - radius, mx + radius, my + radius,
+                outline=landing.ACTIVE_COLOR, width=3,
+            )
+    elif info.diagram_type == "fleetcarrier":
+        for (x1, y1, x2, y2), is_active in landing.fleetcarrier_diagram_geometry(
+            cx, cy, _LANDING_DIAGRAM_SIZE, carrier_type, info.pad,
+        ):
+            canvas.create_rectangle(
+                x1, y1, x2, y2, outline=landing.STROKE_COLOR, width=2,
+                fill=landing.ACTIVE_COLOR if is_active else "",
+            )
+
+    if not _collapsed:
+        canvas.grid()
 
 
 def set_update_downloading(version: str) -> None:
