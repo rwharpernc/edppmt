@@ -104,6 +104,7 @@ def plugin_start3(plugin_dir: str) -> str:
     _autohonk = autohonk.AutoHonkController()
     _interdiction = interdiction.InterdictionTracker(on_change=_on_interdiction_change)
     _landing = landing.LandingTracker(on_change=_on_landing_change)
+    overlay.register_modern_overlay_group()
 
     applied_version = check_applied_update()
     if applied_version is not None:

@@ -12,10 +12,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`scripts/test_overlay.py`** (`npm run test:overlay`), a standalone
   developer CLI that exercises every Interdiction Warning/Landing overlay
   scenario against a real EDMCOverlay/EDMCModernOverlay instance without
-  EDMC or the game running — see README's "For Developers" section.
+  EDMC running (Elite Dangerous itself still needs to be, for the overlay
+  app to have a window to draw itself onto) — see README's "For
+  Developers" section.
 
 ### Fixed
 
+- **Landing's starport pad diagram still rendering as an "exploded"
+  scattered mess on EDMCModernOverlay**, even after the connection fix
+  below. EDMCModernOverlay has its own "Plugin Group" system specifically
+  for scaling multi-piece vector payloads together as one unit — without
+  registering one, each of the diagram's ~17 separate shape pieces was
+  apparently being scaled/anchored independently around its own tiny
+  bounding box. EDPPMT now registers its payload ids with EDMCModernOverlay
+  on startup (a silent no-op on classic EDMCOverlay, which has no such
+  system and isn't affected by this).
 - **Overlay graphics (Interdiction Warning, Landing) not reliably staying
   on screen, and Landing's pad diagram rendering as broken/incomplete
   pieces.** `overlay.py` was opening a new TCP connection per message and

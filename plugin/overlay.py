@@ -74,6 +74,56 @@ def save_config(cfg: OverlayConfig) -> None:
     config.set(_CFG_PORT, cfg.port)
 
 
+# ID prefixes for every overlay id this plugin ever sends - see
+# register_modern_overlay_group().
+_ID_PREFIXES = ("edppmt_interdiction_", "edppmt_landing_")
+
+
+def register_modern_overlay_group() -> None:
+    """EDMCModernOverlay (unlike classic EDMCOverlay) has a "Plugin Group"
+    concept for exactly this: per its own wiki (Concepts.md), "Plugin
+    Groups exist to handle everything from automatic scaling of Payloads
+    (especially vector images)..." - without registering one, each of
+    Landing's ~17 separate shape ids (shells/spokes/pad marker - all
+    `"vect"` payloads) was apparently being treated as its own independent
+    unit, each anchored/scaled from its own tiny individual bounding box
+    instead of the diagram's shared one - which is what an "exploded",
+    pieces-flying-apart diagram looks like. Registers one group per
+    feature so each's payloads (card + text + diagram, where applicable)
+    scale/anchor together as a single unit.
+
+    `overlay_plugin.overlay_api` is EDMCModernOverlay's own module, only
+    importable when it's installed as a sibling EDMC plugin (its directory
+    gets added to sys.path the same way ours does) - a plain ImportError
+    means either classic EDMCOverlay or no overlay plugin at all, both of
+    which this is a silent no-op for. Safe to call on every
+    plugin_start3 - it's meant to be (`define_plugin_group`'s own docs:
+    "every call rewrites overlay_groupings.json" - that's EDMCModernOverlay's
+    own repo's concern, not something EDPPMT reads or owns)."""
+    try:
+        from overlay_plugin.overlay_api import define_plugin_group  # type: ignore[import-not-found]
+    except ImportError:
+        return
+
+    try:
+        define_plugin_group(
+            plugin_name="EDPPMT",
+            plugin_matching_prefixes=list(_ID_PREFIXES),
+            plugin_group_name="Interdiction",
+            plugin_group_prefixes=["edppmt_interdiction_"],
+        )
+        define_plugin_group(
+            plugin_name="EDPPMT",
+            plugin_matching_prefixes=list(_ID_PREFIXES),
+            plugin_group_name="Landing",
+            plugin_group_prefixes=["edppmt_landing_"],
+        )
+    except Exception:
+        # Registration is a cosmetic best-effort nicety, not something that
+        # should ever be able to break plugin startup or overlay sends.
+        logger.debug("Could not register EDMCModernOverlay plugin group", exc_info=True)
+
+
 class OverlayClient:
     """Holds one persistent connection open for the client's whole lifetime
     (see the module docstring for why this is required, not just an

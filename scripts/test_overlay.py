@@ -7,8 +7,15 @@ diagram family, the no-diagram text fallback, denied/approved/requested)
 against a *real* running EDMCOverlay or EDMCModernOverlay instance, using
 the actual plugin/overlay.py, plugin/interdiction.py, and plugin/landing.py
 code - not a reimplementation, so what you see here is exactly what ships.
-Neither EDMC nor Elite Dangerous need to be running; only the overlay
-helper app does.
+
+EDMC itself does NOT need to be running - this talks straight to the
+overlay helper app's TCP socket. Elite Dangerous DOES need to be running
+(the overlay app tracks the live game window to position and size itself
+against; both classic EDMCOverlay and EDMCModernOverlay's non-standalone
+mode draw nothing at all without one to follow - this script sends the
+graphics either way and they're received and stored server-side, but
+nothing appears on screen until there's a game window for the overlay to
+draw itself onto).
 
 Usage:
     python scripts/test_overlay.py [--host 127.0.0.1] [--port 5010]
@@ -163,7 +170,9 @@ def main() -> None:
     clear_all_index = len(scenarios) - 1
 
     print(f"EDPPMT overlay tester - target {args.host}:{args.port}")
-    print("EDMCOverlay or EDMCModernOverlay must already be running there - EDMC and the game don't need to be.")
+    print("EDMCOverlay or EDMCModernOverlay must already be running there - EDMC doesn't need to be, but")
+    print("Elite Dangerous DOES: the overlay app draws nothing without a live game window to attach to,")
+    print("even though it'll still happily receive and store whatever this script sends either way.")
     print("Leave this running while you look at the overlay - quitting (q) disconnects, and everything this")
     print("tool sent disappears immediately when it does (same as closing EDMC would for the real plugin).\n")
 
