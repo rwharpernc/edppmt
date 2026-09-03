@@ -25,8 +25,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   **Interdiction**, **Landing Pad** — flip each feature on or off without
   opening Settings, turning green while enabled. They share the main
   panel's existing bottom button row with **Rares**/**Sessions**/**Rescan**,
-  split from them by a vertical divider. Any change here shows up in the
-  Settings tab's own checkbox immediately if it's open, and vice versa.
+  split from them by a vertical divider, and the whole row is now centered
+  under the panel. Any change here shows up in the Settings tab's own
+  checkbox immediately if it's open, and vice versa.
 
 ### Changed
 
