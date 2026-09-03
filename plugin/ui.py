@@ -318,14 +318,20 @@ def create_plugin_app(
     # explicit color set here before that walk happens), a vertical
     # separator, then the window-opening buttons on the right.
     buttons_row = tk.Frame(_frame)
-    buttons_row.grid(row=13, column=0, columnspan=3, sticky=tk.E, pady=(6, 0))
+    # No sticky - centers the row within the full panel width (columnspan=3,
+    # and column 1 already expands via _frame.columnconfigure(1, weight=1))
+    # rather than pinning it to either edge.
+    buttons_row.grid(row=13, column=0, columnspan=3, pady=(6, 0))
     _autohonk_toggle_btn = tk.Button(buttons_row, text="Auto-Honk", command=_on_autohonk_toggle_click)
     _autohonk_toggle_btn.pack(side=tk.LEFT, padx=(0, 6))
     _interdiction_toggle_btn = tk.Button(buttons_row, text="Interdiction", command=_on_interdiction_toggle_click)
     _interdiction_toggle_btn.pack(side=tk.LEFT, padx=(0, 6))
     _landing_toggle_btn = tk.Button(buttons_row, text="Landing Pad", command=_on_landing_toggle_click)
-    _landing_toggle_btn.pack(side=tk.LEFT, padx=(0, 8))
-    ttk.Separator(buttons_row, orient=tk.VERTICAL).pack(side=tk.LEFT, fill=tk.Y, padx=6)
+    _landing_toggle_btn.pack(side=tk.LEFT)
+    # No padx on the buttons flanking the separator on either side (landing
+    # button above, Rares below) - the separator's own symmetric padx is the
+    # sole source of the gap, so it comes out equal on both sides.
+    ttk.Separator(buttons_row, orient=tk.VERTICAL).pack(side=tk.LEFT, fill=tk.Y, padx=8)
     rares_button = tk.Button(buttons_row, text="Rares", command=on_show_rares)
     rares_button.pack(side=tk.LEFT, padx=(0, 6))
     details_button = tk.Button(buttons_row, text="Sessions", command=on_show_details)
