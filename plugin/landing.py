@@ -41,7 +41,14 @@ plugin_name = os.path.basename(os.path.dirname(__file__))
 logger = logging.getLogger(f"{appname}.{plugin_name}")
 
 _CFG_ENABLED = "edppmt_landing_enabled"
+_CFG_OVERLAY_ENABLED = "edppmt_landing_overlay_enabled"
+_CFG_IN_APP_ENABLED = "edppmt_landing_in_app_enabled"
 DEFAULT_ENABLED = False
+# Both mediums default on once the master toggle is on — overlay_enabled/
+# in_app_enabled only exist to let someone turn *one* of the two off, not
+# to require an extra opt-in beyond the existing master Landing toggle.
+DEFAULT_OVERLAY_ENABLED = True
+DEFAULT_IN_APP_ENABLED = True
 
 # How long the overlay keeps showing "Docking Approved" info after touchdown
 # before auto-hiding. An earlier reference implementation of the author's
@@ -66,14 +73,22 @@ _HEARTBEAT_INTERVAL_S = 12.0
 @dataclass
 class LandingConfig:
     enabled: bool = DEFAULT_ENABLED
+    overlay_enabled: bool = DEFAULT_OVERLAY_ENABLED
+    in_app_enabled: bool = DEFAULT_IN_APP_ENABLED
 
 
 def load_config() -> LandingConfig:
-    return LandingConfig(enabled=config.get_bool(_CFG_ENABLED, default=DEFAULT_ENABLED))
+    return LandingConfig(
+        enabled=config.get_bool(_CFG_ENABLED, default=DEFAULT_ENABLED),
+        overlay_enabled=config.get_bool(_CFG_OVERLAY_ENABLED, default=DEFAULT_OVERLAY_ENABLED),
+        in_app_enabled=config.get_bool(_CFG_IN_APP_ENABLED, default=DEFAULT_IN_APP_ENABLED),
+    )
 
 
 def save_config(cfg: LandingConfig) -> None:
     config.set(_CFG_ENABLED, cfg.enabled)
+    config.set(_CFG_OVERLAY_ENABLED, cfg.overlay_enabled)
+    config.set(_CFG_IN_APP_ENABLED, cfg.in_app_enabled)
 
 
 # --- Docking/landing helpers -----------------------------------------
@@ -295,6 +310,27 @@ def build_landing_display_info(
         diagram_type=diagram_type,
         show_diagram=show_diagram,
     )
+
+
+def format_in_app_text(info: LandingDisplayInfo) -> str:
+    """One-line status text for the EDMC main-panel widget (see ui.py's
+    set_landing_info) - the same status/pad/denied-reason facts as the
+    overlay's text column (render(), below), just condensed onto one line
+    for a fixed-width app panel instead of the overlay's dedicated lines.
+    Bounded by construction - station names are the only unbounded input,
+    and the caller wraps this through ui.py's existing wraplength-tracking
+    label rather than letting it stretch the main window."""
+    if not info.status_label:
+        return ""
+    parts = [info.status_label]
+    if info.station:
+        parts.append(info.station)
+    if info.pad is not None:
+        parts.append(f"Pad {info.pad}")
+    text = " — ".join(parts)
+    if info.status_label == "Docking Denied":
+        text += f" ({info.denied_reason or 'Unknown'})"
+    return text
 
 
 # --- State machine ------------------------------------------------------
@@ -527,7 +563,6 @@ _MAX_FLEETCARRIER_PADS = 32  # SquadronCarrier's doubled cluster - the widest ca
 
 _STROKE = "#fb923c"  # orange-400, theme-independent - see below
 _ACTIVE = "#fbbf24"  # amber-400
-_LABEL_ON_ACTIVE = "#0f172a"  # slate-900 (dark text on the amber fill)
 
 # "Elite Orange" chrome - unlike interdiction.py's card (which stays
 # hardcoded red as a safety signal by design), this widget's chrome
@@ -671,9 +706,13 @@ def _render_starport_diagram(client: OverlayClient, pad: Optional[int]) -> None:
 
     if pad is not None:
         px, py = _starport_pad_pos(pad, _DIAGRAM_CX, _DIAGRAM_CY, r)
+        # No "text" key - the marker itself (an amber circle) is enough to
+        # show where the pad is on the diagram; the pad number is already
+        # said once, unconditionally, by the "Pad N" status line above (see
+        # render()) rather than repeated on the graphic itself.
         client.send_vector(
             _STARPORT_PADMARK_ID,
-            [{"x": px, "y": py, "color": _ACTIVE, "marker": "circle", "text": str(pad)}],
+            [{"x": px, "y": py, "color": _ACTIVE, "marker": "circle"}],
             _ACTIVE, ttl=_TTL,
         )
     else:
@@ -687,7 +726,6 @@ def _render_fleetcarrier_diagram(client: OverlayClient, pad: Optional[int], carr
     scale = min((_DIAGRAM_SIZE - 16) / box_w, (_DIAGRAM_SIZE - 16) / box_h, 4)
     active_index = ((pad - 1) % pad_count + pad_count) % pad_count if pad is not None and pad_count else -1
 
-    active_rect: Optional[Tuple[float, float, float, float]] = None
     for i, shape_id in enumerate(_FLEETCARRIER_PAD_IDS):
         if i >= pad_count:
             # Parked at the diagram's own center, not (0, 0) - see
@@ -700,33 +738,18 @@ def _render_fleetcarrier_diagram(client: OverlayClient, pad: Optional[int], carr
         rx, ry = min(sx1, sx2), min(sy1, sy2)
         w, h = max(int(round(abs(sx2 - sx1))), 1), max(int(round(abs(sy2 - sy1))), 1)
         is_active = i == active_index
-        if is_active:
-            active_rect = (rx, ry, rx + w, ry + h)
         client.send_shape(
             shape_id, "rect", _STROKE, _ACTIVE if is_active else "",
             int(round(rx)), int(round(ry)), w, h, ttl=_TTL,
         )
 
-    if active_rect is not None and pad is not None:
-        rx, ry, rx2, ry2 = active_rect
-        # Dark text (matches the reference diagram's label fill) - it sits
-        # directly on top of the rect's own amber (_ACTIVE) fill, so
-        # amber-on-amber here would be illegible. The starport pad marker
-        # doesn't have this problem: its "circle" vect marker is
-        # stroke-only (EDMCOverlay never fills a vect marker), so its
-        # amber label text sits on the game background, not a fill.
-        # No text-measurement API is available (same caveat as the card
-        # layout above), so centering is a per-digit-count estimate rather
-        # than a single fixed offset - a flat offset tuned for "24" left
-        # single-digit pads ("3") visibly off-center to one side.
-        digits = len(str(pad))
-        label_x = int(round((rx + rx2) / 2)) - 3 * digits
-        label_y = int(round((ry + ry2) / 2)) - 6
-        client.send_message(_FLEETCARRIER_LABEL_ID, str(pad), _LABEL_ON_ACTIVE, label_x, label_y, ttl=_TTL)
-    else:
-        # Parked at the diagram's own center, not (0, 0) - see
-        # _clear_fleetcarrier_diagram's comment for why.
-        client.send_message(_FLEETCARRIER_LABEL_ID, "", "white", _DIAGRAM_CX, _DIAGRAM_CY, ttl=1)
+    # No pad-number label on the graphic itself anymore - the highlighted
+    # (amber-filled) rect already shows which pad, and the "Pad N" status
+    # line above the diagram (see render()) already says the number once,
+    # unconditionally. _FLEETCARRIER_LABEL_ID is always cleared here rather
+    # than dropped entirely, parked at the diagram's own center (not
+    # (0, 0)) - see _clear_fleetcarrier_diagram's comment for why.
+    client.send_message(_FLEETCARRIER_LABEL_ID, "", "white", _DIAGRAM_CX, _DIAGRAM_CY, ttl=1)
 
 
 def _clear_starport_diagram(client: OverlayClient) -> None:

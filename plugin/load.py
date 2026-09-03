@@ -189,11 +189,39 @@ def _toggle_interdiction() -> bool:
 
 
 def _toggle_landing() -> bool:
-    """Main-panel Landing button - same reasoning as _toggle_interdiction."""
+    """Main-panel Landing button - same reasoning as _toggle_interdiction.
+    Unlike the overlay (which just goes stale and expires on its own ttl -
+    see _on_landing_change), the in-app label has no such self-expiry, so
+    turning Landing off here clears both displays immediately rather than
+    leaving a docking status up until the next journal event happens to
+    refresh it."""
     cfg = landing.load_config()
     cfg.enabled = not cfg.enabled
     landing.save_config(cfg)
+    if not cfg.enabled:
+        _clear_landing_display()
     return cfg.enabled
+
+
+def _clear_landing_display() -> None:
+    """Clears whichever of the Landing overlay/in-app widgets is currently
+    turned off, per the live config - called right after a config change
+    (main-panel button or Settings save) so a toggle takes effect right
+    away. Called from the same thread as the caller (Tk main thread in
+    both cases - a button click handler or Settings' prefs_changed), so the
+    in-app label is safe to touch directly, unlike the journal-event path
+    in _on_landing_change."""
+    cfg = landing.load_config()
+    if not (cfg.enabled and cfg.in_app_enabled):
+        ui.set_landing_info("")
+    if not (cfg.enabled and cfg.overlay_enabled):
+        def worker() -> None:
+            try:
+                landing.clear(_overlay)
+            except OSError:
+                logger.debug("Could not reach EDMCOverlay to clear landing pad overlay", exc_info=True)
+
+        threading.Thread(target=worker, name="EDPPMT-landing-clear", daemon=True).start()
 
 
 def _rescan_journal() -> None:
@@ -317,18 +345,26 @@ def _on_interdiction_change(snapshot: interdiction.InterdictionSnapshot) -> None
 def _on_landing_change(snapshot: landing.LandingSnapshot) -> None:
     """Called synchronously from _dispatch/journal_entry (EDMC's own calling
     thread) on every docking-state change - see _on_interdiction_change for
-    why the actual overlay send is pushed onto a background thread."""
-    if not landing.load_config().enabled:
+    why the actual overlay send is pushed onto a background thread. The
+    in-app label update is marshalled onto the Tk main thread via
+    _ui_frame.after instead (same as _on_update_downloading/_on_update_ready)
+    rather than touched directly here, since journal_entry's calling thread
+    isn't guaranteed to be Tk's."""
+    cfg = landing.load_config()
+    if not cfg.enabled:
         return
 
     if snapshot.docked and snapshot.hidden_after_landing:
-        def clear_worker() -> None:
-            try:
-                landing.clear(_overlay)
-            except OSError:
-                logger.debug("Could not reach EDMCOverlay to clear landing pad overlay", exc_info=True)
+        if cfg.overlay_enabled:
+            def clear_worker() -> None:
+                try:
+                    landing.clear(_overlay)
+                except OSError:
+                    logger.debug("Could not reach EDMCOverlay to clear landing pad overlay", exc_info=True)
 
-        threading.Thread(target=clear_worker, name="EDPPMT-landing-clear", daemon=True).start()
+            threading.Thread(target=clear_worker, name="EDPPMT-landing-clear", daemon=True).start()
+        if cfg.in_app_enabled and _ui_frame is not None:
+            _ui_frame.after(0, lambda: ui.set_landing_info(""))
         return
 
     info = landing.build_landing_display_info(
@@ -336,15 +372,20 @@ def _on_landing_change(snapshot: landing.LandingSnapshot) -> None:
         snapshot.last_station_type, snapshot.last_carrier_type,
     )
 
-    def worker() -> None:
-        try:
-            landing.render(info, snapshot.last_carrier_type, _overlay)
-        except OSError:
-            # EDMCOverlay isn't running/reachable - expected and silent on
-            # the live path, same as _on_interdiction_change.
-            logger.debug("Could not reach EDMCOverlay for landing pad overlay", exc_info=True)
+    if cfg.overlay_enabled:
+        def worker() -> None:
+            try:
+                landing.render(info, snapshot.last_carrier_type, _overlay)
+            except OSError:
+                # EDMCOverlay isn't running/reachable - expected and silent on
+                # the live path, same as _on_interdiction_change.
+                logger.debug("Could not reach EDMCOverlay for landing pad overlay", exc_info=True)
 
-    threading.Thread(target=worker, name="EDPPMT-landing-render", daemon=True).start()
+        threading.Thread(target=worker, name="EDPPMT-landing-render", daemon=True).start()
+
+    if cfg.in_app_enabled and _ui_frame is not None:
+        text = landing.format_in_app_text(info)
+        _ui_frame.after(0, lambda t=text: ui.set_landing_info(t))
 
 
 def plugin_prefs(parent, cmdr: str, is_beta: bool):
@@ -360,6 +401,7 @@ def prefs_changed(cmdr: str, is_beta: bool) -> None:
         # rather than only on EDMC's next restart.
         _autohonk.reload_config()
     ui.sync_toggle_buttons()  # main-panel buttons reflect whatever Settings just saved
+    _clear_landing_display()  # a Landing/overlay/in-app checkbox just turned off takes effect immediately
     if _sessions is not None:
         _sessions.flush()
 

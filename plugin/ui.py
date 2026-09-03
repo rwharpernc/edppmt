@@ -113,6 +113,8 @@ _merits_label: Optional[tk.Label] = None
 _cp_label: Optional[tk.Label] = None
 _credits_label: Optional[tk.Label] = None
 _last_event_label: Optional[tk.Label] = None
+_landing_info_label: Optional[tk.Label] = None
+_landing_info_text: str = ""
 _version_label: Optional[HyperlinkLabel] = None
 _ratio_vars: Dict[str, tk.StringVar] = {}
 _auto_update_var: Optional[tk.BooleanVar] = None
@@ -176,6 +178,8 @@ _interdiction_result_label: Optional[tk.Label] = None
 _interdiction_dependent_widgets: List[tk.Widget] = []
 
 _landing_enabled_var: Optional[tk.BooleanVar] = None
+_landing_overlay_var: Optional[tk.BooleanVar] = None
+_landing_in_app_var: Optional[tk.BooleanVar] = None
 _landing_result_label: Optional[tk.Label] = None
 
 # Host/port fields here are the SAME _overlay_host_var/_overlay_port_var
@@ -230,7 +234,7 @@ def create_plugin_app(
     """Create the main-window frame for EDMC."""
     global _frame, _status_label, _mode_label, _system_label, _here_merits_label, _here_cp_label
     global _merits_label, _cp_label, _credits_label
-    global _last_event_label, _version_label, _title_label, _collapsed, _collapsible_widgets
+    global _last_event_label, _landing_info_label, _version_label, _title_label, _collapsed, _collapsible_widgets
     global _autohonk_toggle_btn, _interdiction_toggle_btn, _landing_toggle_btn
     global _on_toggle_autohonk, _on_toggle_interdiction, _on_toggle_landing, _toggle_off_colors
 
@@ -342,6 +346,17 @@ def create_plugin_app(
     rescan_button = tk.Button(buttons_row, text="Rescan", command=on_rescan)
     rescan_button.pack(side=tk.LEFT)
 
+    # Landing's in-app counterpart to its overlay widget (Settings → Landing
+    # → "Show in EDMC app") — docking status/pad/denied-reason, mirrored via
+    # landing.format_in_app_text. Uses the same wraplength-tracking label as
+    # every other unbounded-text row on this panel (_wrap_label) rather than
+    # a fixed width, so a long station name wraps instead of stretching the
+    # whole EDMC window — see set_landing_info. Hidden until there's
+    # something to show, same pattern as _credits_label.
+    _landing_info_label = _wrap_label(_frame, text="")
+    _landing_info_label.grid(row=14, column=0, columnspan=3, sticky=tk.W, pady=(4, 0))
+    _landing_info_label.grid_remove()
+
     # Everything but the title/status/mode/version rows — those stay visible
     # while collapsed (status and mode answer "am I pledged" and "which
     # mode" at a glance, and the version slot's "Updated to vX" confirmation
@@ -350,6 +365,7 @@ def create_plugin_app(
     _collapsible_widgets = [
         separator1, _system_label, _here_merits_label, _here_cp_label, separator2,
         _merits_label, _cp_label, _credits_label, separator3, _last_event_label, buttons_row,
+        _landing_info_label,
     ]
     _apply_collapsed_state()
 
@@ -387,9 +403,12 @@ def _apply_collapsed_state() -> None:
             widget.grid()
     # credits_label's own visibility also depends on whether there's balance
     # data yet (see refresh()) — re-apply that on top of the blanket show
-    # above rather than always forcing it visible on expand.
+    # above rather than always forcing it visible on expand. landing_info_label
+    # is the same pattern, gated on set_landing_info's own text instead.
     if not _collapsed and _credits_label is not None and _last_credits_earned is None:
         _credits_label.grid_remove()
+    if not _collapsed and _landing_info_label is not None and not _landing_info_text:
+        _landing_info_label.grid_remove()
 
 
 def _apply_toggle_button_state(button: tk.Button, enabled: bool) -> None:
@@ -1071,9 +1090,12 @@ def _test_interdiction() -> None:
 
 def _create_landing_section(frame: nb.Frame) -> None:
     """Landing: draws docking status (requested/approved/denied) and a
-    pad-layout diagram on the in-game overlay, via the same EDMCOverlay
-    helper app as Interdiction Warning."""
-    global _landing_enabled_var, _overlay_host_var, _overlay_port_var
+    pad-layout diagram on the in-game overlay, and/or shows the same pad
+    number + approval/denial reason as a line on the EDMC main panel
+    itself. The overlay draws via the same EDMCOverlay helper app as
+    Interdiction Warning; the in-app line needs no helper app at all."""
+    global _landing_enabled_var, _landing_overlay_var, _landing_in_app_var
+    global _overlay_host_var, _overlay_port_var
     global _landing_result_label, _landing_dependent_widgets
 
     landing_cfg = landing.load_config()
@@ -1082,9 +1104,10 @@ def _create_landing_section(frame: nb.Frame) -> None:
     nb.Label(
         frame,
         text=(
-            "Shows docking status and a pad-layout diagram (which pad you're assigned) on your "
-            "in-game overlay while requesting/approaching a dock, via EDMCOverlay, a separate, "
-            "optional helper app EDPPMT does not install or launch itself."
+            "Shows docking status and which pad you're assigned while requesting/approaching a "
+            "dock — on your in-game overlay (a pad-layout diagram too, via EDMCOverlay, a "
+            "separate, optional helper app EDPPMT does not install or launch itself), and/or as "
+            "a line on the EDMC main panel itself, below the quick-toggle buttons."
         ),
         wraplength=440,
         justify=tk.LEFT,
@@ -1097,15 +1120,31 @@ def _create_landing_section(frame: nb.Frame) -> None:
 
     _landing_enabled_var = tk.BooleanVar(value=landing_cfg.enabled)
     nb.Checkbutton(
-        frame, text="Enable Landing overlay", variable=_landing_enabled_var,
+        frame, text="Enable Landing", variable=_landing_enabled_var,
         command=_update_landing_dependent_state,
     ).grid(row=2, column=0, columnspan=2, sticky=tk.W, padx=10, pady=2)
 
+    # Everything below only takes effect once Landing itself is enabled
+    # above, so it's indented and greys out with it — same pattern as
+    # Auto-Honk's sub-block. The two "Show on ..." checkboxes let either
+    # medium be turned off independently while the other stays on; the
+    # master checkbox above is what the main-panel Landing button itself
+    # flips (see ui._on_landing_toggle_click / load._toggle_landing).
     sub = nb.Frame(frame)
     sub.grid(row=3, column=0, columnspan=2, sticky=tk.W, padx=(28, 10))
 
+    _landing_overlay_var = tk.BooleanVar(value=landing_cfg.overlay_enabled)
+    overlay_check = nb.Checkbutton(sub, text="Show on Overlay", variable=_landing_overlay_var)
+    overlay_check.grid(row=0, column=0, sticky=tk.W, pady=2)
+
+    _landing_in_app_var = tk.BooleanVar(value=landing_cfg.in_app_enabled)
+    in_app_check = nb.Checkbutton(
+        sub, text="Show in EDMC app (below the main panel buttons)", variable=_landing_in_app_var,
+    )
+    in_app_check.grid(row=1, column=0, sticky=tk.W, pady=2)
+
     host_row = tk.Frame(sub)
-    host_row.grid(row=0, column=0, sticky=tk.W, pady=2)
+    host_row.grid(row=2, column=0, sticky=tk.W, pady=(6, 2))
     nb.Label(host_row, text="EDMCOverlay host:").pack(side=tk.LEFT)
     # Same connection as Interdiction Warning — _overlay_host_var/_overlay_port_var
     # are reused here rather than duplicated, so there's exactly one set of
@@ -1120,7 +1159,7 @@ def _create_landing_section(frame: nb.Frame) -> None:
     port_entry = nb.EntryMenu(host_row, textvariable=_overlay_port_var, width=6)
     port_entry.pack(side=tk.LEFT, padx=(4, 0))
 
-    _landing_dependent_widgets = [host_entry, port_entry]
+    _landing_dependent_widgets = [overlay_check, in_app_check, host_entry, port_entry]
 
     action_row = tk.Frame(frame)
     action_row.grid(row=4, column=0, columnspan=2, sticky=tk.W, padx=10, pady=(6, 2))
@@ -1221,7 +1260,11 @@ def _save_landing_prefs() -> None:
     if _landing_enabled_var is None:
         return
 
-    landing.save_config(landing.LandingConfig(enabled=bool(_landing_enabled_var.get())))
+    landing.save_config(landing.LandingConfig(
+        enabled=bool(_landing_enabled_var.get()),
+        overlay_enabled=bool(_landing_overlay_var.get()) if _landing_overlay_var is not None else landing.DEFAULT_OVERLAY_ENABLED,
+        in_app_enabled=bool(_landing_in_app_var.get()) if _landing_in_app_var is not None else landing.DEFAULT_IN_APP_ENABLED,
+    ))
     # Reaches the same config keys as _save_interdiction_prefs — harmless to
     # write twice from one _overlay_host_var/_overlay_port_var pair, and
     # keeps this function self-contained if the Interdiction tab is ever
@@ -1286,6 +1329,25 @@ def set_last_event(message: str) -> None:
     if _last_event_label is not None:
         _last_event_label["text"] = message
         _last_event_label["foreground"] = "green"
+
+
+def set_landing_info(text: str) -> None:
+    """Landing's in-app status line (pad number + approval/denial reason),
+    driven by load._on_landing_change with text from
+    landing.format_in_app_text — empty string hides the row entirely
+    (docking idle, feature disabled, or "Show in EDMC app" turned off in
+    Settings), same show/hide pattern as _credits_label."""
+    global _landing_info_text
+    if _landing_info_label is None:
+        return
+    _landing_info_text = text
+    if text:
+        _landing_info_label["text"] = f"Landing: {text}"
+        if not _collapsed:
+            _landing_info_label.grid()
+    else:
+        _landing_info_label["text"] = ""
+        _landing_info_label.grid_remove()
 
 
 def set_update_downloading(version: str) -> None:

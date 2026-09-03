@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.13.0] - 2026-09-03
+
+### Added
+
+- **Landing now shows in the EDMC app itself**, not just the overlay — a
+  new line below the main-panel buttons mirrors the same docking status,
+  assigned pad, and approval/denial reason. Settings → Landing has two new
+  independent checkboxes, "Show on Overlay" and "Show in EDMC app" (both on
+  by default), so either display can be turned off without disabling the
+  other; the main panel's existing "Landing" button (and Settings' "Enable
+  Landing" checkbox) still turns both off at once.
+
+### Changed
+
+- **The pad number is no longer drawn on the Landing diagram graphic
+  itself** — the assigned pad/rect is still highlighted, but the number is
+  only ever shown once, in the "Pad N" status line above the diagram (and
+  now in the EDMC app line too).
+
 ## [1.12.2] - 2026-09-03
 
 ### Fixed
