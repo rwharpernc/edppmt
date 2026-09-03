@@ -7,6 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.12.2] - 2026-09-03
+
+### Fixed
+
+- **Landing's overlay visibly drifting/jumping around the screen on
+  EDMCModernOverlay**, with its pad number sometimes landing off from the
+  pad it labels. Root cause: this widget's card, text, and diagram are all
+  one registered EDMCModernOverlay Plugin Group, and hidden/inactive pieces
+  were being "cleared" by sending them to literal screen coordinate
+  `(0, 0)` at zero size. EDMCModernOverlay's Fill-mode grouping includes
+  every live payload's raw position in its bounding-box calculation
+  regardless of size, so those parked-at-origin payloads were dragging the
+  whole widget's computed anchor toward the top-left corner for as long as
+  they stayed live, then releasing once they expired — a constant,
+  out-of-phase pull as different payloads' ttls ran down on their own
+  schedules. Cleared/inactive payloads are now parked within the widget's
+  own real footprint instead, which keeps the group's bounding box (and
+  therefore its position) stable. Interdiction Warning's card had the same
+  bug and got the same fix.
+- **Fleet-carrier diagram's active-pad number visibly off-center**,
+  worse for single-digit pad numbers than double-digit ones. Its manual
+  centering offset was a single fixed value; it now scales with the pad
+  number's digit count.
+
 ## [1.12.1] - 2026-09-03
 
 ### Added
@@ -70,11 +94,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   panel button, and overlay — same feature, shorter name.
 - **Landing's post-touchdown auto-hide shortened from 15 to 10 seconds.**
 - **Interdiction Warning and Landing overlay colors now match the author's
-  EDDDT project precisely**, rather than approximating it: Interdiction
+  original design precisely**, rather than approximating it: Interdiction
   Warning's card and title stay a constant red regardless of state (a
   fixed safety-signal color, not themed) with only the resolution line
   itself color-coded (green/red/amber); Landing's card and title now use
-  EDDDT's "Elite Orange" chrome palette (dark, orange-bordered card;
+  an "Elite Orange" chrome palette (dark, orange-bordered card;
   orange-toned text hierarchy), with only the status/denied-reason text
   staying semantically red/green. Interdiction Warning's title also lost
   its ⚠ emoji, which the overlay's bundled font likely couldn't render.
@@ -92,9 +116,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   auto-hides. Off by default; draws through
   [EDMCOverlay](https://github.com/inorton/EDMCOverlay) (same connection as
   Interdiction Warning). New Settings → Landing Pad section with a "Test
-  Overlay" button. Ported from the author's sibling project EDDDT, whose
-  pad-diagram geometry itself cites the EDMC LandingPad plugin
-  (bgol/LandingPad) as its original source.
+  Overlay" button. Written by the plugin author; its pad-diagram geometry
+  cites the EDMC LandingPad plugin (bgol/LandingPad) as its original
+  source for the pad-numbering table.
 - **Main-panel quick toggles.** Three new buttons — **Auto-Honk**,
   **Interdiction**, **Landing Pad** — flip each feature on or off without
   opening Settings, turning green while enabled. They share the main
@@ -109,8 +133,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   their text** (and, for Landing Pad, the diagram too) instead of bare
   floating text on the overlay — a translucent dark background with a
   border colored to match the current state (red for a denial/bad outcome,
-  green otherwise), closer to the boxed look of the author's EDDDT overlay
-  widgets. Renders on both the original
+  green otherwise), closer to the boxed look the author was going for.
+  Renders on both the original
   [EDMCOverlay](https://github.com/inorton/EDMCOverlay) and
   [EDMCModernOverlay](https://github.com/SweetJonnySauce/EDMCModernOverlay);
   the newer EDMCModernOverlay additionally gets a crisper, explicit border
@@ -181,10 +205,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   current PowerPlay Controlling Power, columns sized to the dataset's
   longest values and centered under their headings — sorted by distance,
   with double-click opening the rare good's page on Inara. The bundled
-  141-entry dataset (ported from the author's sibling project
-  ED-Rare-Router, coordinates resolved once via EDSM) ships with the
-  plugin and makes no network call; Controlling Power is looked up live
-  from [Spansh](https://www.spansh.co.uk/) instead, since PowerPlay
+  141-entry dataset (compiled by the author, coordinates resolved once via
+  EDSM) ships with the plugin and makes no network call; Controlling Power
+  is looked up live from [Spansh](https://www.spansh.co.uk/) instead, since PowerPlay
   control isn't static like the rest of the dataset — it shows "…" while
   loading and "—" if unclaimed or unreachable.
 - **Interdiction Warning.** Draws a warning on your in-game overlay the
@@ -194,7 +217,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   default; draws through [EDMCOverlay](https://github.com/inorton/EDMCOverlay),
   a separate, optional community tool EDPPMT does not install or launch
   itself. New Settings → Alerts → Interdiction Warning section with a "Test
-  Warning" button. Ported from the author's sibling project EDDDT.
+  Warning" button.
 
 ### Changed
 

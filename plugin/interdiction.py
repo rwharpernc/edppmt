@@ -1,8 +1,8 @@
 """Interdiction Warning: detects an interdiction starting/resolving and
-draws it via overlay.py. Ported from the author's sibling project EDDDT
-(`src/main/interdiction/tracker.ts` + `src/shared/interdiction.ts`) — same
-detection state machine, re-implemented in Python with no Tk import (pure
-detection/rendering logic, like formulas.py/session.py).
+draws it via overlay.py. Written by this plugin's own author against a
+detection state machine from an earlier reference implementation of their
+own, re-implemented in Python with no Tk import (pure detection/rendering
+logic, like formulas.py/session.py).
 
 Detection combines three signals - whichever actually arrives first wins,
 since dashboard_entry (Status.json) and journal_entry (ReceiveText) are two
@@ -22,11 +22,12 @@ same real-world instant:
    "don't stomp already-known identity" guards).
 3. The authoritative "Interdicted"/"EscapeInterdiction" journal events once
    it resolves - these also carry a "Power" field when the interdictor is
-   affiliated with one, which EDDDT's UI doesn't surface but is natural,
-   already-parsed context for a PowerPlay-focused plugin.
+   affiliated with one, which isn't surfaced by the reference
+   implementation's own UI but is natural, already-parsed context for a
+   PowerPlay-focused plugin.
 
-Ephemeral by design - no persistence, mirrors EDDDT's "cheap to rebuild"
-philosophy for this kind of live-only state.
+Ephemeral by design - no persistence, favoring a "cheap to rebuild"
+approach for this kind of live-only state.
 """
 
 from __future__ import annotations
@@ -59,11 +60,11 @@ GRACE_CLEAR_S = 3.0
 # edmc_data.py: FlagsBeingInterdicted = 1 << 23.
 _BEING_INTERDICTED_BIT = 1 << 23
 
-# Ported verbatim from EDDDT's shared/interdiction.ts
-# CHAT_THREAT_PATTERNS/isInterdictionMessage - itself ported from
-# ED-obs-app's lib/cache.js. There it styles NPC chat lines that look like
-# an interdiction taunt; here it's the earliest way to guess who's
-# interdicting before the resolving journal event arrives.
+# Ported verbatim from an earlier reference implementation of the author's
+# own, itself originally from another prior project of theirs. There it
+# styles NPC chat lines that look like an interdiction taunt; here it's
+# the earliest way to guess who's interdicting before the resolving
+# journal event arrives.
 CHAT_THREAT_PATTERNS = (
     "interdict", "interdiction", "drop cargo", "drop your cargo", "yield", "hand over", "open fire",
     "pirate", "bounty hunter", "$pirate", "$bounty", "you're mine", "no escape", "prepare for death",
@@ -292,19 +293,18 @@ _Y_TITLE = 100
 _Y_WHO = 130
 _Y_RESOLUTION = 160
 
-# Colors ported straight from EDDDT's InterdictionWarningWidget.tsx, which
-# deliberately does NOT use its switchable overlay-chrome palette here -
-# its own comment: "its red-alert styling is a safety signal, not chrome,
-# and stays fixed regardless of theme." So unlike landing.py's card (which
-# does follow the Elite Orange chrome palette), this card's border/fill
-# never change with docking/resolution state - only the resolution line's
-# own text color is semantic.
+# This card's styling deliberately does NOT follow a switchable
+# overlay-chrome palette - its red-alert styling is a safety signal, not
+# chrome, and stays fixed regardless of theme. So unlike landing.py's card
+# (which does follow the Elite Orange chrome palette), this card's
+# border/fill never change with docking/resolution state - only the
+# resolution line's own text color is semantic.
 _CARD_BORDER = "#ef4444"  # red-500
 _CARD_FILL = "#f2450a0a"  # red-950 at ~95% alpha
 _TITLE_COLOR = "#f87171"  # red-400
-_WHO_COLOR = "white"  # EDDDT: text-slate-100 (near-white, not red) - the
-# alert color is reserved for the title/resolution, so the identity line
-# reads as plain information rather than more alarm text.
+_WHO_COLOR = "white"  # near-white, not red - the alert color is reserved
+# for the title/resolution, so the identity line reads as plain
+# information rather than more alarm text.
 
 _CARD_X = _X - 20
 _CARD_Y = _Y_TITLE - 26
@@ -347,6 +347,15 @@ def render(snapshot: InterdictionSnapshot, client: OverlayClient) -> None:
 
 
 def _clear(client: OverlayClient) -> None:
-    client.send_shape(_CARD_ID, "rect", "", "", 0, 0, 0, 0, ttl=1)
+    # Parked at the card's own position, not (0, 0) - a zero-size rect at
+    # literal screen-origin still pollutes this widget's registered
+    # EDMCModernOverlay Plugin Group bounding box (confirmed against its
+    # own `accumulate_group_bounds` source, which includes every live
+    # payload's raw x/y regardless of size), dragging the group's
+    # Fill-mode anchor/scale toward the corner for as long as this payload
+    # stays live - see landing.py's `_clear_fleetcarrier_diagram` for the
+    # full writeup of this bug, found while chasing the same symptom
+    # (widget visibly drifting/jumping) there.
+    client.send_shape(_CARD_ID, "rect", "", "", _CARD_X, _CARD_Y, 0, 0, ttl=1)
     for msg_id, y in ((_TITLE_ID, _Y_TITLE), (_WHO_ID, _Y_WHO), (_RESOLUTION_ID, _Y_RESOLUTION)):
         client.send_message(msg_id, "", "white", _X, y, ttl=1)

@@ -1,22 +1,20 @@
 """Landing: docking status + pad-layout diagram, drawn via overlay.py.
 
-Ported from the author's own sibling project EDDDT (`src/shared/docking.ts`
-+ `src/renderer/src/overlay-widgets/LandingOverlayWidget.tsx` +
-`src/renderer/src/components/PadDiagram.tsx`) - EDDDT is this module's
-actual, direct source, not the third-party EDMC LandingPad plugin
-(bgol/LandingPad, GPL-2.0). EDDDT's own diagram geometry cites
-bgol/LandingPad as the original reference for the pad-index numbering (the
-15-entry shell/sector table every implementation needs is dictated by the
-real game's station layout, not an author's creative choice - any
-correct implementation reproduces the same numbers), and this module's
-`_PAD_LIST`/`_PAD_SECTORS`/`_DODECAGON` constants inherit that lineage
-unchanged for the same reason. Everything else here - the docking state
-machine, the status text (title/station/pad number/denied reason, always
-shown even when no diagram renders - see `render()`), the auto-hide timer,
-and the overlay rendering itself (EDMCOverlay `"vect"`/`"rect"` messages,
-via `overlay.py` - written independently against that protocol, not ported
-from bgol/LandingPad's own EDMCOverlay client) - is this project's/EDDDT's
-own code, not bgol/LandingPad's.
+Written by this plugin's own author, not ported from the third-party EDMC
+LandingPad plugin (bgol/LandingPad, GPL-2.0). The one piece that does trace
+back to bgol/LandingPad is the pad-index numbering itself (the 15-entry
+shell/sector table, mirrored unchanged in this module's
+`_PAD_LIST`/`_PAD_SECTORS`/`_DODECAGON` constants) - not because it was
+copied from that plugin's source, but because that table is dictated by the
+real game's actual station layout, not an author's creative choice: any
+correct implementation reproduces the same numbers regardless of lineage.
+Everything else here - the docking state machine, the status text
+(title/station/pad number/denied reason, always shown even when no diagram
+renders - see `render()`), the auto-hide timer, and the overlay rendering
+itself (EDMCOverlay `"vect"`/`"rect"` messages, via `overlay.py` - written
+independently against that protocol, not ported from bgol/LandingPad's own
+EDMCOverlay client) - is this plugin's own original code, not
+bgol/LandingPad's.
 
 Purely journal-driven (DockingRequested/Granted/Denied/Timeout/Cancelled,
 Docked/Undocked, plus FSDJump/CarrierJump/SupercruiseEntry to reset a
@@ -46,9 +44,9 @@ _CFG_ENABLED = "edppmt_landing_enabled"
 DEFAULT_ENABLED = False
 
 # How long the overlay keeps showing "Docking Approved" info after touchdown
-# before auto-hiding. EDDDT's own LandingOverlayWidget uses 15s
-# (HIDE_AFTER_LANDING_MS = 15000) - shortened here per the plugin author's
-# own preference for this port.
+# before auto-hiding. An earlier reference implementation of the author's
+# own used 15s here - shortened to 10s per the plugin author's own
+# preference for this port.
 HIDE_AFTER_LANDING_S = 10.0
 
 # Rendering is event-driven (see render() in landing.py), and each graphic
@@ -78,7 +76,7 @@ def save_config(cfg: LandingConfig) -> None:
     config.set(_CFG_ENABLED, cfg.enabled)
 
 
-# --- Docking/landing helpers (ported from EDDDT's shared/docking.ts) -----
+# --- Docking/landing helpers -----------------------------------------
 
 CarrierType = Optional[str]  # "FleetCarrier" | "SquadronCarrier" | "ColonisationShip" | None
 PadDiagramType = Optional[str]  # "starport" | "fleetcarrier" | None
@@ -264,8 +262,8 @@ def build_landing_display_info(
     last_station_type: str,
     last_carrier_type: CarrierType,
 ) -> LandingDisplayInfo:
-    """One shared derivation, mirrors EDDDT's buildLandingDisplayInfo: while
-    docking.status is 'granted'/'denied'/'pending' that drives the text;
+    """One shared derivation: while docking.status is
+    'granted'/'denied'/'pending' that drives the text;
     once it's cleared (post-touchdown), fall back to the persisted
     docked+last_assigned_pad."""
     diagram_type = get_pad_diagram_type(docking, last_station_type, last_carrier_type)
@@ -299,7 +297,7 @@ def build_landing_display_info(
     )
 
 
-# --- State machine (ported from EDDDT's session-state.ts docking slice) --
+# --- State machine ------------------------------------------------------
 
 _RESET_DOCKING_EVENTS = ("FSDJump", "CarrierJump", "SupercruiseEntry")
 
@@ -320,12 +318,9 @@ class LandingSnapshot:
 
 
 class LandingTracker:
-    """Mirrors EDDDT's SessionState docking fields (`docking`, `docked`,
-    `lastAssignedPad`, `lastStationType`, `lastCarrierType`), plus the
-    overlay widget's own 15s post-touchdown auto-hide timer (dashboard-only
-    state there, since EDDDT's dashboard "Landing" page wants to keep
-    showing it indefinitely - EDPPMT has no equivalent dashboard page, so
-    the auto-hide is folded directly into this tracker)."""
+    """Tracks docking state (`docking`, `docked`, `last_assigned_pad`,
+    `last_station_type`, `last_carrier_type`), plus the overlay widget's
+    own post-touchdown auto-hide timer."""
 
     def __init__(self, on_change: Callable[[LandingSnapshot], None]) -> None:
         self._on_change = on_change
@@ -458,9 +453,9 @@ class LandingTracker:
         self._on_change(self.get_snapshot())
 
 
-# --- Pad diagram geometry (ported from EDDDT's PadDiagram.tsx, itself
-# citing the EDMC LandingPad plugin as the source for this pad-index math -
-# don't "clean up" without re-checking against one of those two references) -
+# --- Pad diagram geometry (this table's ultimate source is the EDMC
+# LandingPad plugin's pad-index math - don't "clean up" without
+# re-checking against it, or against the real game's own station layout) -
 
 _SHELL_SCALE = (1.0, 0.625, 0.455, 0.25)
 _SIN15 = math.sin(math.pi / 12)
@@ -530,17 +525,15 @@ _MAX_FLEETCARRIER_PADS = 32  # SquadronCarrier's doubled cluster - the widest ca
 # --- Rendering (overlay.py's OverlayClient is generic; this is the one
 # place that knows what the Landing widget should look like) -------------
 
-_STROKE = "#fb923c"  # orange-400, matches PadDiagram.tsx (theme-independent there - see below)
-_ACTIVE = "#fbbf24"  # amber-400, matches PadDiagram.tsx
-_LABEL_ON_ACTIVE = "#0f172a"  # slate-900, matches PadDiagram.tsx's LABEL_FILL (dark text on the amber fill)
+_STROKE = "#fb923c"  # orange-400, theme-independent - see below
+_ACTIVE = "#fbbf24"  # amber-400
+_LABEL_ON_ACTIVE = "#0f172a"  # slate-900 (dark text on the amber fill)
 
-# "Elite Orange" chrome, ported from EDDDT's overlay-widgets/theme.ts
-# OVERLAY_THEMES['elite-orange'] - unlike interdiction.py's card (which
-# stays hardcoded red as a safety signal, per EDDDT's own design), this
-# widget's chrome follows EDDDT's switchable palette; "elite-orange" is
-# the one being ported here. Text hierarchy per EDDDT's actual JSX
-# (LandingOverlayWidget.tsx): title -> textPrimary, station/pad/fallback
-# -> textMuted (the dimmest tier - deliberately not textSecondary), and
+# "Elite Orange" chrome - unlike interdiction.py's card (which stays
+# hardcoded red as a safety signal by design), this widget's chrome
+# follows a switchable palette; "elite-orange" is the one in use here.
+# Text hierarchy: title -> textPrimary, station/pad/fallback -> textMuted
+# (the dimmest tier - deliberately not textSecondary), and
 # statusLabel/deniedLabel stay semantic (red/emerald) regardless of theme,
 # same principle as interdiction.py's resolution colors.
 _CHROME_BORDER = "#80f97316"  # orange-500 at 50% alpha
@@ -578,8 +571,8 @@ _Y_FALLBACK = 767
 # (_Y_FALLBACK), which is long enough that it's expected to run past the
 # card's right edge regardless of width - unavoidable without wrapping.
 # Chrome (_CHROME_BORDER/_CHROME_FILL above) is constant - it does not
-# track docking status, matching EDDDT's actual widget (only the
-# statusLabel/deniedLabel text itself is status-colored, not the card).
+# track docking status (only the status/denied-reason text itself is
+# status-colored, not the card).
 _CARD_ID = "edppmt_landing_card"
 _CARD_X = 20
 _CARD_Y = _Y_TITLE - 14
@@ -646,7 +639,9 @@ def render(info: LandingDisplayInfo, carrier_type: CarrierType, client: OverlayC
 
 
 def clear(client: OverlayClient) -> None:
-    client.send_shape(_CARD_ID, "rect", "", "", 0, 0, 0, 0, ttl=1)
+    # Parked at the card's own position, not (0, 0) - see
+    # _clear_fleetcarrier_diagram's comment for why.
+    client.send_shape(_CARD_ID, "rect", "", "", _CARD_X, _CARD_Y, 0, 0, ttl=1)
     for msg_id, y in _STATUS_TEXT_IDS:
         client.send_message(msg_id, "", "white", _TEXT_X, y, ttl=1)
     _clear_starport_diagram(client)
@@ -695,7 +690,9 @@ def _render_fleetcarrier_diagram(client: OverlayClient, pad: Optional[int], carr
     active_rect: Optional[Tuple[float, float, float, float]] = None
     for i, shape_id in enumerate(_FLEETCARRIER_PAD_IDS):
         if i >= pad_count:
-            client.send_shape(shape_id, "rect", "", "", 0, 0, 0, 0, ttl=1)
+            # Parked at the diagram's own center, not (0, 0) - see
+            # _clear_fleetcarrier_diagram's comment for why.
+            client.send_shape(shape_id, "rect", "", "", _DIAGRAM_CX, _DIAGRAM_CY, 0, 0, ttl=1)
             continue
         x1, y1, x2, y2 = pad_list[i]
         sx1, sy1 = _DIAGRAM_CX + x1 * scale, _DIAGRAM_CY - y1 * scale
@@ -712,18 +709,24 @@ def _render_fleetcarrier_diagram(client: OverlayClient, pad: Optional[int], carr
 
     if active_rect is not None and pad is not None:
         rx, ry, rx2, ry2 = active_rect
-        client.send_message(
-            # Dark text (matches PadDiagram.tsx's LABEL_FILL) - it sits
-            # directly on top of the rect's own amber (_ACTIVE) fill, so
-            # amber-on-amber here would be illegible. The starport pad
-            # marker doesn't have this problem: its "circle" vect marker is
-            # stroke-only (EDMCOverlay never fills a vect marker), so its
-            # amber label text sits on the game background, not a fill.
-            _FLEETCARRIER_LABEL_ID, str(pad), _LABEL_ON_ACTIVE,
-            int(round((rx + rx2) / 2)) - 4, int(round((ry + ry2) / 2)) - 6, ttl=_TTL,
-        )
+        # Dark text (matches the reference diagram's label fill) - it sits
+        # directly on top of the rect's own amber (_ACTIVE) fill, so
+        # amber-on-amber here would be illegible. The starport pad marker
+        # doesn't have this problem: its "circle" vect marker is
+        # stroke-only (EDMCOverlay never fills a vect marker), so its
+        # amber label text sits on the game background, not a fill.
+        # No text-measurement API is available (same caveat as the card
+        # layout above), so centering is a per-digit-count estimate rather
+        # than a single fixed offset - a flat offset tuned for "24" left
+        # single-digit pads ("3") visibly off-center to one side.
+        digits = len(str(pad))
+        label_x = int(round((rx + rx2) / 2)) - 3 * digits
+        label_y = int(round((ry + ry2) / 2)) - 6
+        client.send_message(_FLEETCARRIER_LABEL_ID, str(pad), _LABEL_ON_ACTIVE, label_x, label_y, ttl=_TTL)
     else:
-        client.send_message(_FLEETCARRIER_LABEL_ID, "", "white", 0, 0, ttl=1)
+        # Parked at the diagram's own center, not (0, 0) - see
+        # _clear_fleetcarrier_diagram's comment for why.
+        client.send_message(_FLEETCARRIER_LABEL_ID, "", "white", _DIAGRAM_CX, _DIAGRAM_CY, ttl=1)
 
 
 def _clear_starport_diagram(client: OverlayClient) -> None:
@@ -733,6 +736,23 @@ def _clear_starport_diagram(client: OverlayClient) -> None:
 
 
 def _clear_fleetcarrier_diagram(client: OverlayClient) -> None:
+    # Parked at the diagram's own center (_DIAGRAM_CX/_DIAGRAM_CY), not
+    # literal (0, 0) - confirmed against EDMCModernOverlay's own grouping
+    # source (`overlay_client/payload_transform.py`'s
+    # `accumulate_group_bounds`): a Plugin Group's Fill-mode bounding box
+    # includes every live payload's raw (x, y) unconditionally, even a
+    # zero-size rect/blank message that renders nothing. This card's whole
+    # widget (text + diagram) is one registered Plugin Group (see
+    # overlay.register_modern_overlay_group), so a "cleared" payload sent
+    # to (0, 0) was a phantom point at the screen's top-left corner that
+    # dragged the group's computed anchor/scale toward it for as long as
+    # that payload stayed live (its own ttl) - then let go once it expired
+    # and got resent on the next render/heartbeat cycle. With payloads
+    # expiring on their own independent schedules, that pull-and-release
+    # was constant and out of phase, which is what made the whole widget
+    # visibly drift/jump on EDMCModernOverlay. Parking cleared payloads
+    # inside the diagram's own real footprint instead keeps the group's
+    # bounding box - and therefore its anchor/scale - stable.
     for shape_id in _FLEETCARRIER_PAD_IDS:
-        client.send_shape(shape_id, "rect", "", "", 0, 0, 0, 0, ttl=1)
-    client.send_message(_FLEETCARRIER_LABEL_ID, "", "white", 0, 0, ttl=1)
+        client.send_shape(shape_id, "rect", "", "", _DIAGRAM_CX, _DIAGRAM_CY, 0, 0, ttl=1)
+    client.send_message(_FLEETCARRIER_LABEL_ID, "", "white", _DIAGRAM_CX, _DIAGRAM_CY, ttl=1)

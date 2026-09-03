@@ -1,10 +1,10 @@
 """Rare-goods locator: nearest rare commodities to the current system.
 
-Rare-good origins never move, so the dataset (`rare_goods.json`, ported from
-the author's sibling project ED-Rare-Router, coordinates baked in via a
-one-time EDSM lookup — see docs/ATTRIBUTIONS.md) is bundled as a static file
-rather than queried live, consistent with EDPPMT's passive/offline-first
-design (see README "How it works").
+Rare-good origins never move, so the dataset (`rare_goods.json`, compiled by
+this plugin's own author, coordinates baked in via a one-time EDSM lookup —
+see docs/ATTRIBUTIONS.md) is bundled as a static file rather than queried
+live, consistent with EDPPMT's passive/offline-first design (see README
+"How it works").
 """
 
 from __future__ import annotations
