@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.12.1] - 2026-09-03
+
 ### Added
 
 - **`scripts/test_overlay.py`** (`npm run test:overlay`), a standalone
@@ -18,6 +20,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Landing's overlay disappearing before you actually landed**, then
+  popping back up once you did. Every graphic sent to EDMCOverlay carries a
+  ttl, and Landing only refreshed on docking-related journal events — if
+  the approach from Docking Approved to touchdown took longer than that
+  ttl (easy at a large or busy station), the overlay expired and vanished
+  mid-approach with nothing to refresh it, then reappeared once the
+  `Docked` event finally fired. It now refreshes itself on a repeating
+  timer for as long as a docking request is outstanding, so it stays up
+  continuously from approval through touchdown, then auto-hides as before.
+- **Landing's card leaving a large empty gap on its right side**, with the
+  pad diagram crammed off to the left instead of centered. The card is now
+  sized to hug its actual content, and the diagram is centered on its
+  midline.
 - **Landing's starport pad diagram still rendering as an "exploded"
   scattered mess on EDMCModernOverlay**, even after the connection fix
   below. EDMCModernOverlay has its own "Plugin Group" system specifically

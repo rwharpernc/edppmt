@@ -51,6 +51,19 @@ DEFAULT_ENABLED = False
 # own preference for this port.
 HIDE_AFTER_LANDING_S = 10.0
 
+# Rendering is event-driven (see render() in landing.py), and each graphic
+# is sent with a ttl - EDMCOverlay/EDMCModernOverlay expire and remove it
+# client-side once that ttl elapses with no resend. A docking approach from
+# DockingGranted to actually touching down can easily take longer than that
+# ttl (a large or busy station, or just a slow approach) with no further
+# DOCKING_EVENTS firing in between to trigger a fresh render - the overlay
+# would then blink out mid-approach, well before landing. This interval
+# (kept comfortably under landing.py's _TTL=20s, with margin for render
+# latency) re-emits the current snapshot on a repeating timer for as long
+# as a docking request is outstanding, so the widget keeps refreshing
+# itself even when nothing journal-driven happens in between.
+_HEARTBEAT_INTERVAL_S = 12.0
+
 
 @dataclass
 class LandingConfig:
@@ -323,6 +336,7 @@ class LandingTracker:
         self._last_carrier_type: CarrierType = None
         self._hide_timer: Optional[threading.Timer] = None
         self._hidden_after_landing = False
+        self._heartbeat_timer: Optional[threading.Timer] = None
 
     def get_snapshot(self) -> LandingSnapshot:
         return LandingSnapshot(
@@ -393,7 +407,35 @@ class LandingTracker:
         else:
             return
 
+        # Keep the overlay refreshing itself (see _HEARTBEAT_INTERVAL_S)
+        # for as long as a docking request is outstanding (pending/granted/
+        # denied); once it's cleared - Docked (the hide timer takes over
+        # instead), Cancelled, Undocked, or an approach-abandoning reset -
+        # stop, so this timer never outlives the request it's refreshing.
+        if self._docking.status:
+            self._schedule_heartbeat()
+        else:
+            self._clear_heartbeat()
+
         self._emit_changed()
+
+    def _schedule_heartbeat(self) -> None:
+        self._clear_heartbeat()
+
+        def _beat() -> None:
+            self._heartbeat_timer = None
+            if self._docking.status:
+                self._emit_changed()
+                self._schedule_heartbeat()
+
+        self._heartbeat_timer = threading.Timer(_HEARTBEAT_INTERVAL_S, _beat)
+        self._heartbeat_timer.daemon = True
+        self._heartbeat_timer.start()
+
+    def _clear_heartbeat(self) -> None:
+        if self._heartbeat_timer is not None:
+            self._heartbeat_timer.cancel()
+            self._heartbeat_timer = None
 
     def _schedule_hide(self) -> None:
         self._clear_hide_timer()
@@ -519,19 +561,32 @@ _Y_PAD = 721
 _Y_DENIED = 744
 _Y_FALLBACK = 767
 
-_DIAGRAM_CX = 110
-_DIAGRAM_CY = 860
-_DIAGRAM_SIZE = 160
-
 # A translucent card behind the whole widget (status text + diagram),
-# sized to comfortably enclose both the text column and the diagram box
-# below it. Chrome (_CHROME_BORDER/_CHROME_FILL above) is constant - it
-# does not track docking status, matching EDDDT's actual widget (only the
+# sized to hug its actual content rather than leaving dead space - it used
+# to be 420 wide with the diagram anchored at its own fixed cx=110, which
+# left a large empty gap on the card's right side (nothing else in the
+# widget ever reaches that far right). _CARD_W is trimmed to a width that
+# comfortably fits the status text column (title/status/station/pad/denied
+# - a generous character budget, since station names vary and EDMCOverlay
+# gives no text-measurement API to size this exactly) plus the diagram,
+# and the diagram is centered on the card's midline (_DIAGRAM_CX). The
+# status text itself stays left-aligned at _TEXT_X - true per-line
+# centering isn't attempted, since without real glyph widths (see
+# interdiction.py's identical caveat) an estimated-width guess could put
+# text visibly off-center instead of just left-aligned. The one exception
+# is the "no diagram for this station type" fallback sentence
+# (_Y_FALLBACK), which is long enough that it's expected to run past the
+# card's right edge regardless of width - unavoidable without wrapping.
+# Chrome (_CHROME_BORDER/_CHROME_FILL above) is constant - it does not
+# track docking status, matching EDDDT's actual widget (only the
 # statusLabel/deniedLabel text itself is status-colored, not the card).
 _CARD_ID = "edppmt_landing_card"
 _CARD_X = 20
 _CARD_Y = _Y_TITLE - 14
-_CARD_W = 420
+_CARD_W = 320
+_DIAGRAM_CX = _CARD_X + _CARD_W // 2
+_DIAGRAM_CY = 860
+_DIAGRAM_SIZE = 160
 _CARD_H = int(_DIAGRAM_CY + _DIAGRAM_SIZE / 2 + 20 - _CARD_Y)
 
 # Render is event-driven (docking-state changes), not per-frame, so a
