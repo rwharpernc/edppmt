@@ -5,6 +5,14 @@ All notable changes to EDPPMT are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.13.4] - 2026-09-05
+
+### Fixed
+- The overlay's "no pad layout diagram for this station type" message rendered as a single unwrapped
+  line above the pad diagram's box, spilling past the card's right edge instead of sitting inside it.
+  It now word-wraps to fit the card, is drawn at large size, and is vertically centered on the
+  diagram's own footprint — standing in for the diagram instead of floating disconnected above it.
+
 ## [1.13.3] - 2026-09-05
 
 ### Changed
