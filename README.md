@@ -129,6 +129,10 @@ EDPPMT makes network calls only for features you can see are network-backed:
   configure (default `127.0.0.1:5010`) — that's your own machine, not a
   remote service.
 
+Double-clicking a Rare Goods Finder row, or a system link in a "Copy
+Progress" line, opens that page on Inara in your own browser — that's a
+link you click, not a request EDPPMT makes on its own.
+
 No telemetry, and no merit/session data is ever sent anywhere. Session
 history lives in `sessions.json` inside the plugin folder and is never
 touched by an update — only deleting the plugin folder removes it.
