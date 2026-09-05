@@ -1,5 +1,5 @@
 """
-EDPPMT entry point for Elite Dangerous Market Connector.
+EDPPMT — Elite Dangerous: PowerPlay Merit Tracker — plugin entry point.
 
 Tracks PowerPlay merits earned per session (auto-bounded by game login),
 estimates the Control Points those merits represent for Acquisition,

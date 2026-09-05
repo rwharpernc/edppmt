@@ -5,6 +5,29 @@ All notable changes to EDPPMT are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.13.3] - 2026-09-05
+
+### Changed
+- Main panel now starts collapsed by default (`edppmt_main_collapsed` now defaults to `true`) — every
+  plugin from this developer now starts minimized on first launch until a commander opts into the
+  expanded view; an existing install's already-saved preference is unaffected either way.
+- Main-panel title changed from "EDPPMT:" to "PowerPlay Merit Tracker (EDPPMT)" for clarity in a
+  multi-plugin EDMC install.
+
+### Fixed
+- The collapsible header title rendered in the regular font weight instead of bold, inconsistent with
+  every other plugin's own header (ED-PLG/EDMRT/EDMMM/EDSSC/Boxelator all use a bold title). Added the
+  same `_bold_font` helper and applied it to `_title_label`.
+- Expanding the collapsed section could grow the whole EDMC main window: the single row holding all six
+  buttons (quick toggles, divider, Rares/Sessions/Rescan) was wider than every other row on the panel,
+  so the first time it became visible it — not any wrapping text row — pushed the window wider to fit
+  it. Split into two half-width rows (toggles, then window-openers) so neither can exceed the panel's
+  already-established width.
+- A separator's fixed 46-dash guess could, for the same reason, become the panel's widest row the
+  moment its section first became visible. Separators now start at a short, safely-narrow dash count
+  and are widened to match the frame's already-established width, the same rule already applied to
+  wrapping text labels.
+
 ## [1.13.2] - 2026-09-05
 
 ### Fixed

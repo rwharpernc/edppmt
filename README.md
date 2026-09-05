@@ -5,7 +5,7 @@
 A lightweight [Elite Dangerous Market Connector](https://github.com/EDCD/EDMarketConnector) (EDMC) plugin that tracks the PowerPlay merits you earn as you play, estimates the Control Points (CP) and credits they represent, and keeps a history of every session — live, automatically, with no setup beyond installing it. EDPPMT never touches the game itself; it only reads *Elite Dangerous*'s own journal files via EDMC, the same way EDMC does.
 
 **Author:** R.W. Harper (CMDR Bocheaux)
-**Version:** 1.13.2
+**Version:** 1.13.3
 **License:** [MIT](LICENSE)
 
 ---
@@ -58,9 +58,9 @@ If you turn it on for a copy you're actively hand-editing (developing, not just 
 
 Pledged Power and rank on its own line (e.g. `Pledged to Yuri Grom (Rank 3)`), then which game mode you're playing in right now (`Mode: Open`, `Mode: Solo`, or `Mode: Private (<group name>)`), the current system and its PowerPlay state (e.g. `System: Nervi — Exploited (Zachary Hudson)`), two **"Here"** lines — a merit count, then the full CP breakdown (Acquisition/Reinforcement/Undermining, all three shown even at zero) — for *just the system you're in right now* — it switches the instant you jump, and keeps an accurate running total per system if you backtrack to somewhere you've already worked this session — and, below that, the session-wide merits/CP totals and credits earned, updated as journal events arrive. If your commander isn't pledged, it says so directly: `CMDR <name>: not a PP Pledge`. Rows that don't have real data yet show placeholder text ("Awaiting system data…", "Here: awaiting system data…", "Session merits: 0", etc.) rather than sitting blank, and the panel is refreshed with whatever session was already saved from your last run immediately on EDMC startup.
 
-Click the **"▾ EDPPMT:"** title to collapse everything below the mode row down to one line — handy when you don't need it taking up space — and click again (**"▸ EDPPMT:"**) to expand; the collapsed/expanded state is remembered across restarts. The title/pledge-status/mode rows stay visible either way.
+Click the **"▾ PowerPlay Merit Tracker (EDPPMT)"** title to collapse everything below the mode row down to one line — handy when you don't need it taking up space — and click again (**"▸ PowerPlay Merit Tracker (EDPPMT)"**) to expand; the collapsed/expanded state is remembered across restarts. On first install the panel starts collapsed; an existing install's already-saved preference is unaffected. The title/pledge-status/mode rows stay visible either way.
 
-**Buttons** — one centered row at the bottom, quick-toggles on the left and window-opening buttons on the right, split by a vertical divider:
+**Buttons** — two centered rows at the bottom: quick-toggles on top, window-opening buttons below:
 
 | Button | What it does |
 |---|---|

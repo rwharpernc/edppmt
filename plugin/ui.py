@@ -8,6 +8,7 @@ import threading
 from typing import Callable, Dict, List, Optional, Tuple
 
 import tkinter as tk
+import tkinter.font as tkfont
 from tkinter import ttk
 
 import myNotebook as nb
@@ -85,6 +86,13 @@ _MAIN_PANEL_MIN_WRAP = 300
 # as each is created below, consumed by _on_frame_configure.
 _wrap_labels: List[tk.Label] = []
 
+# Starting dash count for _separator()'s rule labels - short enough to stay
+# well under _MAIN_PANEL_MIN_WRAP so a separator can never itself be the
+# panel's widest row (see _separator's docstring). Grown in step with
+# _wrap_labels by _on_frame_configure once the frame's real width is known.
+_SEPARATOR_MIN_CHARS = 20
+_separator_labels: List[tk.Label] = []
+
 
 def _wrap_label(parent: tk.Frame, **kwargs) -> tk.Label:
     """A tk.Label that starts at the tight end of _MAIN_PANEL_MIN_WRAP and
@@ -98,10 +106,17 @@ def _wrap_label(parent: tk.Frame, **kwargs) -> tk.Label:
 def _on_frame_configure(event: tk.Event) -> None:
     """Widen every main-panel label's wraplength to match the frame's own
     current width - never wider, so this plugin can't feed its own growth
-    back into the next layout pass (see _MAIN_PANEL_MIN_WRAP)."""
+    back into the next layout pass (see _MAIN_PANEL_MIN_WRAP). Separator
+    rules are re-drawn to the same target width in dash characters, for the
+    same reason."""
     wrap = max(_MAIN_PANEL_MIN_WRAP, event.width)
     for label in _wrap_labels:
         label.configure(wraplength=wrap)
+    if _separator_labels:
+        char_width = tkfont.Font(font=_separator_labels[0].cget("font")).measure("─") or 1
+        dash_count = max(_SEPARATOR_MIN_CHARS, wrap // char_width)
+        for label in _separator_labels:
+            label.configure(text="─" * dash_count)
 
 _frame: Optional[tk.Frame] = None
 _status_label: Optional[tk.Label] = None
@@ -230,12 +245,35 @@ def clipboard_template() -> str:
     return config.get_str(CONFIG_CLIPBOARD_FORMAT) or DEFAULT_CLIPBOARD_TEMPLATE
 
 
+def _bold_font(_widget: tk.Misc) -> Tuple[str, int, str]:
+    """Bold variant of EDMC's default font, for the collapsible header title
+    - same helper (and same reasoning) as this developer's other plugins
+    (ED-PLG/Boxelator/EDSSC): a plain tk.Label defaults to the regular
+    weight, so without this the title rendered visibly lighter than every
+    sibling plugin's own bold header."""
+    try:
+        base = tkfont.nametofont("TkDefaultFont")
+        return (base.actual("family"), base.actual("size"), "bold")
+    except Exception:
+        logger.debug("Could not resolve the default font for the panel title", exc_info=True)
+        return ("TkDefaultFont", 9, "bold")
+
+
 def _separator(parent: tk.Frame) -> tk.Label:
     """A themed dash-rule label used to break the main panel into groups
     (header / system / session stats / last event) — plain tk.Label rather
     than ttk.Separator so theme.update() colors it the same as the rest of
-    the panel without a second theming path to get wrong."""
-    return tk.Label(parent, text="─" * 46, anchor=tk.W)
+    the panel without a second theming path to get wrong.
+
+    Starts at the short, safely-narrow _SEPARATOR_MIN_CHARS dash count and is
+    widened by _on_frame_configure to match the frame's already-established
+    width, the same as _wrap_label - a fixed 46-dash guess used to be wide
+    enough on its own to become the panel's widest row the moment this
+    section (hidden while collapsed) became visible, growing EDMC's whole
+    main window every time it was expanded."""
+    label = tk.Label(parent, text="─" * _SEPARATOR_MIN_CHARS, anchor=tk.W)
+    _separator_labels.append(label)
+    return label
 
 
 def create_plugin_app(
@@ -263,9 +301,11 @@ def create_plugin_app(
     _frame.columnconfigure(1, weight=1)
     _frame.bind("<Configure>", _on_frame_configure)
 
-    _collapsed = config.get_bool(CONFIG_COLLAPSED, default=False)
+    # Defaults to collapsed - every plugin from this developer now starts
+    # minimized until a commander opts into the expanded view (2026-09-05).
+    _collapsed = config.get_bool(CONFIG_COLLAPSED, default=True)
 
-    _title_label = tk.Label(_frame, text=_title_text(), cursor="hand2")
+    _title_label = tk.Label(_frame, text=_title_text(), font=_bold_font(_frame), cursor="hand2")
     _title_label.grid(row=0, column=0, sticky=tk.W, padx=(0, 4))
     _title_label.bind("<Button-1>", _toggle_collapsed)
 
@@ -332,35 +372,35 @@ def create_plugin_app(
     _last_event_label = _wrap_label(_frame, text="No merit events yet this session.")
     _last_event_label.grid(row=12, column=0, columnspan=3, sticky=tk.W)
 
-    # One row: quick on/off toggles on the left (colored below, AFTER
-    # theme.update() runs - see the sync_toggle_buttons() call at the bottom
-    # of this function; EDMC's theme engine repaints plain tk widgets'
-    # colors when it walks the frame, which would otherwise stomp an
-    # explicit color set here before that walk happens), a vertical
-    # separator, then the window-opening buttons on the right.
-    buttons_row = tk.Frame(_frame)
+    # Two rows instead of one: a single row of all six buttons (plus the
+    # separator) is wider than anything else on this panel, so the first
+    # time it becomes visible (expanding from collapsed) it - not any wrap
+    # label - became the panel's widest row and pushed EDMC's whole main
+    # window wider to fit it (wrap labels only ever grow to match a width
+    # some *other* row already established; they never cause the initial
+    # growth themselves - see _MAIN_PANEL_MIN_WRAP above). Splitting into two
+    # half-size rows (toggles, then window-launchers) keeps every row's
+    # natural width under that budget so expanding the section can no longer
+    # resize the window.
+    toggles_row = tk.Frame(_frame)
     # No sticky - centers the row within the full panel width (columnspan=3,
     # and column 1 already expands via _frame.columnconfigure(1, weight=1))
     # rather than pinning it to either edge.
-    buttons_row.grid(row=13, column=0, columnspan=3, pady=(6, 0))
-    _autohonk_toggle_btn = tk.Button(buttons_row, text="Auto-Honk", command=_on_autohonk_toggle_click)
+    toggles_row.grid(row=13, column=0, columnspan=3, pady=(6, 0))
+    _autohonk_toggle_btn = tk.Button(toggles_row, text="Auto-Honk", command=_on_autohonk_toggle_click)
     _autohonk_toggle_btn.pack(side=tk.LEFT, padx=(0, 6))
-    _interdiction_toggle_btn = tk.Button(buttons_row, text="Interdiction", command=_on_interdiction_toggle_click)
+    _interdiction_toggle_btn = tk.Button(toggles_row, text="Interdiction", command=_on_interdiction_toggle_click)
     _interdiction_toggle_btn.pack(side=tk.LEFT, padx=(0, 6))
-    _landing_toggle_btn = tk.Button(buttons_row, text="Landing", command=_on_landing_toggle_click)
+    _landing_toggle_btn = tk.Button(toggles_row, text="Landing", command=_on_landing_toggle_click)
     _landing_toggle_btn.pack(side=tk.LEFT)
-    # Plain tk.Label, not ttk.Separator - same reasoning as _separator()
-    # above (its own docstring: ttk.Separator picks up its own styling path
-    # that EDMC's theme.update() doesn't touch the same way it does plain tk
-    # widgets, which is what was making the two sides of a padx'd
-    # ttk.Separator render unequal here). A plain Label's padx isn't subject
-    # to that, so this is what actually made the two sides come out equal.
-    tk.Label(buttons_row, text="│").pack(side=tk.LEFT, padx=8)
-    rares_button = tk.Button(buttons_row, text="Rares", command=on_show_rares)
+
+    windows_row = tk.Frame(_frame)
+    windows_row.grid(row=14, column=0, columnspan=3, pady=(4, 0))
+    rares_button = tk.Button(windows_row, text="Rares", command=on_show_rares)
     rares_button.pack(side=tk.LEFT, padx=(0, 6))
-    details_button = tk.Button(buttons_row, text="Sessions", command=on_show_details)
+    details_button = tk.Button(windows_row, text="Sessions", command=on_show_details)
     details_button.pack(side=tk.LEFT, padx=(0, 6))
-    rescan_button = tk.Button(buttons_row, text="Rescan", command=on_rescan)
+    rescan_button = tk.Button(windows_row, text="Rescan", command=on_rescan)
     rescan_button.pack(side=tk.LEFT)
 
     # Landing's in-app counterpart to its overlay widget (Settings → Landing
@@ -371,7 +411,7 @@ def create_plugin_app(
     # whole EDMC window — see set_landing_info. Hidden until there's
     # something to show, same pattern as _credits_label.
     _landing_info_label = _wrap_label(_frame, text="")
-    _landing_info_label.grid(row=14, column=0, columnspan=3, sticky=tk.W, pady=(4, 0))
+    _landing_info_label.grid(row=15, column=0, columnspan=3, sticky=tk.W, pady=(4, 0))
     _landing_info_label.grid_remove()
 
     # Landing's in-app pad-layout diagram, drawn straight onto a Canvas
@@ -394,7 +434,7 @@ def create_plugin_app(
     _landing_diagram_canvas = tk.Canvas(
         _frame, width=_LANDING_DIAGRAM_SIZE, height=_LANDING_DIAGRAM_SIZE, highlightthickness=0,
     )
-    _landing_diagram_canvas.grid(row=15, column=0, columnspan=3, pady=(4, 0))
+    _landing_diagram_canvas.grid(row=16, column=0, columnspan=3, pady=(4, 0))
     _landing_diagram_canvas.grid_remove()
 
     # Everything but the title/status/mode/version rows — those stay visible
@@ -404,8 +444,8 @@ def create_plugin_app(
     # now have their own rows rather than sharing the title's.
     _collapsible_widgets = [
         separator1, _system_label, _here_merits_label, _here_cp_label, separator2,
-        _merits_label, _cp_label, _credits_label, separator3, _last_event_label, buttons_row,
-        _landing_info_label, _landing_diagram_canvas,
+        _merits_label, _cp_label, _credits_label, separator3, _last_event_label,
+        toggles_row, windows_row, _landing_info_label, _landing_diagram_canvas,
     ]
     _apply_collapsed_state()
 
@@ -422,8 +462,11 @@ def create_plugin_app(
     return _frame
 
 
+PLUGIN_DISPLAY_NAME = "PowerPlay Merit Tracker (EDPPMT)"
+
+
 def _title_text() -> str:
-    return f"{'▸' if _collapsed else '▾'} EDPPMT:"
+    return f"{'▸' if _collapsed else '▾'} {PLUGIN_DISPLAY_NAME}"
 
 
 def _toggle_collapsed(_event: Optional[tk.Event] = None) -> None:
