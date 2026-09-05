@@ -32,7 +32,9 @@ Please report issues on [GitHub](https://github.com/rwharpernc/edppmt/issues).
 - **Auto-Honk** *(Windows only, off by default)* — fires your Discovery
   Scanner automatically on every system jump.
 - **Interdiction Warning** *(off by default)* — an on-screen heads-up via
-  an optional overlay plugin, drawn the instant an interdiction starts.
+  an optional overlay plugin, drawn the instant an interdiction starts:
+  from Status.json's flag or a hostile NPC's chat taunt, whichever
+  arrives first — the taunt often wins that race.
 - **Landing** *(off by default)* — docking status, assigned pad, and a
   pad-layout diagram, shown on the in-game overlay and/or right in the
   EDMC panel.
@@ -93,6 +95,12 @@ release and restart EDMC — or turn on auto-update (see below)._
   session-history window; **Rescan** re-reads the current journal file
   directly, recovering any merits missed if EDMC started after the game
   was already running.
+- **Interdiction Warning** fires off two independent signals, not one —
+  Status.json's "being interdicted" flag can lag up to ~1s behind the
+  real moment (it's only checked once a second), so a matching hostile
+  NPC chat line is treated as its own trigger and often shows the
+  warning first. Only NPC-channel chat counts, to avoid other commanders
+  chatting about pirates in system/squadron chat setting it off.
 - **Sessions window** — a By System and By Activity breakdown for the
   current session, plus a History tab of past sessions and a cumulative
   all-time summary. A session spans one continuous game-client launch
