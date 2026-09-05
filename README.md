@@ -5,7 +5,7 @@
 A lightweight [Elite Dangerous Market Connector](https://github.com/EDCD/EDMarketConnector) (EDMC) plugin that tracks the PowerPlay merits you earn as you play, estimates the Control Points (CP) and credits they represent, and keeps a history of every session — live, automatically, with no setup beyond installing it. EDPPMT never touches the game itself; it only reads *Elite Dangerous*'s own journal files via EDMC, the same way EDMC does.
 
 **Author:** R.W. Harper (CMDR Bocheaux)
-**Version:** 1.13.1
+**Version:** 1.13.2
 **License:** [MIT](LICENSE)
 
 ---
@@ -54,19 +54,87 @@ If you turn it on for a copy you're actively hand-editing (developing, not just 
 
 ## Using EDPPMT
 
-- **Main EDMC panel** — pledged Power and rank on its own line (e.g. `Pledged to Yuri Grom (Rank 3)`), then which game mode you're playing in right now (`Mode: Open`, `Mode: Solo`, or `Mode: Private (<group name>)`), the current system and its PowerPlay state (e.g. `System: Nervi — Exploited (Zachary Hudson)`), two **"Here"** lines — a merit count, then the full CP breakdown (Acquisition/Reinforcement/Undermining, all three shown even at zero) — for *just the system you're in right now* — it switches the instant you jump, and keeps an accurate running total per system if you backtrack to somewhere you've already worked this session — and, below that, the session-wide merits/CP totals and credits earned, updated as journal events arrive. If your commander isn't pledged, it says so directly: `CMDR <name>: not a PP Pledge`. Click the "▾ EDPPMT:" title to collapse everything below the mode row down to one line — handy when you don't need it taking up space — and click again ("▸ EDPPMT:") to expand; the collapsed/expanded state is remembered across restarts. The title/pledge-status/mode rows stay visible either way. Rows that don't have real data yet show placeholder text ("Awaiting system data…", "Here: awaiting system data…", "Session merits: 0", etc.) rather than sitting blank, and the panel is refreshed with whatever session was already saved from your last run immediately on EDMC startup. One centered button row sits at the bottom, quick-toggles on the left and window-opening buttons on the right, split by a vertical divider: **Auto-Honk**, **Interdiction**, and **Landing** turn green when their feature is on — click one to flip it on/off right from the panel, no need to open Settings (a change here shows up in the Settings checkbox too if it's open, and vice versa) — then **Rares** (see Rare Goods Finder below), **Sessions** (below), and **Rescan** — EDMC doesn't replay journal history to plugins when it (re)starts with the game already running, so merits earned in the gap between an EDMC restart and it catching back up would otherwise be lost from the session total; Rescan re-reads the current journal file directly to recover them, and is safe to click any time (it won't double-count merits already tallied). When Landing is on and its "Show in EDMC app" option is enabled (Settings → Landing, on by default), a line appears below the button row while you're requesting/approaching a dock — `Landing: Docking Approved — <station> — Pad <N>`, or the denial reason in place of the pad — with the same pad-layout diagram the overlay draws underneath it, at a size that fits the panel; both disappear again once there's nothing to show.
-- **Sessions window** (click "Sessions" in the panel):
-  - **Current Session** tab — a **By System** table (every system visited this session: merits, estimated CP, and a per-activity breakdown, current system pinned to the top and marked); a **By Activity** table with the session-wide breakdown (Acquisition / Reinforcement / Undermining / Delivery-Donation / Unattributed): merits, the ratio used, estimated CP, and CP/hr; the current PowerPlay context (system, state, controller, rival Powers — for sanity-checking a row that looks wrong); and credits earned this session plus the rate.
-  - **History** tab — every past session (bounded to the most recent 200), so you can compare sessions later, not just watch the live one; plus an "All sessions" summary (cumulative merits, CP by activity, and credits earned across the current session and all saved history).
-  - Buttons along the bottom: **Refresh** and **Close**, plus **Reset Session** (zeroes this session's merit totals — by system and by activity — without ending the session or touching credit tracking; mainly useful for correcting a bad count, such as the well-known donation-mission duplicate-merit journal bug), **Reset Current System** (zeroes just the current system's contribution, subtracted back out of the session totals too), and **Copy Progress** (copies one formatted line per row in the By System table to the clipboard — format is configurable in Settings, see below). Both resets ask for confirmation first and can't be undone.
-- **Rare Goods Finder** (click "Rares" in the panel) — the nearest rare commodities to your current system, sorted by distance (nearest first, though distance itself isn't shown): rare good, origin system, station, pad size, and the origin system's current PowerPlay Controlling Power. "Show nearest" controls how many to list — type up to 141 to see the entire bundled dataset. Double-click a row to open that rare good's page on Inara. Shows "Awaiting system data…" until EDPPMT has seen a `FSDJump`/`Location` event this run. The rare-good data itself (origin, station, pad, legality, PowerPlay eligibility, galactic coordinates — 141 entries) is bundled with the plugin and never makes a network call, since none of it changes; Controlling Power is the one column looked up live (from [Spansh](https://www.spansh.co.uk/)) since PowerPlay control shifts week to week — it shows "…" while loading and "—" if the system is unclaimed or the lookup fails (e.g. no internet).
-- **Interdiction Warning** (Settings → Interdiction Warning, off by default) — draws a warning on your in-game overlay the instant an interdiction starts (before it resolves) — from Status.json's own flag, or from a hostile NPC's chat taunt, whichever actually arrives first — then updates it with who's interdicting (including their affiliated Power, when there is one) and the outcome (escaped / pulled from supercruise / submitted), auto-clearing a few seconds later. A red, always-on-alert card. This draws through [EDMCOverlay](https://github.com/inorton/EDMCOverlay) or its newer, actively-developed drop-in replacement [EDMCModernOverlay](https://github.com/SweetJonnySauce/EDMCModernOverlay) — either is a separate, optional community tool EDPPMT does not install, bundle, or launch itself — it just sends to whatever's listening on the host/port configured in Settings (default `127.0.0.1:5010`) if the feature is enabled, and silently does nothing if that's not reachable. A "Test Warning" button simulates a full interdiction lifecycle and reports whether the send actually succeeded, so you can check your overlay setup without waiting for a real one.
-- **Landing** (Settings → Landing, off by default) — docking status from the moment you request docking (Docking Requested → Approved/Denied), which pad you're assigned, and — on a denial — why, plus a pad-layout diagram highlighting the assigned pad: a dodecagon layout for starports/outposts/planetary ports, or a Large/Medium/Small grid for fleet carriers, squadron carriers, and colonisation ships (the diagram itself just highlights the pad, no number drawn on it, since the pad number is already said as its own text line above it). Two independently toggleable places to see all of this, both on by default once Landing itself is enabled: **Show on Overlay** draws it on your in-game overlay — styled in an "Elite Orange" theme, a dark, orange-bordered card, staying up for about 10 seconds after you touch down before auto-hiding, over the same overlay connection as Interdiction Warning (host/port configured in either tab). **Show in EDMC app** draws the *same* status line and diagram right on the main panel below the buttons, at a size that fits there — no overlay app needed, and both use the exact same underlying diagram geometry so they match. The pad number is always shown as its own line, even when no diagram is available for that station type (an explanatory line points at it instead, overlay-only for now). Turning off the main "Enable Landing" checkbox — or the main panel's Landing button — turns off both at once; the two "Show on ..." checkboxes only matter while it's on. Has its own "Test Overlay" button (Settings → Landing) that sends a synthetic "Docking Approved, Jameson Memorial, Pad 24, starport diagram" scenario to whatever host/port is currently in the dialog (even if not yet saved), reports whether it actually reached EDMCOverlay — same as Interdiction Warning's "Test Warning" — and *also* previews that same scenario on the main panel's line and diagram (regardless of the checkboxes), so you can check both at once without waiting for a real docking.
-- **Auto-Honk** (Settings → Auto-Honk, off by default, Windows only) — fires your ship's Discovery Scanner (the system-wide "honk," not the Detailed Surface Scanner) every time you jump into a new system. Choose which fire button (Primary/Secondary) the Discovery Scanner is bound to and a hold duration long enough to cover your ship's actual charge time; EDPPMT reads your active keybindings file to find the physical key that fire button maps to, and says so plainly in Settings if it can't (e.g. it's only bound to a joystick/HOTAS button). Use "Rescan keybind & running apps" after rebinding in-game, and "Test Honk Now" to fire immediately and confirm it reaches the game window. If EDCoPilot is also running with its own AutoHonk setting on, Settings flags it so you can turn one off and avoid double-honking. "Skip systems already visited this session" (on by default) avoids re-honking familiar space.
-- **Settings tab** — the installed version (a static link to the Releases page) at the top, then five sub-tabs, one per feature:
-  - **Tracking** — **CP Ratios** (the merits-per-CP ratio for each activity, editable in case Frontier tunes Powerplay balance or a default turns out to be off) and **Clipboard** (the line format "Copy Progress" in the Sessions window uses, with placeholders for the system name/Inara URL/merits/CP/PowerPlay state, and a "Reset to default" button).
-  - **Auto-Honk**, **Interdiction Warning**, and **Landing** — described above.
-  - **Updates** — the auto-update checkbox (off by default).
+### Main EDMC panel
+
+Pledged Power and rank on its own line (e.g. `Pledged to Yuri Grom (Rank 3)`), then which game mode you're playing in right now (`Mode: Open`, `Mode: Solo`, or `Mode: Private (<group name>)`), the current system and its PowerPlay state (e.g. `System: Nervi — Exploited (Zachary Hudson)`), two **"Here"** lines — a merit count, then the full CP breakdown (Acquisition/Reinforcement/Undermining, all three shown even at zero) — for *just the system you're in right now* — it switches the instant you jump, and keeps an accurate running total per system if you backtrack to somewhere you've already worked this session — and, below that, the session-wide merits/CP totals and credits earned, updated as journal events arrive. If your commander isn't pledged, it says so directly: `CMDR <name>: not a PP Pledge`. Rows that don't have real data yet show placeholder text ("Awaiting system data…", "Here: awaiting system data…", "Session merits: 0", etc.) rather than sitting blank, and the panel is refreshed with whatever session was already saved from your last run immediately on EDMC startup.
+
+Click the **"▾ EDPPMT:"** title to collapse everything below the mode row down to one line — handy when you don't need it taking up space — and click again (**"▸ EDPPMT:"**) to expand; the collapsed/expanded state is remembered across restarts. The title/pledge-status/mode rows stay visible either way.
+
+**Buttons** — one centered row at the bottom, quick-toggles on the left and window-opening buttons on the right, split by a vertical divider:
+
+| Button | What it does |
+|---|---|
+| **Auto-Honk** | Quick on/off toggle — turns green when the feature is on. Same effect as the checkbox in Settings → Auto-Honk, and stays in sync with it either way. |
+| **Interdiction** | Quick on/off toggle for Interdiction Warning — same relationship to Settings → Interdiction Warning's checkbox. |
+| **Landing** | Quick on/off toggle for Landing — same relationship to Settings → Landing's checkbox. |
+| **Rares** | Opens the Rare Goods Finder window (below). |
+| **Sessions** | Opens the Sessions window (below). |
+| **Rescan** | Re-reads the current journal file directly. EDMC doesn't replay journal history to plugins when it (re)starts with the game already running, so merits earned in that gap would otherwise be lost from the session total — Rescan recovers them. Safe to click any time; it won't double-count merits already tallied. |
+
+When Landing is on and its "Show in EDMC app" option is enabled (Settings → Landing, on by default), a line appears below the button row while you're requesting/approaching a dock — `Landing: Docking Approved — <station> — Pad <N>`, or the denial reason in place of the pad — with the same pad-layout diagram the overlay draws underneath it, at a size that fits the panel; both disappear again once there's nothing to show.
+
+### Sessions window
+
+Opened with the **Sessions** button on the main panel.
+
+- **Current Session** tab — a **By System** table (every system visited this session: merits, estimated CP, and a per-activity breakdown, current system pinned to the top and marked); a **By Activity** table with the session-wide breakdown (Acquisition / Reinforcement / Undermining / Delivery-Donation / Unattributed): merits, the ratio used, estimated CP, and CP/hr; the current PowerPlay context (system, state, controller, rival Powers — for sanity-checking a row that looks wrong); and credits earned this session plus the rate.
+- **History** tab — every past session (bounded to the most recent 200), so you can compare sessions later, not just watch the live one; plus an "All sessions" summary (cumulative merits, CP by activity, and credits earned across the current session and all saved history).
+
+**Buttons** along the bottom:
+
+| Button | What it does |
+|---|---|
+| **Refresh** | Reloads the tables from the current session/history data. |
+| **Reset Session** | Zeroes this session's merit totals — by system and by activity — without ending the session or touching credit tracking. Mainly useful for correcting a bad count, such as the well-known donation-mission duplicate-merit journal bug. Asks for confirmation first; can't be undone. |
+| **Reset Current System** | Zeroes just the current system's contribution, subtracted back out of the session totals too. Asks for confirmation first; can't be undone. |
+| **Copy Progress** | Copies one formatted line per row in the By System table to the clipboard — format is configurable in Settings → Tracking → Clipboard. |
+| **Close** | Closes the window. |
+
+### Rare Goods Finder
+
+Opened with the **Rares** button on the main panel — the nearest rare commodities to your current system, sorted by distance (nearest first, though distance itself isn't shown): rare good, origin system, station, pad size, and the origin system's current PowerPlay Controlling Power.
+
+- **"Show nearest"** field controls how many to list — type up to 141 to see the entire bundled dataset.
+- **Double-click a row** to open that rare good's page on Inara.
+
+Shows "Awaiting system data…" until EDPPMT has seen a `FSDJump`/`Location` event this run. The rare-good data itself (origin, station, pad, legality, PowerPlay eligibility, galactic coordinates — 141 entries) is bundled with the plugin and never makes a network call, since none of it changes; Controlling Power is the one column looked up live (from [Spansh](https://www.spansh.co.uk/)) since PowerPlay control shifts week to week — it shows "…" while loading and "—" if the system is unclaimed or the lookup fails (e.g. no internet).
+
+### Interdiction Warning
+
+Settings → Interdiction Warning, off by default. Draws a warning on your in-game overlay the instant an interdiction starts (before it resolves) — from Status.json's own flag, or from a hostile NPC's chat taunt, whichever actually arrives first — then updates it with who's interdicting (including their affiliated Power, when there is one) and the outcome (escaped / pulled from supercruise / submitted), auto-clearing a few seconds later. A red, always-on-alert card. This draws through [EDMCOverlay](https://github.com/inorton/EDMCOverlay) or its newer, actively-developed drop-in replacement [EDMCModernOverlay](https://github.com/SweetJonnySauce/EDMCModernOverlay) — either is a separate, optional community tool EDPPMT does not install, bundle, or launch itself — it just sends to whatever's listening on the host/port configured in Settings (default `127.0.0.1:5010`) if the feature is enabled, and silently does nothing if that's not reachable.
+
+- **Enable Interdiction Warning** checkbox — same toggle as the main panel's **Interdiction** button.
+- **EDMCOverlay host / Port** fields — where to send overlay graphics; shared with Landing.
+- **Test Warning** button — simulates a full interdiction lifecycle (active → resolved → auto-clear) and reports whether the send actually succeeded, so you can check your overlay setup without waiting for a real one. Works even while the feature is disabled above.
+
+### Landing
+
+Settings → Landing, off by default. Docking status from the moment you request docking (Docking Requested → Approved/Denied), which pad you're assigned, and — on a denial — why, plus a pad-layout diagram highlighting the assigned pad: a dodecagon layout for starports/outposts/planetary ports, or a Large/Medium/Small grid for fleet carriers, squadron carriers, and colonisation ships (the diagram itself just highlights the pad, no number drawn on it, since the pad number is already said as its own text line above it).
+
+- **Enable Landing** checkbox — same toggle as the main panel's **Landing** button; turning it off turns off both display mediums below at once.
+- **Show on Overlay** checkbox (on by default) — draws it on your in-game overlay, styled in an "Elite Orange" theme, a dark, orange-bordered card, staying up for about 10 seconds after you touch down before auto-hiding, over the same overlay connection as Interdiction Warning (host/port configured in either tab).
+- **Show in EDMC app** checkbox (on by default) — draws the *same* status line and diagram right on the main panel below the buttons, at a size that fits there — no overlay app needed, and both use the exact same underlying diagram geometry so they match. The pad number is always shown as its own line, even when no diagram is available for that station type (an explanatory line points at it instead, overlay-only for now).
+- **EDMCOverlay host / Port** fields — shared with Interdiction Warning.
+- **Test Overlay** button — sends a synthetic "Docking Approved, Jameson Memorial, Pad 24, starport diagram" scenario to whatever host/port is currently in the dialog (even if not yet saved), reports whether it actually reached EDMCOverlay — same as Interdiction Warning's "Test Warning" — and *also* previews that same scenario on the main panel's line and diagram (regardless of the checkboxes above), so you can check both at once without waiting for a real docking.
+
+### Auto-Honk
+
+Settings → Auto-Honk, off by default, Windows only. Fires your ship's Discovery Scanner (the system-wide "honk," not the Detailed Surface Scanner) every time you jump into a new system.
+
+- **Enable Auto-Honk** checkbox — same toggle as the main panel's **Auto-Honk** button.
+- **Fire button** (Primary/Secondary) and **Hold (sec)** fields — which button the Discovery Scanner is bound to, and a hold duration long enough to cover your ship's actual charge time. EDPPMT reads your active keybindings file to find the physical key that fire button maps to, and says so plainly here if it can't (e.g. it's only bound to a joystick/HOTAS button).
+- **Focus game window first** checkbox — brings Elite Dangerous to the foreground before sending the keypress.
+- **Skip systems already visited this session** checkbox (on by default) — avoids re-honking familiar space.
+- **Rescan keybind & running apps** button — re-reads your keybindings after rebinding in-game, and re-checks whether EDCoPilot is running with its own AutoHonk setting on (flagged here so you can turn one off and avoid double-honking).
+- **Test Honk Now** button — fires immediately to confirm it reaches the game window. Both this and Rescan work even while Auto-Honk is disabled above.
+
+### Settings tab
+
+The installed version (a static link to the Releases page) sits at the top, then five sub-tabs, one per feature:
+
+- **Tracking** — **CP Ratios** (the merits-per-CP ratio for each activity, editable in case Frontier tunes Powerplay balance or a default turns out to be off) and **Clipboard** (the line format "Copy Progress" in the Sessions window uses, with placeholders for the system name/Inara URL/merits/CP/PowerPlay state, and a **Reset to default** button).
+- **Auto-Honk**, **Interdiction Warning**, and **Landing** — described above.
+- **Updates** — the **Automatically download updates** checkbox (off by default, see Updates above).
 
 ## How activity is classified
 

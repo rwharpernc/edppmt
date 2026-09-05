@@ -5,6 +5,27 @@ All notable changes to EDPPMT are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.13.2] - 2026-09-05
+
+### Fixed
+
+- **Interdiction Warning false-triggering on ordinary chat.** Its NPC chat-taunt
+  detection (`CHAT_THREAT_PATTERNS`) matched `ReceiveText` messages on *any*
+  channel, so other commanders casually typing words like "pirate" or
+  "interdict" in system-wide chat or squadron chat — not an actual
+  interdiction — could flip the warning active. Root cause confirmed against
+  ~125k logged `ReceiveText` events: every false match came from the
+  `starsystem`/`squadron` channels (human chat), while every match on the
+  `npc` channel was a genuine taunt. Detection now only considers
+  `Channel == "npc"`.
+
+### Documentation
+
+- **README's "Using EDPPMT" section reorganized** into per-feature
+  subsections with buttons/controls pulled into scannable lists instead of
+  one dense paragraph per feature — no content removed, just restructured
+  for easier lookup.
+
 ## [1.13.1] - 2026-09-03
 
 ### Added

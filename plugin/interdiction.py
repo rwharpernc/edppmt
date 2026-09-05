@@ -13,9 +13,14 @@ same real-world instant:
    only reaches this plugin on EDMC's next dashboard_entry call (Status.json
    is written roughly once a second, so this can lag the instant itself by
    up to ~1s). Delivered via EDMC's dashboard_entry callback - see load.py.
-2. "ReceiveText" NPC chat taunts during the encounter - an independent
-   trigger in its own right (not just identity enrichment for signal 1),
-   since a taunt line can arrive before the flag does. The only
+2. "ReceiveText" NPC chat taunts during the encounter, restricted to
+   Channel == "npc" - an independent trigger in its own right (not just
+   identity enrichment for signal 1), since a taunt line can arrive before
+   the flag does. The channel gate matters: "starsystem" (system-wide chat)
+   and "squadron" chat are other commanders casually typing words like
+   "pirate" or "interdict" with no interdiction happening, and were a real
+   source of false positives before this gate was added (confirmed against
+   ~125k logged ReceiveText events - see handle_event). The only
    pre-resolution identity source either way (Status.json's flag carries no
    identity) - whichever of the two arrives second fills in whatever the
    first one didn't already have (see handle_dashboard_flags/handle_event's
@@ -195,6 +200,16 @@ class InterdictionTracker:
         event = entry.get("event")
 
         if event == "ReceiveText":
+            # Only the "npc" channel is hostile-ship dialogue - "starsystem"
+            # (system-wide chat) and "squadron" chat are other commanders
+            # casually typing words like "pirate" or "interdict" with no
+            # interdiction happening at all (confirmed against ~125k logged
+            # ReceiveText events: every CHAT_THREAT_PATTERNS match outside
+            # "npc" was a false positive from human chat; every "npc" match
+            # was a genuine taunt). Without this gate, that chat spuriously
+            # flips the warning active.
+            if entry.get("Channel") != "npc":
+                return
             if not self._interdictor_name:
                 message = entry.get("Message_Localised") or entry.get("Message")
                 if is_interdiction_message(message):
