@@ -3,7 +3,7 @@
 features.
 
 Exercises every render() scenario (interdiction states, every Landing
-diagram family, the no-diagram text fallback, denied/approved/requested)
+diagram family, the no-diagram placeholder box, denied/approved/requested)
 against a *real* running EDMCOverlay or EDMCModernOverlay instance, using
 the actual plugin/overlay.py, plugin/interdiction.py, and plugin/landing.py
 code - not a reimplementation, so what you see here is exactly what ships.
@@ -142,7 +142,7 @@ def _build_scenarios(interdiction, landing) -> List[Scenario]:
             status_label="Docking Approved", station="Colonisation Ship",
             pad=3, diagram_type="fleetcarrier", show_diagram=True, carrier_type="ColonisationShip",
         )),
-        ("Landing: Docking Approved, no diagram family (outpost) - text fallback", landing_scenario(
+        ("Landing: Docking Approved, no diagram family (outpost) - placeholder box", landing_scenario(
             status_label="Docking Approved", station="Some Outpost",
             pad=2, diagram_type=None, show_diagram=False,
         )),

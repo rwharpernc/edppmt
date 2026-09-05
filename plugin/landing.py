@@ -605,12 +605,12 @@ _Y_DENIED = 744
 # centering isn't attempted, since without real glyph widths (see
 # interdiction.py's identical caveat) an estimated-width guess could put
 # text visibly off-center instead of just left-aligned. The one exception
-# is the "no diagram for this station type" fallback sentence, which is
-# too long for one line at any sane card width - it's word-wrapped (see
-# _render_fallback_text/_FALLBACK_MAX_CHARS_PER_LINE) to stay inside the
-# card and vertically centered on the diagram's own footprint
-# (_DIAGRAM_CX/_DIAGRAM_CY), standing in for the diagram that isn't
-# drawn rather than floating disconnected above it.
+# is stations with no diagram family at all (e.g. outposts) once a pad is
+# known and approved: _render_placeholder draws a plain box at the exact
+# position/size a real diagram would occupy, the pad number inside it, and
+# a short word-wrapped label to its right explaining there's no real
+# layout for this station type - see _FALLBACK_CARD_W/_FALLBACK_LABEL_X
+# below for why the card itself widens only for that one case.
 # Chrome (_CHROME_BORDER/_CHROME_FILL above) is constant - it does not
 # track docking status (only the status/denied-reason text itself is
 # status-colored, not the card).
@@ -633,22 +633,37 @@ _STARPORT_PADMARK_ID = "edppmt_landing_padmark"
 _FLEETCARRIER_PAD_IDS = tuple(f"edppmt_landing_fcpad{i}" for i in range(_MAX_FLEETCARRIER_PADS))
 _FLEETCARRIER_LABEL_ID = "edppmt_landing_fclabel"
 
-# No-diagram fallback sentence (_render_fallback_text): word-wrapped to
-# stay inside the card and drawn at "large" size per the same treatment as
-# the "Landing" title. EDMCOverlay/EDMCModernOverlay give no text-
-# measurement API (see the _CARD_W comment above for the identical
-# caveat), so the wrap width is character-count estimate, not a real pixel
-# measurement - tuned to comfortably clear the card's right edge
-# (_CARD_X + _CARD_W) at "large" size rather than to pack it tightly.
-# _FALLBACK_MAX_LINES is a hard cap on top of that estimate: the sentence
-# itself is fixed text (only the pad number varies, and that's an int
-# 1-45), so it can never actually reach this many lines - it's a backstop
-# against the estimate being wrong, not a real limit.
-_FALLBACK_TEXT_SIZE = "large"
-_FALLBACK_MAX_CHARS_PER_LINE = 24
-_FALLBACK_LINE_HEIGHT = 28
+# No-diagram placeholder (_render_placeholder): a plain rectangle at
+# roughly the diagram's position - landscape (_PLACEHOLDER_W >
+# _PLACEHOLDER_H), a generic pad-shape guess rather than a square, since
+# there's no real layout to draw - with the pad number inside it at
+# "large" size, and a short word-wrapped label at "normal" size (smaller
+# than the pad number - it's a caption, not the headline) to its right.
+# The label column sits just past the rectangle's right edge, and the
+# card widens just enough (_FALLBACK_CARD_W, in place of _CARD_W) to hold
+# it - only for this one no-diagram-family case, since every other row
+# already fits _CARD_W. As with _CARD_W itself, EDMCOverlay/
+# EDMCModernOverlay give no text-measurement API, so the wrap width is a
+# character-count estimate (~9px/char at "normal" size), not a real pixel
+# measurement - tuned to comfortably clear the label column's own right
+# edge rather than to pack it tightly. _FALLBACK_MAX_LINES is a hard cap
+# on top of that estimate: the label is fixed text, so it can never
+# actually reach this many lines - it's a backstop against the estimate
+# being wrong, not a real limit.
+_PLACEHOLDER_W = 200
+_PLACEHOLDER_H = 100
+_FALLBACK_TEXT_SIZE = "normal"
+_FALLBACK_LABEL_TEXT = "No actual diagram - it probably looks something like this."
+_FALLBACK_LABEL_GAP = 16
+_FALLBACK_LABEL_X = _DIAGRAM_CX + _PLACEHOLDER_W // 2 + _FALLBACK_LABEL_GAP
+_FALLBACK_LABEL_W = 180
+_FALLBACK_CARD_W = _FALLBACK_LABEL_X + _FALLBACK_LABEL_W + 10 - _CARD_X
+_FALLBACK_MAX_CHARS_PER_LINE = _FALLBACK_LABEL_W // 9
+_FALLBACK_LINE_HEIGHT = 22
 _FALLBACK_MAX_LINES = 6
 _FALLBACK_LINE_IDS = tuple(f"edppmt_landing_fallback{i}" for i in range(_FALLBACK_MAX_LINES))
+_PLACEHOLDER_RECT_ID = "edppmt_landing_placeholder_rect"
+_PLACEHOLDER_PAD_ID = "edppmt_landing_placeholder_pad"
 
 _STATUS_TEXT_IDS = (
     ("edppmt_landing_title", _Y_TITLE), ("edppmt_landing_status", _Y_STATUS),
@@ -667,34 +682,43 @@ def render(info: LandingDisplayInfo, carrier_type: CarrierType, client: OverlayC
         return
 
     status_color = _STATUS_DENIED if info.status_label == "Docking Denied" else _STATUS_OK
-    client.send_shape(_CARD_ID, "rect", _CHROME_BORDER, _CHROME_FILL, _CARD_X, _CARD_Y, _CARD_W, _CARD_H, ttl=_TTL, thickness=2)
+    has_diagram = info.show_diagram and info.diagram_type in ("starport", "fleetcarrier")
+    # The placeholder (box + pad number + label, in place of a real
+    # diagram) only ever shows once a pad is confirmed and docking is
+    # actually approved - never for a still-pending request, and never
+    # merely because this station type has no diagram family (that alone
+    # doesn't mean a pad is known yet). Only this one case needs the
+    # widened card - see _FALLBACK_CARD_W's own comment for why.
+    show_placeholder = not has_diagram and info.pad is not None and info.status_label == "Docking Approved"
+    card_w = _FALLBACK_CARD_W if show_placeholder else _CARD_W
+    client.send_shape(_CARD_ID, "rect", _CHROME_BORDER, _CHROME_FILL, _CARD_X, _CARD_Y, card_w, _CARD_H, ttl=_TTL, thickness=2)
     client.send_message("edppmt_landing_title", "Landing", _TEXT_PRIMARY, _TEXT_X, _Y_TITLE, ttl=_TTL, size="large")
     client.send_message("edppmt_landing_status", info.status_label, status_color, _TEXT_X, _Y_STATUS, ttl=_TTL)
     _send_or_clear(client, "edppmt_landing_station", info.station, _TEXT_MUTED, _TEXT_X, _Y_STATION)
     # This "Pad N" text line is unconditional - sent whenever a pad is known,
-    # regardless of whether a diagram renders below it (see the fallback_text
-    # branch further down for stations with no diagram family at all, e.g.
-    # outposts) - the pad number itself must never depend on the diagram.
+    # regardless of whether a diagram renders below it (see show_placeholder
+    # above, for stations with no diagram family at all, e.g. outposts) -
+    # the pad number itself must never depend on the diagram.
     _send_or_clear(client, "edppmt_landing_pad", f"Pad {info.pad}" if info.pad is not None else "", _TEXT_MUTED, _TEXT_X, _Y_PAD)
 
     denied_label = (info.denied_reason or "Unknown") if info.status_label == "Docking Denied" else ""
     _send_or_clear(client, "edppmt_landing_denied", denied_label, _STATUS_DENIED, _TEXT_X, _Y_DENIED)
 
-    fallback_text = ""
     if info.show_diagram and info.diagram_type == "starport":
         _render_starport_diagram(client, info.pad)
         _clear_fleetcarrier_diagram(client)
-        _clear_fallback_text(client)
+        _clear_placeholder(client)
     elif info.show_diagram and info.diagram_type == "fleetcarrier":
         _render_fleetcarrier_diagram(client, info.pad, carrier_type)
         _clear_starport_diagram(client)
-        _clear_fallback_text(client)
+        _clear_placeholder(client)
     else:
         _clear_starport_diagram(client)
         _clear_fleetcarrier_diagram(client)
-        if info.pad is not None and info.status_label == "Docking Approved":
-            fallback_text = f"No pad layout diagram for this station type. It's the one with the {info.pad} above it."
-        _render_fallback_text(client, fallback_text)
+        if show_placeholder:
+            _render_placeholder(client, info.pad)
+        else:
+            _clear_placeholder(client)
 
 
 def clear(client: OverlayClient) -> None:
@@ -705,7 +729,7 @@ def clear(client: OverlayClient) -> None:
         client.send_message(msg_id, "", "white", _TEXT_X, y, ttl=1)
     _clear_starport_diagram(client)
     _clear_fleetcarrier_diagram(client)
-    _clear_fallback_text(client)
+    _clear_placeholder(client)
 
 
 def _send_or_clear(client: OverlayClient, msg_id: str, text: str, color: str, x: int, y: int) -> None:
@@ -715,28 +739,44 @@ def _send_or_clear(client: OverlayClient, msg_id: str, text: str, color: str, x:
         client.send_message(msg_id, "", "white", x, y, ttl=1)
 
 
-def _render_fallback_text(client: OverlayClient, text: str) -> None:
-    """Draws (or clears, if `text` is empty) the "no diagram for this
-    station type" sentence, word-wrapped to fit inside the card and
-    vertically centered on the diagram's own footprint
-    (_DIAGRAM_CX/_DIAGRAM_CY) - it stands in for the diagram when there
-    isn't one, rather than floating disconnected above it."""
-    lines = textwrap.wrap(text, width=_FALLBACK_MAX_CHARS_PER_LINE)[:_FALLBACK_MAX_LINES] if text else []
+def _render_placeholder(client: OverlayClient, pad: int) -> None:
+    """No pad-diagram family exists for this station type (e.g. an
+    outpost). Stands in for the missing diagram with a plain landscape
+    rectangle roughly at the position a real diagram would occupy, the
+    pad number large inside it, and a short word-wrapped caption to its
+    right - rather than text floating disconnected above an empty gap.
+    Positioning is approximate, not measured (see the _CARD_W comment
+    above for why exact centering isn't attempted anywhere in this
+    module)."""
+    box_x = _DIAGRAM_CX - _PLACEHOLDER_W // 2
+    box_y = _DIAGRAM_CY - _PLACEHOLDER_H // 2
+    client.send_shape(
+        _PLACEHOLDER_RECT_ID, "rect", STROKE_COLOR, "", box_x, box_y, _PLACEHOLDER_W, _PLACEHOLDER_H,
+        ttl=_TTL, thickness=2,
+    )
+
+    pad_text = str(pad)
+    pad_x = _DIAGRAM_CX - (14 if len(pad_text) > 1 else 8)
+    client.send_message(_PLACEHOLDER_PAD_ID, pad_text, ACTIVE_COLOR, pad_x, _DIAGRAM_CY - 14, ttl=_TTL, size="large")
+
+    lines = textwrap.wrap(_FALLBACK_LABEL_TEXT, width=_FALLBACK_MAX_CHARS_PER_LINE)[:_FALLBACK_MAX_LINES]
     block_height = len(lines) * _FALLBACK_LINE_HEIGHT
     start_y = int(_DIAGRAM_CY - block_height / 2)
     for i, msg_id in enumerate(_FALLBACK_LINE_IDS):
         if i < len(lines):
             client.send_message(
-                msg_id, lines[i], _TEXT_MUTED, _TEXT_X, start_y + i * _FALLBACK_LINE_HEIGHT,
+                msg_id, lines[i], _TEXT_MUTED, _FALLBACK_LABEL_X, start_y + i * _FALLBACK_LINE_HEIGHT,
                 ttl=_TTL, size=_FALLBACK_TEXT_SIZE,
             )
         else:
             client.send_message(msg_id, "", "white", _DIAGRAM_CX, _DIAGRAM_CY, ttl=1)
 
 
-def _clear_fallback_text(client: OverlayClient) -> None:
+def _clear_placeholder(client: OverlayClient) -> None:
     # Parked at the diagram's own center, not (0, 0) - see
     # _clear_fleetcarrier_diagram's comment for why.
+    client.send_shape(_PLACEHOLDER_RECT_ID, "rect", "", "", _DIAGRAM_CX, _DIAGRAM_CY, 0, 0, ttl=1)
+    client.send_message(_PLACEHOLDER_PAD_ID, "", "white", _DIAGRAM_CX, _DIAGRAM_CY, ttl=1)
     for msg_id in _FALLBACK_LINE_IDS:
         client.send_message(msg_id, "", "white", _DIAGRAM_CX, _DIAGRAM_CY, ttl=1)
 
