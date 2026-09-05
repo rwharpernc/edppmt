@@ -5,6 +5,14 @@ All notable changes to EDPPMT are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.13.5] - 2026-09-05
+
+### Fixed
+- The overlay's no-diagram fallback was just a wrapped sentence standing in for the missing diagram,
+  which didn't read as clearly as an actual pad indicator. It's now a landscape placeholder rectangle
+  at the diagram's own position with the pad number drawn inside it, plus a short caption ("No actual
+  diagram - it probably looks something like this.") beside it at a smaller text size.
+
 ## [1.13.4] - 2026-09-05
 
 ### Fixed
