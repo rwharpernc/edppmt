@@ -1,197 +1,142 @@
-# EDPPMT
+# EDPPMT — Elite Dangerous PowerPlay Merit Tracker
 
-**Elite Dangerous PowerPlay Merit Tracker**
-
-A lightweight [Elite Dangerous Market Connector](https://github.com/EDCD/EDMarketConnector) (EDMC) plugin that tracks the PowerPlay merits you earn as you play, estimates the Control Points (CP) and credits they represent, and keeps a history of every session — live, automatically, with no setup beyond installing it. EDPPMT never touches the game itself; it only reads *Elite Dangerous*'s own journal files via EDMC, the same way EDMC does.
+[![Release](https://img.shields.io/github/v/release/rwharpernc/edppmt?sort=semver)](https://github.com/rwharpernc/edppmt/releases/latest)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
 **Author:** R.W. Harper (CMDR Bocheaux)
-**Version:** 1.13.3
-**License:** [MIT](LICENSE)
 
----
+EDPPMT extends Elite Dangerous Market Connector (EDMC) with a PowerPlay
+panel: it tracks the merits you earn live, estimates the Control Points
+(CP) and credits they represent, keeps a history of every session, and
+adds a handful of optional quality-of-life tools (Rare Goods Finder,
+Auto-Honk, Interdiction Warning, Landing). It never touches the game
+itself — it only reads *Elite Dangerous*'s own journal files via EDMC,
+the same way EDMC does. See [Developer Documentation](#developer-documentation)
+below for architecture and internals.
+
+Please report issues on [GitHub](https://github.com/rwharpernc/edppmt/issues).
+
+## Key Features
+
+- **Live merit & CP tracking** — merits and estimated Control Points for
+  your current system and for the session as a whole, updating in real
+  time. CP is estimated from editable merits-per-CP ratios (Acquisition,
+  Reinforcement, Undermining) since Frontier doesn't publish an exact
+  conversion.
+- **Session history** — every session's totals save automatically (up to
+  200 past sessions), so you can compare sessions later, not just watch
+  the live one.
+- **Rare Goods Finder** — the nearest rare commodities to wherever you
+  are, each with its origin system's *current* PowerPlay controller
+  looked up live from Spansh.
+- **Auto-Honk** *(Windows only, off by default)* — fires your Discovery
+  Scanner automatically on every system jump.
+- **Interdiction Warning** *(off by default)* — an on-screen heads-up via
+  an optional overlay plugin, drawn the instant an interdiction starts.
+- **Landing** *(off by default)* — docking status, assigned pad, and a
+  pad-layout diagram, shown on the in-game overlay and/or right in the
+  EDMC panel.
+- **Alt-friendly** — every commander's merits, CP, and sessions are
+  tracked separately, and switching commanders in EDMC switches the
+  whole panel with them.
+- **Collapsible header** and **optional self-update** (off by default) —
+  see [Network access disclosure](#network-access-disclosure).
+
+## Requirements
+
+- [Elite Dangerous Market Connector (EDMC)](https://github.com/EDCD/EDMarketConnector),
+  installed and running. EDPPMT is a plugin for EDMC, not a standalone
+  application — it cannot function without it.
+- **Optional:** [EDMCModernOverlay](https://github.com/SweetJonnySauce/EDMCModernOverlay)
+  (or the older EDMCOverlay) for Interdiction Warning's and Landing's
+  in-game overlay graphics. Without it, both features simply have no
+  overlay to draw on — the plugin still works.
+
+## Installation
+
+1. Open EDMC and choose `File → Settings → Plugins`, then click *Open
+   Plugins Folder* to reveal your plugins directory (usually
+   `%LOCALAPPDATA%\EDMarketConnector\plugins` on Windows).
+2. Download the latest `EDPPMT-vX.Y.Z.zip` from the
+   [Releases page](https://github.com/rwharpernc/edppmt/releases/latest)
+   and unzip it. Do **not** download individual files — keep the
+   `EDPPMT` folder structure intact.
+3. Move the extracted `EDPPMT` folder into the plugins directory,
+   removing any older copy first if one exists.
+4. Restart EDMC. The plugin's settings tab appears under
+   `File → Settings → EDPPMT`, and its panel joins EDMC's main window.
+
+_To update manually, replace the `EDPPMT` folder's contents with the new
+release and restart EDMC — or turn on auto-update (see below)._
+
+## First Run & Configuration
+
+- The panel appears in EDMC's main window automatically once the plugin
+  is installed — no setup required to start tracking merits.
+- Start EDMC before (or with) the game so journal events reach it live.
+- Interdiction Warning, Landing, and Auto-Honk are all **off by default**
+  — turn them on from the Settings tab (`File → Settings → EDPPMT`) or
+  with the quick-toggle buttons on the main panel.
+- The Settings tab shows the installed version (a link to the Releases
+  page) and lets you edit the CP ratios and clipboard format.
+- Click the panel header to collapse it to just the title; the
+  collapsed/expanded state persists across restarts.
+
+## Using the Plugin
+
+- **Main panel** shows your pledged Power and rank, current game mode,
+  the system you're in and its PowerPlay state, merits/CP for *this
+  system* (switches live as you jump), and session-wide totals —
+  updated as journal events arrive.
+- **Buttons**: quick on/off toggles for Auto-Honk, Interdiction, and
+  Landing; **Rares** opens the Rare Goods Finder; **Sessions** opens the
+  session-history window; **Rescan** re-reads the current journal file
+  directly, recovering any merits missed if EDMC started after the game
+  was already running.
+- **Sessions window** — a By System and By Activity breakdown for the
+  current session, plus a History tab of past sessions and a cumulative
+  all-time summary. A session spans one continuous game-client launch
+  for one commander; switching to a different commander always starts a
+  fresh session.
+- **How activity is classified**: EDPPMT infers Acquisition /
+  Reinforcement / Undermining from the PowerPlay state of the system you
+  earned merits in, relative to your pledged Power — a best-effort
+  heuristic (Frontier hasn't documented a merits→activity mapping), so a
+  row that looks wrong is worth double-checking against the system state
+  shown alongside it.
+- **"Credits earned"** is a simple diff of your credit balance from
+  session start to now — it covers all income and expenses, not just
+  PowerPlay-specific income.
 
-## Features
+## Support
 
-- **Live merit & CP tracking** — merits and estimated Control Points for your current system, and for the session as a whole, updating in real time as you play.
-- **Session history** — every session's totals are saved automatically, so you can compare past sessions later, not just watch the live one.
-- **Rare Goods Finder** — the nearest rare commodities to wherever you are, each with its origin system's *current* PowerPlay controller looked up live.
-- **Auto-Honk** — fires your ship's Discovery Scanner automatically on every system jump.
-- **Interdiction Warning** — an on-screen heads-up, drawn the instant an interdiction starts, before it even resolves.
-- **Landing** — docking status, which pad you're assigned, and why a request was approved/denied — on the in-game overlay (with a pad-layout diagram) and/or right in the EDMC app, independently toggleable.
-- **Self-update** — optional one-click updates from Settings; off by default.
+Questions, ideas, or bugs? Open an issue on
+[GitHub](https://github.com/rwharpernc/edppmt/issues).
 
-## Table of Contents
+*EDPPMT is a community project and is not affiliated with Frontier
+Developments or the EDMC development team.*
 
-- [Install](#install)
-- [Updates](#updates)
-- [Using EDPPMT](#using-edppmt)
-- [How activity is classified](#how-activity-is-classified)
-- [CP ratios](#cp-ratios)
-- [Sessions](#sessions)
-- [Money](#money)
-- [For Developers](#for-developers)
-- [Learn More](#learn-more)
+## Network access disclosure
 
-## Install
+EDPPMT makes network calls only for features you can see are network-backed:
 
-You don't need Node.js, Python, or any of this repo's source tree — just a release zip.
+- **Spansh**, to look up a system's current PowerPlay Controlling Power
+  for the Rare Goods Finder (live, since control shifts week to week).
+- **GitHub**, to check whether a newer release exists (once per EDMC
+  start, only if "Automatically download updates" is enabled — off by
+  default) and to download the release `.zip` if one is found.
+- Interdiction Warning and Landing send to a local overlay endpoint you
+  configure (default `127.0.0.1:5010`) — that's your own machine, not a
+  remote service.
 
-1. Download the latest `EDPPMT-vX.Y.Z.zip` from the [Releases page](https://github.com/rwharpernc/edppmt/releases/latest).
-2. Extract it, then copy the `EDPPMT` folder it contains into your EDMC plugins folder: `%LOCALAPPDATA%\EDMarketConnector\plugins\EDPPMT`.
-3. Restart EDMC.
+No telemetry, and no merit/session data is ever sent anywhere. Session
+history lives in `sessions.json` inside the plugin folder and is never
+touched by an update — only deleting the plugin folder removes it.
 
-After that first install, you can turn on auto-update from the Settings tab if you'd rather not track new releases yourself — see Updates below.
+## Developer Documentation
 
-## Updates
+Want to modify EDPPMT, run it from source, or submit a pull request?
 
-**Off by default — this is opt-in, not opt-out.** Turn on "Automatically download updates" in the Settings tab if you want it: EDPPMT then checks GitHub for a newer release once per EDMC launch and, if there is one, downloads and stages it automatically — it takes effect the next time you restart EDMC. Nothing is sent in that check beyond the request itself (no telemetry, no session data). Your session history is never touched by any of this either way: it lives in `sessions.json` inside the plugin folder, which isn't part of the distributed release, so an update can't overwrite it (see Sessions below for what *does* remove it — deleting the whole plugin folder rather than updating it in place).
-
-The plugin version lives only in the Settings tab (a static link to the [latest release on GitHub](https://github.com/rwharpernc/edppmt/releases/latest)) — the main panel stays silent about it except for one thing: right after a staged update takes effect, it briefly shows "Updated to vX.Y.Z" in the corner for about 15 seconds, then goes back to showing nothing there.
-
-A backup of your current install is kept (the 3 most recent, in `backups/` inside the plugin folder) before each update is applied, in case anything goes wrong.
-
-If you turn it on for a copy you're actively hand-editing (developing, not just running it), drop an empty `disable-auto-update.txt` file directly in the plugin folder — that disables auto-update for that install regardless of the Settings checkbox, so a background check can't clobber in-progress work.
-
-## Using EDPPMT
-
-### Main EDMC panel
-
-Pledged Power and rank on its own line (e.g. `Pledged to Yuri Grom (Rank 3)`), then which game mode you're playing in right now (`Mode: Open`, `Mode: Solo`, or `Mode: Private (<group name>)`), the current system and its PowerPlay state (e.g. `System: Nervi — Exploited (Zachary Hudson)`), two **"Here"** lines — a merit count, then the full CP breakdown (Acquisition/Reinforcement/Undermining, all three shown even at zero) — for *just the system you're in right now* — it switches the instant you jump, and keeps an accurate running total per system if you backtrack to somewhere you've already worked this session — and, below that, the session-wide merits/CP totals and credits earned, updated as journal events arrive. If your commander isn't pledged, it says so directly: `CMDR <name>: not a PP Pledge`. Rows that don't have real data yet show placeholder text ("Awaiting system data…", "Here: awaiting system data…", "Session merits: 0", etc.) rather than sitting blank, and the panel is refreshed with whatever session was already saved from your last run immediately on EDMC startup.
-
-Click the **"▾ PowerPlay Merit Tracker (EDPPMT)"** title to collapse everything below the mode row down to one line — handy when you don't need it taking up space — and click again (**"▸ PowerPlay Merit Tracker (EDPPMT)"**) to expand; the collapsed/expanded state is remembered across restarts. On first install the panel starts collapsed; an existing install's already-saved preference is unaffected. The title/pledge-status/mode rows stay visible either way.
-
-**Buttons** — two centered rows at the bottom: quick-toggles on top, window-opening buttons below:
-
-| Button | What it does |
-|---|---|
-| **Auto-Honk** | Quick on/off toggle — turns green when the feature is on. Same effect as the checkbox in Settings → Auto-Honk, and stays in sync with it either way. |
-| **Interdiction** | Quick on/off toggle for Interdiction Warning — same relationship to Settings → Interdiction Warning's checkbox. |
-| **Landing** | Quick on/off toggle for Landing — same relationship to Settings → Landing's checkbox. |
-| **Rares** | Opens the Rare Goods Finder window (below). |
-| **Sessions** | Opens the Sessions window (below). |
-| **Rescan** | Re-reads the current journal file directly. EDMC doesn't replay journal history to plugins when it (re)starts with the game already running, so merits earned in that gap would otherwise be lost from the session total — Rescan recovers them. Safe to click any time; it won't double-count merits already tallied. |
-
-When Landing is on and its "Show in EDMC app" option is enabled (Settings → Landing, on by default), a line appears below the button row while you're requesting/approaching a dock — `Landing: Docking Approved — <station> — Pad <N>`, or the denial reason in place of the pad — with the same pad-layout diagram the overlay draws underneath it, at a size that fits the panel; both disappear again once there's nothing to show.
-
-### Sessions window
-
-Opened with the **Sessions** button on the main panel.
-
-- **Current Session** tab — a **By System** table (every system visited this session: merits, estimated CP, and a per-activity breakdown, current system pinned to the top and marked); a **By Activity** table with the session-wide breakdown (Acquisition / Reinforcement / Undermining / Delivery-Donation / Unattributed): merits, the ratio used, estimated CP, and CP/hr; the current PowerPlay context (system, state, controller, rival Powers — for sanity-checking a row that looks wrong); and credits earned this session plus the rate.
-- **History** tab — every past session (bounded to the most recent 200), so you can compare sessions later, not just watch the live one; plus an "All sessions" summary (cumulative merits, CP by activity, and credits earned across the current session and all saved history).
-
-**Buttons** along the bottom:
-
-| Button | What it does |
-|---|---|
-| **Refresh** | Reloads the tables from the current session/history data. |
-| **Reset Session** | Zeroes this session's merit totals — by system and by activity — without ending the session or touching credit tracking. Mainly useful for correcting a bad count, such as the well-known donation-mission duplicate-merit journal bug. Asks for confirmation first; can't be undone. |
-| **Reset Current System** | Zeroes just the current system's contribution, subtracted back out of the session totals too. Asks for confirmation first; can't be undone. |
-| **Copy Progress** | Copies one formatted line per row in the By System table to the clipboard — format is configurable in Settings → Tracking → Clipboard. |
-| **Close** | Closes the window. |
-
-### Rare Goods Finder
-
-Opened with the **Rares** button on the main panel — the nearest rare commodities to your current system, sorted by distance (nearest first, though distance itself isn't shown): rare good, origin system, station, pad size, and the origin system's current PowerPlay Controlling Power.
-
-- **"Show nearest"** field controls how many to list — type up to 141 to see the entire bundled dataset.
-- **Double-click a row** to open that rare good's page on Inara.
-
-Shows "Awaiting system data…" until EDPPMT has seen a `FSDJump`/`Location` event this run. The rare-good data itself (origin, station, pad, legality, PowerPlay eligibility, galactic coordinates — 141 entries) is bundled with the plugin and never makes a network call, since none of it changes; Controlling Power is the one column looked up live (from [Spansh](https://www.spansh.co.uk/)) since PowerPlay control shifts week to week — it shows "…" while loading and "—" if the system is unclaimed or the lookup fails (e.g. no internet).
-
-### Interdiction Warning
-
-Settings → Interdiction Warning, off by default. Draws a warning on your in-game overlay the instant an interdiction starts (before it resolves) — from Status.json's own flag, or from a hostile NPC's chat taunt, whichever actually arrives first — then updates it with who's interdicting (including their affiliated Power, when there is one) and the outcome (escaped / pulled from supercruise / submitted), auto-clearing a few seconds later. A red, always-on-alert card. This draws through [EDMCOverlay](https://github.com/inorton/EDMCOverlay) or its newer, actively-developed drop-in replacement [EDMCModernOverlay](https://github.com/SweetJonnySauce/EDMCModernOverlay) — either is a separate, optional community tool EDPPMT does not install, bundle, or launch itself — it just sends to whatever's listening on the host/port configured in Settings (default `127.0.0.1:5010`) if the feature is enabled, and silently does nothing if that's not reachable.
-
-- **Enable Interdiction Warning** checkbox — same toggle as the main panel's **Interdiction** button.
-- **EDMCOverlay host / Port** fields — where to send overlay graphics; shared with Landing.
-- **Test Warning** button — simulates a full interdiction lifecycle (active → resolved → auto-clear) and reports whether the send actually succeeded, so you can check your overlay setup without waiting for a real one. Works even while the feature is disabled above.
-
-### Landing
-
-Settings → Landing, off by default. Docking status from the moment you request docking (Docking Requested → Approved/Denied), which pad you're assigned, and — on a denial — why, plus a pad-layout diagram highlighting the assigned pad: a dodecagon layout for starports/outposts/planetary ports, or a Large/Medium/Small grid for fleet carriers, squadron carriers, and colonisation ships (the diagram itself just highlights the pad, no number drawn on it, since the pad number is already said as its own text line above it).
-
-- **Enable Landing** checkbox — same toggle as the main panel's **Landing** button; turning it off turns off both display mediums below at once.
-- **Show on Overlay** checkbox (on by default) — draws it on your in-game overlay, styled in an "Elite Orange" theme, a dark, orange-bordered card, staying up for about 10 seconds after you touch down before auto-hiding, over the same overlay connection as Interdiction Warning (host/port configured in either tab).
-- **Show in EDMC app** checkbox (on by default) — draws the *same* status line and diagram right on the main panel below the buttons, at a size that fits there — no overlay app needed, and both use the exact same underlying diagram geometry so they match. The pad number is always shown as its own line, even when no diagram is available for that station type (an explanatory line points at it instead, overlay-only for now).
-- **EDMCOverlay host / Port** fields — shared with Interdiction Warning.
-- **Test Overlay** button — sends a synthetic "Docking Approved, Jameson Memorial, Pad 24, starport diagram" scenario to whatever host/port is currently in the dialog (even if not yet saved), reports whether it actually reached EDMCOverlay — same as Interdiction Warning's "Test Warning" — and *also* previews that same scenario on the main panel's line and diagram (regardless of the checkboxes above), so you can check both at once without waiting for a real docking.
-
-### Auto-Honk
-
-Settings → Auto-Honk, off by default, Windows only. Fires your ship's Discovery Scanner (the system-wide "honk," not the Detailed Surface Scanner) every time you jump into a new system.
-
-- **Enable Auto-Honk** checkbox — same toggle as the main panel's **Auto-Honk** button.
-- **Fire button** (Primary/Secondary) and **Hold (sec)** fields — which button the Discovery Scanner is bound to, and a hold duration long enough to cover your ship's actual charge time. EDPPMT reads your active keybindings file to find the physical key that fire button maps to, and says so plainly here if it can't (e.g. it's only bound to a joystick/HOTAS button).
-- **Focus game window first** checkbox — brings Elite Dangerous to the foreground before sending the keypress.
-- **Skip systems already visited this session** checkbox (on by default) — avoids re-honking familiar space.
-- **Rescan keybind & running apps** button — re-reads your keybindings after rebinding in-game, and re-checks whether EDCoPilot is running with its own AutoHonk setting on (flagged here so you can turn one off and avoid double-honking).
-- **Test Honk Now** button — fires immediately to confirm it reaches the game window. Both this and Rescan work even while Auto-Honk is disabled above.
-
-### Settings tab
-
-The installed version (a static link to the Releases page) sits at the top, then five sub-tabs, one per feature:
-
-- **Tracking** — **CP Ratios** (the merits-per-CP ratio for each activity, editable in case Frontier tunes Powerplay balance or a default turns out to be off) and **Clipboard** (the line format "Copy Progress" in the Sessions window uses, with placeholders for the system name/Inara URL/merits/CP/PowerPlay state, and a **Reset to default** button).
-- **Auto-Honk**, **Interdiction Warning**, and **Landing** — described above.
-- **Updates** — the **Automatically download updates** checkbox (off by default, see Updates above).
-
-## How activity is classified
-
-EDPPMT infers whether a batch of merits counts as Acquisition, Reinforcement, or Undermining from the PowerPlay state of the system you're in when they land, relative to your pledged Power:
-
-- Nobody holds the system yet → **Acquisition**
-- You hold it → **Reinforcement**
-- A rival holds it → **Undermining**
-- Can't tell (not currently pledged, or no system context seen yet this session) → **Unattributed**
-
-**Delivery/Donation** is the one exception: handing in PowerPlay commodities or data at a power contact is tagged directly, without guessing at a system state.
-
-This is a best-effort heuristic, not something the game states directly — Frontier has never documented a merits→activity mapping in the journal. If a row in the Sessions window looks wrong, that's useful signal: the system name and raw PowerPlay state your commander last saw are shown right there so you can compare them against what you'd expect. See [`docs/tech-spec.md`](docs/tech-spec.md#6-merit--activity--cp-pipeline) for the full mechanics, including how pledge detection recovers itself if EDMC starts after the game is already running.
-
-## CP ratios
-
-| Activity | Default (merits per 1 CP) |
-|---|---|
-| Acquisition | 4.0 |
-| Reinforcement | 2.5 |
-| Undermining | 4.2 |
-| Delivery/Donation | *(none — merits only, see above)* |
-
-These are community-sourced for Powerplay 2.0 (Undermining is the least certain of the three) and editable from Settings → Tracking → CP Ratios if Frontier tunes the balance or a default turns out to be off. CP is never baked into stored session data — it's recalculated from the current ratio settings whenever you view a session, so correcting a ratio retroactively fixes CP estimates for history too. See [`docs/ATTRIBUTIONS.md`](docs/ATTRIBUTIONS.md) for where these numbers come from.
-
-## Sessions
-
-A session spans one continuous game client launch **for one commander**, saved to `plugin/sessions.json` (next to the installed plugin, not part of the distributed release — see Updates above). Logging out to the main menu and back in as the *same* commander, or closing and reopening EDMC while the game keeps running, both continue the same session instead of starting a new one. Switching to a *different* commander at the login screen always starts a fresh, zeroed-out session, even without restarting the game client. A new session also starts whenever the game itself is (re)launched. Sessions are per commander login, not per PowerPlay activity — defecting or leaving PowerPlay mid-session doesn't start a new one.
-
-Deleting the plugin folder and dropping in a fresh copy removes `sessions.json` along with it, since it lives inside that same folder — copy a new version's files *into* the existing folder instead (which is what both the manual install steps above and auto-update do) to keep your history.
-
-## Money
-
-"Credits earned" is a simple diff of your credit balance from session start to now — it covers all income and expenses (trading, bounties, PP salary, ship costs, etc.), not just PowerPlay-specific income.
-
-## For Developers
-
-Building from source instead of using a release zip:
-
-1. `npm run build` (or `node scripts/build.mjs`) — produces `dist/EDPPMT/`.
-2. Copy `dist/EDPPMT` into your EDMC plugins folder the same way as the player steps above.
-3. Restart EDMC.
-
-`npm run package` does both of those *and* zips the result to `dist/EDPPMT-v<version>.zip` — the same artifact published on the Releases page.
-
-There's no EDMC install available in this repo, so most of `plugin/`'s modules can't be imported standalone — `config`, `theme`, `myNotebook`, and `companion` are all provided by EDMC at runtime, not installable packages. See [`docs/tech-spec.md`](docs/tech-spec.md) for the module layout, data formats, and the full EDMC plugin API surface this plugin uses — that's the place to look for *how* any of this works internally, rather than here.
-
-### Testing the overlay features without EDMC or the game running
-
-`npm run test:overlay` (or `python scripts/test_overlay.py [--host HOST] [--port PORT]`, default `127.0.0.1:5010`) runs every Interdiction Warning and Landing overlay scenario — active/resolved interdictions, every Landing diagram family (starport at a few different pads, fleet carrier, squadron carrier, colonisation ship), denied/approved/requested states, and the no-diagram text fallback — against a real running EDMCOverlay or EDMCModernOverlay instance, picked one at a time from an interactive menu. It calls the actual `plugin/overlay.py`/`plugin/interdiction.py`/`plugin/landing.py` code directly (stubbing only EDMC's `config` module, which is all those three need), not a reimplementation, so what you see is exactly what the real plugin would draw. The overlay helper app needs to be running, and so does Elite Dangerous itself — both EDMCOverlay and EDMCModernOverlay's normal mode track the live game window to position/size themselves against, and draw nothing without one (EDMC itself is the one thing that genuinely doesn't need to be running — this script talks straight to the overlay app's TCP socket). Leave the tool running while you look at the overlay; quitting it (`q`) disconnects, which — same as closing EDMC would for the real plugin — makes everything it drew disappear immediately.
-
-This script only exercises the **overlay** half of each feature — it talks straight to `overlay.py`'s `OverlayClient`, bypassing `ui.py` entirely, so it needs a real EDMCOverlay/EDMCModernOverlay instance and can't be used to check Landing's in-app main-panel line/diagram (`ui.set_landing_info`/`ui.set_landing_diagram`), since those need a real, running EDMC main window (`_ui_frame`) to update. Settings' "Test Overlay" button (`ui._test_landing`) is different from the script in exactly this respect: alongside its own overlay send, it also calls `ui.set_landing_info`/`ui.set_landing_diagram` directly and synchronously (it's already running on the Tk main thread as a button click handler, so no `_ui_frame.after` marshalling is needed the way the live journal-event path requires), so it's the quickest way to check the in-app diagram while developing — no real docking event needed. Absent that button, the alternative is a real `DockingRequested`/`DockingGranted`/`DockingDenied` journal event, or driving `LandingTracker`/`ui.set_landing_info`/`ui.set_landing_diagram` directly from a REPL against a running EDMC.
-
-**Auto-update is off by default, but can still overwrite a local test install if you've turned it on for that copy.** A plugin folder dropped into your EDMC plugins directory for testing looks, to `update.py`, exactly like a real install - if "Automatically download updates" is enabled there and the local build is older than the latest GitHub Release, EDMC will download and stage that release over your hand-edited files on its next restart. Drop an empty `disable-auto-update.txt` file in the plugin folder to override the checkbox unconditionally if you want it on elsewhere while still hand-editing this copy.
-
-## Learn More
-
-- [`docs/tech-spec.md`](docs/tech-spec.md) — architecture, module layout, data formats, the full journal-event handling and activity-classification pipeline, and the EDMC plugin API surface used.
-- [`docs/ATTRIBUTIONS.md`](docs/ATTRIBUTIONS.md) — sources for the journal event fields, merit/CP ratios, and third-party data this plugin relies on.
-- [`CHANGELOG.md`](CHANGELOG.md) — release history.
+- [docs/tech-spec.md](docs/tech-spec.md) — architecture, module layout, data formats, the merit/activity/CP pipeline, and the EDMC plugin API surface used.
+- [docs/ATTRIBUTIONS.md](docs/ATTRIBUTIONS.md) — sources for journal event fields, merit/CP ratios, and third-party data this plugin relies on.
+- [CHANGELOG.md](CHANGELOG.md) — release history.
