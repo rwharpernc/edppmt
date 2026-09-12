@@ -9,10 +9,19 @@ EDPPMT extends Elite Dangerous Market Connector (EDMC) with a PowerPlay
 panel: it tracks the merits you earn live, estimates the Control Points
 (CP) and credits they represent, keeps a history of every session, and
 adds a handful of optional quality-of-life tools (Rare Goods Finder,
-Auto-Honk, Interdiction Warning, Landing). It never touches the game
+Auto-Honk, Interdiction Warning, Landing, Discovery). It never touches the game
 itself — it only reads *Elite Dangerous*'s own journal files via EDMC,
 the same way EDMC does. See [Developer Documentation](#developer-documentation)
 below for architecture and internals.
+
+Beyond PowerPlay and merit tracking, EDPPMT has grown a handful of
+general-purpose commander's-life features that aren't PowerPlay-specific
+at all (Interdiction Warning, Landing, Discovery) — added because they
+were nice to have, and because building them on EDPPMT's existing journal
+pipeline and overlay plumbing was easy. Some overlap with each other; all
+are opt-in and can be switched on or off independently from the Settings
+tab or the main panel's quick-toggle buttons, so you only run what's
+useful to you.
 
 Please report issues on [GitHub](https://github.com/rwharpernc/edppmt/issues).
 
@@ -32,12 +41,18 @@ Please report issues on [GitHub](https://github.com/rwharpernc/edppmt/issues).
 - **Auto-Honk** *(Windows only, off by default)* — fires your Discovery
   Scanner automatically on every system jump.
 - **Interdiction Warning** *(off by default)* — an on-screen heads-up via
-  an optional overlay plugin, drawn the instant an interdiction starts:
-  from Status.json's flag or a hostile NPC's chat taunt, whichever
-  arrives first — the taunt often wins that race.
+  an optional overlay plugin. A hostile NPC's own "I'm coming for you"-style
+  taunt usually wins the race and fires several seconds to tens of seconds
+  *before* the interdiction actually begins; Status.json's flag or the
+  resolving journal event are the fallback if no taunt arrives.
 - **Landing** *(off by default)* — docking status, assigned pad, and a
   pad-layout diagram, shown on the in-game overlay and/or right in the
   EDMC panel.
+- **Discovery** *(off by default)* — a gold overlay alert the instant you
+  jump into a system nobody's ever scanned before, and a cyan alert the
+  instant you're the first to scan or map a body. Silent on already-charted
+  systems/bodies — it's a celebration of the rare case, not a running
+  status line.
 - **Alt-friendly** — every commander's merits, CP, and sessions are
   tracked separately, and switching commanders in EDMC switches the
   whole panel with them.
@@ -50,9 +65,9 @@ Please report issues on [GitHub](https://github.com/rwharpernc/edppmt/issues).
   installed and running. EDPPMT is a plugin for EDMC, not a standalone
   application — it cannot function without it.
 - **Optional:** [EDMCModernOverlay](https://github.com/SweetJonnySauce/EDMCModernOverlay)
-  (or the older EDMCOverlay) for Interdiction Warning's and Landing's
-  in-game overlay graphics. Without it, both features simply have no
-  overlay to draw on — the plugin still works.
+  (or the older EDMCOverlay) for Interdiction Warning's, Landing's, and
+  Discovery's in-game overlay graphics. Without it, those features simply
+  have no overlay to draw on — the plugin still works.
 
 ## Installation
 
@@ -76,9 +91,9 @@ release and restart EDMC — or turn on auto-update (see below)._
 - The panel appears in EDMC's main window automatically once the plugin
   is installed — no setup required to start tracking merits.
 - Start EDMC before (or with) the game so journal events reach it live.
-- Interdiction Warning, Landing, and Auto-Honk are all **off by default**
-  — turn them on from the Settings tab (`File → Settings → EDPPMT`) or
-  with the quick-toggle buttons on the main panel.
+- Interdiction Warning, Landing, Discovery, and Auto-Honk are all **off by
+  default** — turn them on from the Settings tab (`File → Settings →
+  EDPPMT`) or with the quick-toggle buttons on the main panel.
 - The Settings tab shows the installed version (a link to the Releases
   page) and lets you edit the CP ratios and clipboard format.
 - Click the panel header to collapse it to just the title; the
@@ -90,17 +105,27 @@ release and restart EDMC — or turn on auto-update (see below)._
   the system you're in and its PowerPlay state, merits/CP for *this
   system* (switches live as you jump), and session-wide totals —
   updated as journal events arrive.
-- **Buttons**: quick on/off toggles for Auto-Honk, Interdiction, and
-  Landing; **Rares** opens the Rare Goods Finder; **Sessions** opens the
-  session-history window; **Rescan** re-reads the current journal file
+- **Buttons**: quick on/off toggles for Auto-Honk, Interdiction, Landing,
+  and Discovery; **Rares** opens the Rare Goods Finder; **Sessions** opens
+  the session-history window; **Rescan** re-reads the current journal file
   directly, recovering any merits missed if EDMC started after the game
   was already running.
 - **Interdiction Warning** fires off two independent signals, not one —
   Status.json's "being interdicted" flag can lag up to ~1s behind the
-  real moment (it's only checked once a second), so a matching hostile
-  NPC chat line is treated as its own trigger and often shows the
-  warning first. Only NPC-channel chat counts, to avoid other commanders
-  chatting about pirates in system/squadron chat setting it off.
+  real moment (it's only checked once a second) and only flips once the
+  interdiction has already begun, so a matching hostile NPC chat line is
+  treated as its own, earlier trigger: real-world testing against this
+  developer's own journal history showed these taunts precede the actual
+  interdiction by a median of 17 seconds (up to nearly a minute). Only
+  NPC-channel chat counts, to avoid other commanders chatting about
+  pirates in system/squadron chat setting it off.
+- **Discovery** watches the same "was this ever scanned/mapped before"
+  flags the game itself reports: the arrival star's automatic post-jump
+  scan tells you whether the system is a new discovery, and every
+  subsequent scan or Detailed Surface Scanner mapping tells you the same
+  for that body. There's no direct "is this system new" field in the
+  journal, so the arrival star's discovery status is used as the best
+  available stand-in for the whole system.
 - **Sessions window** — a By System and By Activity breakdown for the
   current session, plus a History tab of past sessions and a cumulative
   all-time summary. A session spans one continuous game-client launch
@@ -133,9 +158,9 @@ EDPPMT makes network calls only for features you can see are network-backed:
 - **GitHub**, to check whether a newer release exists (once per EDMC
   start, only if "Automatically download updates" is enabled — off by
   default) and to download the release `.zip` if one is found.
-- Interdiction Warning and Landing send to a local overlay endpoint you
-  configure (default `127.0.0.1:5010`) — that's your own machine, not a
-  remote service.
+- Interdiction Warning, Landing, and Discovery send to a local overlay
+  endpoint you configure (default `127.0.0.1:5010`) — that's your own
+  machine, not a remote service.
 
 Double-clicking a Rare Goods Finder row, or a system link in a "Copy
 Progress" line, opens that page on Inara in your own browser — that's a

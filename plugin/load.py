@@ -22,6 +22,7 @@ from monitor import monitor
 
 from . import __version__
 from . import autohonk
+from . import discovery
 from . import interdiction
 from . import landing
 from . import overlay
@@ -57,6 +58,7 @@ _updater: Optional[UpdateManager] = None
 _autohonk: Optional[autohonk.AutoHonkController] = None
 _interdiction: Optional[interdiction.InterdictionTracker] = None
 _landing: Optional[landing.LandingTracker] = None
+_discovery: Optional[discovery.DiscoveryTracker] = None
 _overlay: overlay.OverlayClient = overlay.OverlayClient()
 
 # Journal events forwarded to _interdiction.handle_event unconditionally
@@ -98,12 +100,13 @@ _DELIVERY_EVENTS = ("SearchAndRescue", "DeliverPowerMicroResources")
 
 def plugin_start3(plugin_dir: str) -> str:
     """Load EDPPMT into EDMarketConnector."""
-    global _sessions, _updater, _autohonk, _interdiction, _landing
+    global _sessions, _updater, _autohonk, _interdiction, _landing, _discovery
     logger.info("EDPPMT v%s starting from %s", __version__, plugin_dir)
     _sessions = SessionManager(SessionStore(plugin_dir))
     _autohonk = autohonk.AutoHonkController()
     _interdiction = interdiction.InterdictionTracker(on_change=_on_interdiction_change)
     _landing = landing.LandingTracker(on_change=_on_landing_change)
+    _discovery = discovery.DiscoveryTracker(on_change=_on_discovery_change)
     overlay.register_modern_overlay_group()
 
     applied_version = check_applied_update()
@@ -145,7 +148,7 @@ def plugin_app(parent: tk.Frame) -> tk.Frame:
     global _ui_frame
     _ui_frame = ui.create_plugin_app(
         parent, _show_sessions, _show_rares, _rescan_journal,
-        _toggle_autohonk, _toggle_interdiction, _toggle_landing,
+        _toggle_autohonk, _toggle_interdiction, _toggle_landing, _toggle_discovery,
     )
     if _sessions is not None:
         # Show whatever session state was persisted from last run right
@@ -200,6 +203,27 @@ def _toggle_landing() -> bool:
     landing.save_config(cfg)
     if not cfg.enabled:
         _clear_landing_display()
+    return cfg.enabled
+
+
+def _toggle_discovery() -> bool:
+    """Main-panel Discovery button - same reasoning as _toggle_interdiction
+    (no reload needed; DiscoveryTracker's on_change path checks
+    load_config().enabled fresh on every alert). Unlike Landing, there's no
+    in-app widget to clear here - Discovery is overlay-only - but a
+    still-showing overlay alert is cleared immediately on turning off,
+    rather than left up until its own ttl expires."""
+    cfg = discovery.load_config()
+    cfg.enabled = not cfg.enabled
+    discovery.save_config(cfg)
+    if not cfg.enabled:
+        def worker() -> None:
+            try:
+                discovery.clear(_overlay)
+            except OSError:
+                logger.debug("Could not reach EDMCOverlay to clear discovery alerts", exc_info=True)
+
+        threading.Thread(target=worker, name="EDPPMT-discovery-clear", daemon=True).start()
     return cfg.enabled
 
 
@@ -398,6 +422,26 @@ def _on_landing_change(snapshot: landing.LandingSnapshot) -> None:
         _ui_frame.after(0, lambda t=text, i=info, c=carrier_type: _update_landing_widgets(t, i, c))
 
 
+def _on_discovery_change(snapshot: discovery.DiscoverySnapshot) -> None:
+    """Called synchronously from _dispatch/journal_entry (EDMC's own
+    calling thread) whenever a system or body alert slot changes - see
+    _on_interdiction_change for why the actual overlay send is pushed onto
+    a background thread rather than risking EDMC's callback stalling on
+    it."""
+    if not discovery.load_config().enabled:
+        return
+
+    def worker() -> None:
+        try:
+            discovery.render(snapshot, _overlay)
+        except OSError:
+            # EDMCOverlay isn't running/reachable - expected and silent on
+            # the live path, same as _on_interdiction_change.
+            logger.debug("Could not reach EDMCOverlay for discovery alert", exc_info=True)
+
+    threading.Thread(target=worker, name="EDPPMT-discovery-render", daemon=True).start()
+
+
 def plugin_prefs(parent, cmdr: str, is_beta: bool):
     """Create the EDPPMT settings tab."""
     return ui.create_prefs(parent)
@@ -412,6 +456,14 @@ def prefs_changed(cmdr: str, is_beta: bool) -> None:
         _autohonk.reload_config()
     ui.sync_toggle_buttons()  # main-panel buttons reflect whatever Settings just saved
     _clear_landing_display()  # a Landing/overlay/in-app checkbox just turned off takes effect immediately
+    if not discovery.load_config().enabled:
+        def worker() -> None:
+            try:
+                discovery.clear(_overlay)
+            except OSError:
+                logger.debug("Could not reach EDMCOverlay to clear discovery alerts", exc_info=True)
+
+        threading.Thread(target=worker, name="EDPPMT-discovery-clear", daemon=True).start()
     if _sessions is not None:
         _sessions.flush()
 
@@ -431,6 +483,8 @@ def journal_entry(
 
     if system:
         _current_system = system
+        if _discovery is not None:
+            _discovery.handle_system_change(system)
 
     try:
         credits_now = state.get("Credits") if isinstance(state, dict) else None
@@ -533,6 +587,9 @@ def _dispatch(cmdr: str, system: str, entry: Dict[str, Any]) -> Optional[str]:
 
     if _landing is not None and event in landing.DOCKING_EVENTS:
         _landing.handle_event(entry)
+
+    if _discovery is not None and event in discovery.DISCOVERY_EVENTS:
+        _discovery.handle_event(entry)
 
     if event == "LoadGame":
         ui.set_mode(_mode_text(entry.get("GameMode"), entry.get("Group")))

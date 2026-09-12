@@ -76,7 +76,7 @@ def save_config(cfg: OverlayConfig) -> None:
 
 # ID prefixes for every overlay id this plugin ever sends - see
 # register_modern_overlay_group().
-_ID_PREFIXES = ("edppmt_interdiction_", "edppmt_landing_")
+_ID_PREFIXES = ("edppmt_interdiction_", "edppmt_landing_", "edppmt_discovery_")
 
 
 def register_modern_overlay_group() -> None:
@@ -117,6 +117,12 @@ def register_modern_overlay_group() -> None:
             plugin_matching_prefixes=list(_ID_PREFIXES),
             plugin_group_name="Landing",
             plugin_group_prefixes=["edppmt_landing_"],
+        )
+        define_plugin_group(
+            plugin_name="EDPPMT",
+            plugin_matching_prefixes=list(_ID_PREFIXES),
+            plugin_group_name="Discovery",
+            plugin_group_prefixes=["edppmt_discovery_"],
         )
     except Exception:
         # Registration is a cosmetic best-effort nicety, not something that

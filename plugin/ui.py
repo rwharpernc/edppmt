@@ -18,6 +18,7 @@ from ttkHyperlinkLabel import HyperlinkLabel
 
 from . import __version__
 from . import autohonk
+from . import discovery
 from . import interdiction
 from . import landing
 from . import overlay
@@ -170,9 +171,11 @@ _last_credits_earned: Optional[int] = None
 _autohonk_toggle_btn: Optional[tk.Button] = None
 _interdiction_toggle_btn: Optional[tk.Button] = None
 _landing_toggle_btn: Optional[tk.Button] = None
+_discovery_toggle_btn: Optional[tk.Button] = None
 _on_toggle_autohonk: Optional[Callable[[], bool]] = None
 _on_toggle_interdiction: Optional[Callable[[], bool]] = None
 _on_toggle_landing: Optional[Callable[[], bool]] = None
+_on_toggle_discovery: Optional[Callable[[], bool]] = None
 
 # Captured from the first toggle button's own defaults right after creation
 # (before any color override) rather than hardcoded, so "off" always matches
@@ -219,6 +222,15 @@ _landing_result_label: Optional[tk.Label] = None
 # deliberately NOT in this list, same reasoning as Interdiction's Test
 # Warning.
 _landing_dependent_widgets: List[tk.Widget] = []
+
+_discovery_enabled_var: Optional[tk.BooleanVar] = None
+_discovery_result_label: Optional[tk.Label] = None
+
+# Host/port fields for Discovery's tab share the same _overlay_host_var/
+# _overlay_port_var as Interdiction/Landing (one shared EDMCOverlay
+# connection) - greyed out together with Discovery's own Enable checkbox,
+# same pattern as _interdiction_dependent_widgets/_landing_dependent_widgets.
+_discovery_dependent_widgets: List[tk.Widget] = []
 
 # (kind, version) — kind is one of "normal", "downloading", "downloaded", "updated".
 _version_state: tuple = ("normal", None)
@@ -284,18 +296,20 @@ def create_plugin_app(
     on_toggle_autohonk: Callable[[], bool],
     on_toggle_interdiction: Callable[[], bool],
     on_toggle_landing: Callable[[], bool],
+    on_toggle_discovery: Callable[[], bool],
 ) -> tk.Frame:
     """Create the main-window frame for EDMC."""
     global _frame, _status_label, _mode_label, _system_label, _here_merits_label, _here_cp_label
     global _merits_label, _cp_label, _credits_label
     global _last_event_label, _landing_info_label, _landing_diagram_canvas
     global _version_label, _title_label, _collapsed, _collapsible_widgets
-    global _autohonk_toggle_btn, _interdiction_toggle_btn, _landing_toggle_btn
-    global _on_toggle_autohonk, _on_toggle_interdiction, _on_toggle_landing, _toggle_off_colors
+    global _autohonk_toggle_btn, _interdiction_toggle_btn, _landing_toggle_btn, _discovery_toggle_btn
+    global _on_toggle_autohonk, _on_toggle_interdiction, _on_toggle_landing, _on_toggle_discovery, _toggle_off_colors
 
     _on_toggle_autohonk = on_toggle_autohonk
     _on_toggle_interdiction = on_toggle_interdiction
     _on_toggle_landing = on_toggle_landing
+    _on_toggle_discovery = on_toggle_discovery
 
     _frame = tk.Frame(parent)
     _frame.columnconfigure(1, weight=1)
@@ -392,7 +406,9 @@ def create_plugin_app(
     _interdiction_toggle_btn = tk.Button(toggles_row, text="Interdiction", command=_on_interdiction_toggle_click)
     _interdiction_toggle_btn.pack(side=tk.LEFT, padx=(0, 6))
     _landing_toggle_btn = tk.Button(toggles_row, text="Landing", command=_on_landing_toggle_click)
-    _landing_toggle_btn.pack(side=tk.LEFT)
+    _landing_toggle_btn.pack(side=tk.LEFT, padx=(0, 6))
+    _discovery_toggle_btn = tk.Button(toggles_row, text="Discovery", command=_on_discovery_toggle_click)
+    _discovery_toggle_btn.pack(side=tk.LEFT)
 
     windows_row = tk.Frame(_frame)
     windows_row.grid(row=14, column=0, columnspan=3, pady=(4, 0))
@@ -519,6 +535,8 @@ def sync_toggle_buttons() -> None:
         _apply_toggle_button_state(_interdiction_toggle_btn, interdiction.load_config().enabled)
     if _landing_toggle_btn is not None:
         _apply_toggle_button_state(_landing_toggle_btn, landing.load_config().enabled)
+    if _discovery_toggle_btn is not None:
+        _apply_toggle_button_state(_discovery_toggle_btn, discovery.load_config().enabled)
 
 
 def _on_autohonk_toggle_click() -> None:
@@ -549,6 +567,16 @@ def _on_landing_toggle_click() -> None:
     if _landing_enabled_var is not None:
         _landing_enabled_var.set(enabled)
         _update_landing_dependent_state()
+
+
+def _on_discovery_toggle_click() -> None:
+    if _on_toggle_discovery is None or _discovery_toggle_btn is None:
+        return
+    enabled = _on_toggle_discovery()
+    _apply_toggle_button_state(_discovery_toggle_btn, enabled)
+    if _discovery_enabled_var is not None:
+        _discovery_enabled_var.set(enabled)
+        _update_discovery_dependent_state()
 
 
 def _cp_by_activity(totals: Dict[str, int]) -> Dict[str, float]:
@@ -733,6 +761,7 @@ def create_prefs(parent: nb.Notebook) -> nb.Frame:
     - **Auto-Honk** — fires the Discovery Scanner on system entry.
     - **Interdiction Warning** — overlay warning when interdicted.
     - **Landing** — overlay docking status + pad-layout diagram.
+    - **Discovery** — overlay alert on a new system/body discovery.
     - **Updates** — unchanged.
     """
     global _ratio_vars, _auto_update_var
@@ -769,6 +798,7 @@ def create_prefs(parent: nb.Notebook) -> nb.Frame:
     _create_single_tab(tabs, "Auto-Honk", _create_autohonk_section)
     _create_single_tab(tabs, "Interdiction Warning", _create_interdiction_section)
     _create_single_tab(tabs, "Landing", _create_landing_section)
+    _create_single_tab(tabs, "Discovery", _create_discovery_section)
     _create_single_tab(tabs, "Updates", _create_updates_section)
 
     _apply_version_state()
@@ -1320,6 +1350,132 @@ def _test_landing() -> None:
     threading.Thread(target=worker, name="EDPPMT-landing-test", daemon=True).start()
 
 
+def _create_discovery_section(frame: nb.Frame) -> None:
+    """Discovery: alerts on the overlay when the system you just jumped
+    into, or a body you just scanned/mapped, has never been found by
+    anyone before. Overlay-only (no in-app counterpart) — same EDMCOverlay
+    helper app as Interdiction Warning/Landing."""
+    global _discovery_enabled_var, _overlay_host_var, _overlay_port_var
+    global _discovery_result_label, _discovery_dependent_widgets
+
+    discovery_cfg = discovery.load_config()
+    overlay_cfg = overlay.load_config()
+
+    nb.Label(
+        frame,
+        text=(
+            "Shows a gold alert on your in-game overlay the moment you jump into a system nobody's "
+            "ever scanned before, and a cyan alert the moment you're the first to scan or map a body — "
+            "via EDMCOverlay, a separate, optional helper app EDPPMT does not install or launch itself."
+        ),
+        wraplength=440,
+        justify=tk.LEFT,
+    ).grid(row=0, column=0, columnspan=2, sticky=tk.W, padx=10, pady=(10, 4))
+
+    nb.Label(
+        frame,
+        text=(
+            "Stays silent on already-discovered systems/bodies (the common case, especially near "
+            "PowerPlay space) rather than showing a status line on every jump or scan."
+        ),
+        wraplength=440,
+        justify=tk.LEFT,
+        foreground=_INFO_COLOR,
+    ).grid(row=1, column=0, columnspan=2, sticky=tk.W, padx=10, pady=(0, 8))
+
+    HyperlinkLabel(
+        frame, text="Get EDMCOverlay", background=nb.Label().cget("background"),
+        url="https://github.com/inorton/EDMCOverlay", underline=True,
+    ).grid(row=2, column=0, columnspan=2, sticky=tk.W, padx=10, pady=(0, 8))
+
+    _discovery_enabled_var = tk.BooleanVar(value=discovery_cfg.enabled)
+    nb.Checkbutton(
+        frame, text="Enable Discovery Alerts", variable=_discovery_enabled_var,
+        command=_update_discovery_dependent_state,
+    ).grid(row=3, column=0, columnspan=2, sticky=tk.W, padx=10, pady=2)
+
+    sub = nb.Frame(frame)
+    sub.grid(row=4, column=0, columnspan=2, sticky=tk.W, padx=(28, 10))
+
+    host_row = tk.Frame(sub)
+    host_row.grid(row=0, column=0, sticky=tk.W, pady=2)
+    nb.Label(host_row, text="EDMCOverlay host:").pack(side=tk.LEFT)
+    # Same shared connection as Interdiction Warning/Landing - see
+    # _create_landing_section's own comment on _overlay_host_var/_overlay_port_var.
+    if _overlay_host_var is None:
+        _overlay_host_var = tk.StringVar(value=overlay_cfg.host)
+    host_entry = nb.EntryMenu(host_row, textvariable=_overlay_host_var, width=12)
+    host_entry.pack(side=tk.LEFT, padx=(4, 0))
+    nb.Label(host_row, text="   Port:").pack(side=tk.LEFT)
+    if _overlay_port_var is None:
+        _overlay_port_var = tk.StringVar(value=overlay_cfg.port)
+    port_entry = nb.EntryMenu(host_row, textvariable=_overlay_port_var, width=6)
+    port_entry.pack(side=tk.LEFT, padx=(4, 0))
+
+    _discovery_dependent_widgets = [host_entry, port_entry]
+
+    action_row = tk.Frame(frame)
+    action_row.grid(row=5, column=0, columnspan=2, sticky=tk.W, padx=10, pady=(6, 2))
+    tk.Button(action_row, text="Test Discovery", command=_test_discovery).pack(side=tk.LEFT)
+    _discovery_result_label = nb.Label(action_row, text="", wraplength=320, justify=tk.LEFT)
+    _discovery_result_label.pack(side=tk.LEFT, padx=(10, 0))
+
+    nb.Label(
+        frame,
+        text="(Test Discovery works even while disabled above, and reports whether EDMCOverlay was actually reachable.)",
+        wraplength=440,
+        justify=tk.LEFT,
+    ).grid(row=6, column=0, columnspan=2, sticky=tk.W, padx=10, pady=(0, 10))
+
+    _update_discovery_dependent_state()
+
+
+def _update_discovery_dependent_state() -> None:
+    if _discovery_enabled_var is None:
+        return
+    state = tk.NORMAL if _discovery_enabled_var.get() else tk.DISABLED
+    for widget in _discovery_dependent_widgets:
+        try:
+            widget["state"] = state
+        except tk.TclError:
+            pass
+
+
+def _test_discovery() -> None:
+    """Simulates both alert slots (system + body, the body one following a
+    couple seconds later as "mapped") through the real detection pipeline
+    (discovery.DiscoveryTracker.trigger_test), rendering against whatever
+    host/port is currently in the dialog (even if not yet saved) - same
+    reasoning as _test_interdiction."""
+    if _discovery_result_label is None:
+        return
+
+    cfg = overlay.OverlayConfig(
+        host=_overlay_host_var.get() if _overlay_host_var is not None else overlay.DEFAULT_HOST,
+        port=_overlay_port_var.get() if _overlay_port_var is not None else overlay.DEFAULT_PORT,
+    )
+    client = overlay.OverlayClient(cfg)
+    frame = _discovery_result_label
+
+    def render_once(snapshot: discovery.DiscoverySnapshot) -> None:
+        try:
+            discovery.render(snapshot, client)
+            outcome, color = "Sent — check your overlay.", "#2e7d32"
+        except OSError as err:
+            outcome, color = f"Could not reach EDMCOverlay at {cfg.host}:{cfg.port} ({err}).", "#c07000"
+        try:
+            frame.after(0, lambda: (frame.configure(text=outcome, foreground=color)))
+        except tk.TclError:
+            pass  # Settings dialog was closed before the test finished.
+
+    tracker = discovery.DiscoveryTracker(on_change=render_once)
+
+    def worker() -> None:
+        tracker.trigger_test()
+
+    threading.Thread(target=worker, name="EDPPMT-discovery-test", daemon=True).start()
+
+
 def save_prefs() -> None:
     """Persist ratio and update-preference settings from the prefs tab."""
     for activity, var in _ratio_vars.items():
@@ -1342,6 +1498,7 @@ def save_prefs() -> None:
     _save_autohonk_prefs()
     _save_interdiction_prefs()
     _save_landing_prefs()
+    _save_discovery_prefs()
 
 
 def _save_interdiction_prefs() -> None:
@@ -1365,6 +1522,14 @@ def _save_landing_prefs() -> None:
     # write twice from one _overlay_host_var/_overlay_port_var pair, and
     # keeps this function self-contained if the Interdiction tab is ever
     # made optional/removed.
+    _save_overlay_connection_prefs()
+
+
+def _save_discovery_prefs() -> None:
+    if _discovery_enabled_var is None:
+        return
+
+    discovery.save_config(discovery.DiscoveryConfig(enabled=bool(_discovery_enabled_var.get())))
     _save_overlay_connection_prefs()
 
 

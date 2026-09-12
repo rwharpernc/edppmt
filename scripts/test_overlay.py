@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
-"""Standalone overlay tester for EDPPMT's Interdiction Warning and Landing
-features.
+"""Standalone overlay tester for EDPPMT's Interdiction Warning, Landing, and
+Discovery features.
 
 Exercises every render() scenario (interdiction states, every Landing
-diagram family, the no-diagram placeholder box, denied/approved/requested)
-against a *real* running EDMCOverlay or EDMCModernOverlay instance, using
-the actual plugin/overlay.py, plugin/interdiction.py, and plugin/landing.py
-code - not a reimplementation, so what you see here is exactly what ships.
+diagram family, the no-diagram placeholder box, denied/approved/requested,
+Discovery's system/body alert slots) against a *real* running EDMCOverlay or
+EDMCModernOverlay instance, using the actual plugin/overlay.py,
+plugin/interdiction.py, plugin/landing.py, and plugin/discovery.py code -
+not a reimplementation, so what you see here is exactly what ships.
 
 EDMC itself does NOT need to be running - this talks straight to the
 overlay helper app's TCP socket. Elite Dangerous DOES need to be running
@@ -73,13 +74,14 @@ def _import_plugin_modules():
     overlay = importlib.import_module("plugin.overlay")
     interdiction = importlib.import_module("plugin.interdiction")
     landing = importlib.import_module("plugin.landing")
-    return overlay, interdiction, landing
+    discovery = importlib.import_module("plugin.discovery")
+    return overlay, interdiction, landing, discovery
 
 
 Scenario = Tuple[str, Callable[[object], None]]
 
 
-def _build_scenarios(interdiction, landing) -> List[Scenario]:
+def _build_scenarios(interdiction, landing, discovery) -> List[Scenario]:
     def interdiction_active(power=None, is_thargoid=False, is_player=True) -> Callable[[object], None]:
         return lambda client: interdiction.render(
             interdiction.InterdictionSnapshot(
@@ -101,6 +103,10 @@ def _build_scenarios(interdiction, landing) -> List[Scenario]:
     def landing_scenario(carrier_type=None, **kwargs) -> Callable[[object], None]:
         info = landing.LandingDisplayInfo(**kwargs)
         return lambda client: landing.render(info, carrier_type, client)
+
+    def discovery_scenario(**kwargs) -> Callable[[object], None]:
+        snapshot = discovery.DiscoverySnapshot(**kwargs)
+        return lambda client: discovery.render(snapshot, client)
 
     return [
         ("Interdiction: active, player", interdiction_active()),
@@ -147,7 +153,21 @@ def _build_scenarios(interdiction, landing) -> List[Scenario]:
             pad=2, diagram_type=None, show_diagram=False,
         )),
         ("Landing: clear", lambda client: landing.clear(client)),
-        ("Clear everything (interdiction + landing)", None),  # handled specially below
+        ("Discovery: new system", discovery_scenario(
+            system_visible=True, system_name="Test System AB-C d1-23",
+        )),
+        ("Discovery: first scan of a body", discovery_scenario(
+            body_visible=True, body_name="Test System AB-C d1-23 1 c", body_action="scanned",
+        )),
+        ("Discovery: first to map a body", discovery_scenario(
+            body_visible=True, body_name="Test System AB-C d1-23 1 c", body_action="mapped",
+        )),
+        ("Discovery: system + body at once", discovery_scenario(
+            system_visible=True, system_name="Test System AB-C d1-23",
+            body_visible=True, body_name="Test System AB-C d1-23 1 c", body_action="scanned",
+        )),
+        ("Discovery: clear", lambda client: discovery.clear(client)),
+        ("Clear everything (interdiction + landing + discovery)", None),  # handled specially below
     ]
 
 
@@ -164,9 +184,9 @@ def main() -> None:
     parser.add_argument("--port", default="5010", help="EDMCOverlay/EDMCModernOverlay port (default: 5010)")
     args = parser.parse_args()
 
-    overlay, interdiction, landing = _import_plugin_modules()
+    overlay, interdiction, landing, discovery = _import_plugin_modules()
     client = overlay.OverlayClient(overlay.OverlayConfig(host=args.host, port=args.port))
-    scenarios = _build_scenarios(interdiction, landing)
+    scenarios = _build_scenarios(interdiction, landing, discovery)
     clear_all_index = len(scenarios) - 1
 
     print(f"EDPPMT overlay tester - target {args.host}:{args.port}")
@@ -195,6 +215,7 @@ def main() -> None:
                 if index == clear_all_index:
                     interdiction.render(interdiction.InterdictionSnapshot(active=False), client)
                     landing.clear(client)
+                    discovery.clear(client)
                 else:
                     action(client)
                 print(f"Sent: {name}\n")

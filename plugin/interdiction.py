@@ -59,28 +59,85 @@ RESOLVED_CLEAR_S = 8.0
 # Safety-net clear if Status.json's flag drops without a resolving journal
 # event ever arriving (e.g. the encounter fizzles out with nothing logged).
 GRACE_CLEAR_S = 3.0
+# Safety-net clear if a chat-triggered warning (now firing up to ~47s ahead
+# of the actual interdiction - see is_interdiction_start_token) is never
+# followed by either the Status.json flag or a resolving journal event at
+# all (e.g. the NPC loses the chase, or the commander jumps/boosts away
+# before it can interdict). Comfortably above the 47s max lead time this
+# developer's own real-journal scan observed, so it never races a genuine
+# encounter, but still clears a stale warning within a reasonable window
+# rather than leaving it up indefinitely.
+PENDING_CLEAR_S = 75.0
 
 # Status.json Flags bit 23 - set the moment an interdiction attempt starts
 # (before it resolves). Confirmed against EDCD/EDMarketConnector's
 # edmc_data.py: FlagsBeingInterdicted = 1 << 23.
 _BEING_INTERDICTED_BIT = 1 << 23
 
+# The single highest-confidence, language-independent pre-interdiction
+# signal: Frontier's own internal (non-localized) journal `Message` key for
+# the taunt an NPC sends right as it commits to interdicting you, e.g.
+# "$Pirate_StartInterdiction03;" or "$Military_StartInterdiction01;" - the
+# family name is stable across every client display language, unlike
+# `Message_Localised`'s translated prose, which CHAT_THREAT_PATTERNS below
+# can only ever match in English. Confirmed by scanning this developer's own
+# full local journal history (264 resolved Interdicted/EscapeInterdiction
+# encounters across ~5,460 journal files, 2026-09): a "npc"-channel
+# ReceiveText whose raw `Message` contains this substring precedes the
+# resolving event in 83.7% of encounters, at a median 17s (range 5-47s)
+# lead time - i.e., a genuine few-seconds-to-tens-of-seconds-early warning,
+# not just "interdiction in progress" flavor. By contrast, matching only
+# CHAT_THREAT_PATTERNS against the localized text (the previous, sole
+# detection path here) caught just 58.0% of the same encounters - nearly
+# half of the family's actual taunt lines ("I have you now!", "I'm coming
+# for you.", "Make it easy on yourself and submit.", ...) used no wording
+# any existing pattern recognized. This is checked first and independently
+# of CHAT_THREAT_PATTERNS in handle_event's ReceiveText branch - either one
+# matching is sufficient to trigger.
+_INTERDICTION_START_TOKEN = "startinterdiction"
+
+
+def is_interdiction_start_token(raw_message: Optional[str]) -> bool:
+    if not raw_message:
+        return False
+    return _INTERDICTION_START_TOKEN in raw_message.lower()
+
+
 # Ported verbatim from an earlier reference implementation of the author's
-# own, itself originally from another prior project of theirs. There it
-# styles NPC chat lines that look like an interdiction taunt; here it's
-# the earliest way to guess who's interdicting before the resolving
-# journal event arrives.
+# own, itself originally from another prior project of theirs, then
+# expanded (2026-09) against the same real-journal scan cited above with
+# the specific StartInterdiction taunt lines that scan showed
+# _INTERDICTION_START_TOKEN alone would miss the raw `Message` for (a
+# non-English client, or some other NPC family that turns out not to use
+# the "StartInterdiction" token naming) - a belt-and-suspenders fallback
+# match against `Message_Localised`, English-only same as before.
+#
+# Deliberately does NOT include the game's own "$Pirate_HunterHostileSC_
+# Relevant0N;"-family approach lines ("tasty cargo", "big haul", "the
+# rumour was right"...) as a *primary* trigger characteristic, even though
+# some of their exact wording already overlaps entries below - those are
+# "a hostile has noticed you" flavor that can play tens of seconds before
+# an interdiction attempt actually begins, if one begins at all; they're
+# not the specific "committing to interdict you now" signal the
+# StartInterdiction family and the patterns below both are.
 CHAT_THREAT_PATTERNS = (
     "interdict", "interdiction", "drop cargo", "drop your cargo", "yield", "hand over", "open fire",
     "pirate", "bounty hunter", "$pirate", "$bounty", "you're mine", "no escape", "prepare for death",
     "give me", "dump that cargo", "start dumping", "seconds before", "get 'em", "end you",
     # Pirates (cargo-based)
     "tasty cargo", "big haul", "huge haul", "cargo hold", "what you're carrying", "what do you carry",
-    "prepare yourself",
+    "prepare yourself", "what's in your hold",
+    # Confirmed real $Pirate_StartInterdictionNN taunt lines with no
+    # overlap in any pattern above (see the real-journal scan cited on
+    # _INTERDICTION_START_TOKEN) - these are the exact wording, not a guess.
+    "i have you now", "i've found my next target", "make it easy on yourself and submit",
+    "i'm coming for you", "you have something that i want",
     # Assassins / mission NPCs
-    "rumors were true", "hard person to find", "glad I found you", "your mine now", "boil you up",
-    # System authority (police)
-    "security forces scanning", "routine scan", "throttle down", "submit for a",
+    "rumors were true", "rumour was right", "hard person to find", "glad I found you", "your mine now",
+    "boil you up",
+    # System authority (police/military)
+    "security forces scanning", "routine scan", "throttle down", "submit for a", "naval scan in progress",
+    "submit to military inspection", "submit to this interdiction",
     # Hostile faction
     "messed with the wrong person", "eagle is in the nest",
 )
@@ -211,8 +268,13 @@ class InterdictionTracker:
             if entry.get("Channel") != "npc":
                 return
             if not self._interdictor_name:
-                message = entry.get("Message_Localised") or entry.get("Message")
-                if is_interdiction_message(message):
+                raw_message = entry.get("Message")
+                localised = entry.get("Message_Localised") or raw_message
+                # Either signal is sufficient - see is_interdiction_start_token's
+                # docstring for why the raw-token check is the higher-confidence,
+                # earlier-firing one (median 17s vs. the flag's ~1s at best),
+                # and CHAT_THREAT_PATTERNS the English-only fallback.
+                if is_interdiction_start_token(raw_message) or is_interdiction_message(localised):
                     sender = entry.get("From_Localised") or entry.get("From")
                     if sender:
                         # A matching taunt is itself a trigger, not just
@@ -227,6 +289,12 @@ class InterdictionTracker:
                             self._clear_test_timer()
                             self._clear_scheduled_clear()
                             self._active = True
+                            # Nothing else clears this yet - handle_dashboard_flags'
+                            # rising edge and the resolving-event branches below
+                            # each cancel this via their own _clear_scheduled_clear()/
+                            # _schedule_clear() calls the moment either confirms the
+                            # encounter, same as any other scheduled clear.
+                            self._schedule_clear(PENDING_CLEAR_S)
                         self._interdictor_name = str(sender)
                         self._emit_changed()
             return
