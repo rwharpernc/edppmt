@@ -5,6 +5,23 @@ All notable changes to EDPPMT are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.14.0] - 2026-09-12
+
+### Added
+- **Discovery** (off by default) — a new overlay alert, in the same family as Interdiction Warning
+  and Landing: a gold alert the instant you jump into a system nobody's ever scanned before, and a
+  cyan alert the instant you're the first to scan or map a body. Silent on already-charted
+  systems/bodies rather than showing a status line on every jump or scan.
+
+### Fixed
+- Interdiction Warning's NPC-taunt detection was matching only translated chat text, which missed
+  roughly half of the real pre-interdiction taunt lines and made the warning arrive late — often
+  after the interdiction had already started. It now also matches the raw, non-localized message key
+  Frontier sends for these taunts (e.g. "$Pirate_StartInterdiction03;"), which is both
+  language-independent and far more reliable: verified against real local journal history (264
+  resolved interdiction encounters), this catches 83.7% of encounters at a median 17-second lead time,
+  versus 58.0% before.
+
 ## [1.13.5] - 2026-09-05
 
 ### Fixed
