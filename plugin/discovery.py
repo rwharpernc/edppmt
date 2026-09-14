@@ -247,18 +247,22 @@ _BODY_NAME_ID = "edppmt_discovery_body_name"
 # Fixed placement, upper-right — clear of Interdiction Warning's upper-
 # center card (X=650) and Landing's lower-left card (Y=650+), so both can
 # be on at once without overlapping. Not user-configurable, same reasoning
-# as interdiction.py's own fixed placement.
-_X = 1320
+# as interdiction.py's own fixed placement. Shifted 30px left of the
+# original X=1320 to keep the now-wider cards from clipping a 1920-wide
+# screen's right edge.
+_X = 1290
 _Y_SYSTEM_TITLE = 100
 _Y_SYSTEM_NAME = 130
-_Y_BODY_TITLE = 180
-_Y_BODY_NAME = 210
 
 # Gold/amber reads as an achievement/celebration color (matches the game's
 # own "first discovered" Universal Cartographics bonus styling) rather than
 # a warning color like interdiction's red — this is good news, not danger.
 _SYSTEM_BORDER = "#f59e0b"  # amber-500
-_SYSTEM_FILL = "#4a2f0a0a"  # amber-950 at ~95% alpha
+# fill is "#AARRGGBB" (alpha first — see overlay.py's send_shape docstring),
+# not "#RRGGBBAA": this used to be written alpha-last, e.g. "#4a2f0a0a",
+# which OverlayClient actually parsed as ~29% alpha (alpha="4a") — an almost
+# invisible fill, hence the card reading as just a thin border line. f2 ~= 95%.
+_SYSTEM_FILL = "#f2451a03"  # amber-950, ~95% alpha
 _SYSTEM_TITLE_COLOR = "#fbbf24"  # amber-400
 _SYSTEM_NAME_COLOR = "white"
 
@@ -266,18 +270,32 @@ _SYSTEM_NAME_COLOR = "white"
 # system card's amber so the two can't be misread as duplicates of the same
 # alert when both are showing at once.
 _BODY_BORDER = "#22d3ee"  # cyan-400
-_BODY_FILL = "#0a3a4a0a"  # cyan-950 at ~95% alpha
+_BODY_FILL = "#f2083344"  # cyan-950, ~95% alpha (alpha first — see above)
 _BODY_TITLE_COLOR = "#67e8f9"  # cyan-300
 _BODY_NAME_COLOR = "white"
 
-_SYSTEM_CARD_X = _X - 20
-_SYSTEM_CARD_Y = _Y_SYSTEM_TITLE - 26
-_CARD_W = 480
-_SYSTEM_CARD_H = (_Y_SYSTEM_NAME + 30) - _SYSTEM_CARD_Y
+# Cards are ~30% larger (both axes) than the original 480x86 so the now-
+# solid background reads as a proper card rather than a cramped strip
+# around the text. The extra height is added below the text (top padding
+# to the title stays 26px) so title/name placement relative to the card's
+# top edge is unchanged.
+_CARD_W = 624  # 480 * 1.3
+_PAD_TOP = 26
+_CARD_H = 112  # 86 * 1.3, rounded
 
+_SYSTEM_CARD_X = _X - 20
+_SYSTEM_CARD_Y = _Y_SYSTEM_TITLE - _PAD_TOP
+_SYSTEM_CARD_H = _CARD_H
+
+# Body card sits below the system card with a fixed gap — computed from the
+# system card's own (now taller) bounds so the two never overlap, however
+# their sizes change in the future.
+_BODY_GAP = 20
 _BODY_CARD_X = _X - 20
-_BODY_CARD_Y = _Y_BODY_TITLE - 26
-_BODY_CARD_H = (_Y_BODY_NAME + 30) - _BODY_CARD_Y
+_BODY_CARD_Y = _SYSTEM_CARD_Y + _SYSTEM_CARD_H + _BODY_GAP
+_BODY_CARD_H = _CARD_H
+_Y_BODY_TITLE = _BODY_CARD_Y + _PAD_TOP
+_Y_BODY_NAME = _Y_BODY_TITLE + 30
 
 _BODY_ACTION_TEXT = {
     "scanned": "First scan of a new discovery!",

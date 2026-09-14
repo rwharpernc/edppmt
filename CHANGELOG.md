@@ -5,6 +5,15 @@ All notable changes to EDPPMT are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.14.1] - 2026-09-14
+
+### Fixed
+- Discovery's alert cards rendered as just a thin border line instead of a solid background — their
+  fill colors were written alpha-last ("#RRGGBBAA") but EDMCOverlay expects alpha first
+  ("#AARRGGBB"), so the alpha byte was parsed as ~4-29% instead of the intended ~95%, leaving the
+  fill nearly invisible. Fill colors are now correctly ~95% opaque (amber for system discoveries,
+  cyan for body discoveries), and both cards are about 30% larger.
+
 ## [1.14.0] - 2026-09-12
 
 ### Added
